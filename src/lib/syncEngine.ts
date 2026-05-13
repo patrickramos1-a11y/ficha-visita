@@ -76,8 +76,12 @@ class SyncEngine {
       for (const item of pending) {
         try {
           await setAtendimentoStatus(item.localId, 'syncing');
-          await pushAtendimento(item.localId, item.data);
+          const uploadedFotoIds = await pushAtendimento(item.localId, item.data);
           await removeAtendimento(item.localId);
+          // Free local storage of photo blobs
+          for (const id of uploadedFotoIds) {
+            try { await deletePhoto(id); } catch { /* noop */ }
+          }
           sentAtendimentos++;
         } catch (err: any) {
           hadFailure = true;
