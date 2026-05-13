@@ -269,6 +269,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         toggleChecklistItem,
         removeChecklistItem,
         addFoto,
+        addFotoFile,
         removeFoto,
         setTiposAtendimento,
         setAcoesEspecificas,
