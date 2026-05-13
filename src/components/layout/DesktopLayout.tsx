@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileBottomNav } from './MobileBottomNav';
+import { SyncStatusBadge } from '@/components/sync/SyncStatusBadge';
 
 interface DesktopLayoutProps {
   children: ReactNode;
