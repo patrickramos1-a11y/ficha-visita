@@ -31,9 +31,14 @@ export default function TiposAtendimento() {
     navigate('/visita/acoes');
   };
 
-  const availableTipos = TIPOS_ATENDIMENTO_CONFIG.filter(t => 
-    !selectedTipos.includes(t.nome as AtendimentoTipo)
-  );
+  const q = search.trim().toLowerCase();
+  const availableTipos = TIPOS_ATENDIMENTO_CONFIG
+    .filter(t => !selectedTipos.includes(t.nome as AtendimentoTipo))
+    .filter(t =>
+      !q ||
+      t.nome.toLowerCase().includes(q) ||
+      (t.descricao || '').toLowerCase().includes(q)
+    );
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/anotacoes')} title="Tipos de Atendimento">
