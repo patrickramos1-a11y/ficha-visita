@@ -227,5 +227,3 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
 
   return uploadedFotoIds;
 }
-
-}
