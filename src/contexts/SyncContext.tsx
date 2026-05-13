@@ -49,10 +49,11 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
   // Subscribe to engine running state
   useEffect(() => {
-    return syncEngine.subscribe(() => {
+    const unsub = syncEngine.subscribe(() => {
       setIsSyncing(syncEngine.isRunning());
       void refreshPending();
     });
+    return () => { unsub; };
   }, [refreshPending]);
 
   // Initial pending count + sync on app load if online
