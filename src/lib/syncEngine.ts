@@ -1,12 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getPlanoFromTipo } from '@/types/tiposAtendimentoConfig';
 import {
+  deletePhoto,
+  getPhotoBlob,
   listPendingAtendimentos,
   listPendingClientes,
   removeAtendimento,
   removeCliente,
   setAtendimentoStatus,
   setClienteStatus,
+  updateAtendimentoData,
 } from '@/lib/offlineDB';
 import { AtendimentoData } from '@/types/atendimento';
 
