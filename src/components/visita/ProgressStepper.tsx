@@ -61,8 +61,8 @@ export function ProgressStepper({ steps, currentStep }: ProgressStepperProps) {
 
       <div className="flex items-center justify-between">
         {steps.map((step, index) => {
-          const isDone = index < currentStep;
           const isCurrent = index === currentStep;
+          const isDone = isStepDone(step.id) && !isCurrent;
           const clickable = !!step.route && !isCurrent;
           return (
             <button
