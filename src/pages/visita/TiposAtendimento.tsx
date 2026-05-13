@@ -51,6 +51,28 @@ export default function TiposAtendimento() {
         badge={<CountBadge count={selectedTipos.length} />}
       />
 
+      <div className="px-4 pb-2">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar tipo de atendimento..."
+            className="pl-9 pr-9 h-11"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+              aria-label="Limpar busca"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="flex-1 overflow-auto scroll-smooth-y px-4 pb-4">
         {availableTipos.length === 0 && selectedTipos.length > 0 ? (
           <EmptyState
