@@ -89,6 +89,7 @@ export default function IniciarVisita() {
             </p>
           </div>
         </div>
+        <StartVisitDialog open={pickerOpen} onOpenChange={setPickerOpen} />
       </DesktopLayout>
     );
   }
@@ -150,6 +151,7 @@ export default function IniciarVisita() {
           </p>
         </div>
       </main>
+      <StartVisitDialog open={pickerOpen} onOpenChange={setPickerOpen} />
     </div>
   );
 }
