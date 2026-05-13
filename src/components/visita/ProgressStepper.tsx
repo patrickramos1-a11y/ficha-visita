@@ -1,10 +1,11 @@
 import { Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { CancelarVisitaButton } from './CancelarVisitaButton';
 
 interface Step {
   id: string;
   label: string;
+  route?: string;
 }
 
 interface ProgressStepperProps {
@@ -13,62 +14,82 @@ interface ProgressStepperProps {
   showCancel?: boolean;
 }
 
-export function ProgressStepper({ steps, currentStep, showCancel = true }: ProgressStepperProps) {
+export function ProgressStepper({ steps, currentStep }: ProgressStepperProps) {
+  const navigate = useNavigate();
   const progress = ((currentStep) / (steps.length - 1)) * 100;
+
+  const handleStepClick = (step: Step, index: number) => {
+    if (index === currentStep) return;
+    if (step.route) navigate(step.route);
+  };
 
   return (
     <div className="bg-card border-b border-border px-4 py-3">
-      {/* Progress bar */}
       <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-3">
-        <div 
+        <div
           className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* Step indicators - simplified for mobile */}
       <div className="flex items-center justify-between">
-        {steps.map((step, index) => (
-          <div key={step.id} className="flex flex-col items-center">
-            <div
+        {steps.map((step, index) => {
+          const isDone = index < currentStep;
+          const isCurrent = index === currentStep;
+          const clickable = !!step.route && !isCurrent;
+          return (
+            <button
+              key={step.id}
+              type="button"
+              onClick={() => handleStepClick(step, index)}
+              disabled={!clickable}
+              aria-label={`Ir para etapa ${index + 1}: ${step.label}`}
               className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all",
-                index < currentStep
-                  ? 'bg-primary text-primary-foreground'
-                  : index === currentStep
-                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30'
-                  : 'bg-muted text-muted-foreground'
+                "flex flex-col items-center touch-safe rounded-md p-1 -m-1 transition-opacity",
+                clickable ? "cursor-pointer hover:opacity-80 active:opacity-60" : "cursor-default"
               )}
             >
-              {index < currentStep ? (
-                <Check className="w-3.5 h-3.5" />
-              ) : (
-                <span className="text-[10px]">{index + 1}</span>
-              )}
-            </div>
-            {/* Only show label for current step on small screens */}
-            <span className={cn(
-              "text-[9px] mt-1 max-w-[40px] text-center leading-tight",
-              index === currentStep 
-                ? 'text-primary font-medium' 
-                : 'text-muted-foreground hidden sm:block'
-            )}>
-              {step.label}
-            </span>
-          </div>
-        ))}
+              <div
+                className={cn(
+                  "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium transition-all",
+                  isDone
+                    ? 'bg-primary text-primary-foreground'
+                    : isCurrent
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-2 ring-primary/30'
+                    : 'bg-muted text-muted-foreground border border-border'
+                )}
+              >
+                {isDone ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <span className="text-[10px]">{index + 1}</span>
+                )}
+              </div>
+              <span className={cn(
+                "text-[9px] mt-1 max-w-[40px] text-center leading-tight",
+                isCurrent
+                  ? 'text-primary font-medium'
+                  : isDone
+                  ? 'text-foreground'
+                  : 'text-muted-foreground/60'
+              )}>
+                {step.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 export const VISIT_STEPS = [
-  { id: 'foto-inicial', label: 'Foto' },
-  { id: 'responsavel', label: 'Técnico' },
-  { id: 'anotacoes', label: 'Notas' },
-  { id: 'tipos', label: 'Tipos' },
-  { id: 'acoes', label: 'Ações' },
-  { id: 'demandas', label: 'Demandas' },
-  { id: 'clientes', label: 'Clientes' },
-  { id: 'foto-final', label: 'Final' },
+  { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' },
+  { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
+  { id: 'anotacoes', label: 'Notas', route: '/visita/anotacoes' },
+  { id: 'tipos', label: 'Tipos', route: '/visita/tipos' },
+  { id: 'acoes', label: 'Ações', route: '/visita/acoes' },
+  { id: 'demandas', label: 'Demandas', route: '/visita/demandas' },
+  { id: 'clientes', label: 'Clientes', route: '/visita/clientes' },
+  { id: 'foto-final', label: 'Final', route: '/visita/foto-final' },
 ];
