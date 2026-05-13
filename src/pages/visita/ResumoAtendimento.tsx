@@ -95,7 +95,7 @@ export default function ResumoAtendimento() {
   );
 
   return (
-    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/foto-final')} title="Resumo">
+    <MobileLayout showCancelVisita showBack onBack={() => navigate(data.modo === 'rapida' ? '/visita/rapida/fotos' : '/visita/foto-final')} title="Resumo">
       <div className="flex-1 overflow-auto scroll-smooth-y p-4 space-y-3">
         {/* Header info */}
         <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 space-y-3">

@@ -22,6 +22,10 @@ import FotoFinalObrigatoria from "./pages/visita/FotoFinalObrigatoria";
 import ResumoAtendimento from "./pages/visita/ResumoAtendimento";
 import Sucesso from "./pages/Sucesso";
 import Historico from "./pages/Historico";
+import TiposRapida from "./pages/visita/rapida/TiposRapida";
+import ClientesRapida from "./pages/visita/rapida/ClientesRapida";
+import ResponsavelRapida from "./pages/visita/rapida/ResponsavelRapida";
+import FotosRapida from "./pages/visita/rapida/FotosRapida";
 
 // Desktop pages
 import Dashboard from "./pages/desktop/Dashboard";
@@ -83,6 +87,10 @@ const App = () => (
             <Route path="/visita/demandas" element={<SugestoesDemandas />} />
             <Route path="/visita/clientes" element={<SelecionarClientesFinal />} />
             <Route path="/visita/foto-final" element={<FotoFinalObrigatoria />} />
+            <Route path="/visita/rapida/tipos" element={<TiposRapida />} />
+            <Route path="/visita/rapida/clientes" element={<ClientesRapida />} />
+            <Route path="/visita/rapida/responsavel" element={<ResponsavelRapida />} />
+            <Route path="/visita/rapida/fotos" element={<FotosRapida />} />
             <Route path="/visita/resumo" element={<ResumoAtendimento />} />
             <Route path="/sucesso" element={<Sucesso />} />
             <Route path="/historico" element={<Historico />} />

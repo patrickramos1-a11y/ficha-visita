@@ -120,3 +120,10 @@ export const VISIT_STEPS = [
   { id: 'clientes', label: 'Clientes', route: '/visita/clientes' },
   { id: 'foto-final', label: 'Final', route: '/visita/foto-final' },
 ];
+
+export const VISIT_STEPS_RAPIDA = [
+  { id: 'tipos', label: 'Tipos', route: '/visita/rapida/tipos' },
+  { id: 'clientes', label: 'Clientes', route: '/visita/rapida/clientes' },
+  { id: 'responsavel', label: 'Técnico', route: '/visita/rapida/responsavel' },
+  { id: 'foto-final', label: 'Fotos', route: '/visita/rapida/fotos' },
+];

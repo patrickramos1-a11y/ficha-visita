@@ -1,52 +1,75 @@
-# Armazenamento offline de fotos com upload automático
+# Visita Rápida (modo expresso)
 
-Hoje as fotos já são guardadas dentro do `pendingAtendimentos` como base64 no Dexie. Isso funciona mas tem dois problemas: ocupa ~33% mais espaço, e estoura o limite de 5MB do `localStorage` quando a sessão da visita ainda está em andamento (o `AtendimentoContext` salva tudo em `localStorage`). Vamos guardar as fotos como **Blobs** no IndexedDB e referenciá-las por id, tanto durante a visita quanto na fila de envio.
+Adicionar um segundo tipo de visita, mais curto, para situações onde o técnico só precisa registrar uma ação pontual (ex.: protocolar ofício na SEMMA) sem passar por todo o fluxo da visita completa.
 
-## O que muda
+A **visita completa** atual continua intacta. A **visita rápida** é um fluxo enxuto com 4 telas:
 
-1. **Nova tabela `fotos` no Dexie** (`src/lib/offlineDB.ts`)
-   - Schema: `fotoId` (uuid), `blob` (Blob), `mimeType`, `tipo` (`inicial|durante|final`), `createdAt`.
-   - Utilitários: `savePhotoBlob(file|blob, tipo) → fotoId`, `getPhotoBlob(fotoId)`, `getPhotoObjectURL(fotoId)`, `deletePhoto(fotoId)`, `listOrphanPhotos()`.
-   - Bump de versão do Dexie (v2) com migração que mantém os registros existentes.
+```
+Início → Tipos → Cliente(s) → Responsável → Fotos → Resumo → Sucesso
+```
 
-2. **Tipo `Foto` passa a ser referência, não base64**
-   - Em `src/types/atendimento.ts`, `fotos: { fotoId: string; tipo: 'inicial'|'durante'|'final'; remoteUrl?: string }[]`.
-   - Componentes que exibem a foto (`FotoInicialOpcional`, `FotoFinalObrigatoria`, `ResumoAtendimento`, etc.) recebem a URL via um pequeno hook `usePhotoURL(fotoId)` que faz `URL.createObjectURL(blob)` e revoga no unmount.
+Sem checklist, sem anotações, sem ações específicas, sem demandas, sem tópicos de reunião, sem foto inicial separada — tudo isso fica vazio no banco.
 
-3. **Captura de foto grava o Blob direto**
-   - Em `FotoInicialOpcional.tsx` e `FotoFinalObrigatoria.tsx`, trocar o fluxo `FileReader → dataURL → addFoto(url)` por: pegar o `File` do input (câmera ou galeria) → `savePhotoBlob(file, tipo)` → `addFoto(fotoId, tipo)`.
-   - O preview usa `URL.createObjectURL(file)` imediatamente; nada de base64.
-   - `removeFoto` chama também `deletePhoto(fotoId)` para liberar espaço.
+## 1. Escolha do tipo de visita
 
-4. **`AtendimentoContext` deixa de carregar Blobs no `localStorage`**
-   - Como agora `fotos[]` só guarda ids leves, o `JSON.stringify` da sessão volta a ser pequeno e seguro abaixo do limite do `localStorage`.
-   - `resetAtendimento` apaga as fotos órfãs daquela sessão (`deletePhoto` para cada `fotoId` que não foi enfileirado num atendimento).
+Nas telas iniciais (`src/pages/Index.tsx` mobile e `src/pages/desktop/IniciarVisita.tsx` desktop), o botão "Iniciar Visita" abre um seletor com duas opções:
 
-5. **Fila de envio referencia ids, sync sobe os Blobs**
-   - `enqueueAtendimento` no `offlineDB.ts` continua igual, só que `data.fotos` já contém `fotoId` em vez de base64.
-   - Em `src/lib/syncEngine.ts`, `pushAtendimento` faz, para cada foto:
-     - `getPhotoBlob(fotoId)` → upload pro bucket `atendimento-fotos` (mesmo caminho de hoje) → `getPublicUrl` → insert em `atendimento_fotos`.
-     - Se a foto já tiver `remoteUrl`, pula o upload (idempotência em retries).
-   - Após o atendimento ser sincronizado com sucesso e removido da fila, todas as fotos referenciadas são apagadas do IndexedDB. Se falhar, ficam guardadas para o próximo retry.
+- **Visita Completa** (atual) → vai para `/visita/foto-inicial`
+- **Visita Rápida** → vai para `/visita/rapida/tipos`
 
-6. **Limpeza de órfãos**
-   - Na inicialização do `SyncProvider`, rodar `cleanupOrphanPhotos()`: apaga Blobs cuja `fotoId` não aparece em nenhum `pendingAtendimento` nem em `localStorage` da sessão ativa.
+Visualmente são dois cards lado a lado (ou empilhados no mobile) com ícone, título e uma linha curta explicando quando usar cada uma. O botão "Continuar Visita em Andamento" continua aparecendo igual quando há sessão ativa, independente do modo.
 
-7. **Toast/feedback**
-   - Sem mudança no comportamento do usuário: ao terminar a visita já aparece "Atendimento salvo no aparelho — será enviado quando houver internet". Quando o `syncEngine` envia com sucesso, o `SyncStatusBadge` já reflete `synced` e o `pendingCount` zera.
+## 2. Marcador no contexto da visita
 
-## Fora de escopo
+Em `src/contexts/AtendimentoContext.tsx` e `src/types/atendimento.ts`, adicionar:
 
-- Compressão/resize automático de fotos (pode ser feito depois).
-- Upload em paralelo / multipart resumível.
-- Migração de fotos base64 que já estejam na fila atual de algum dispositivo (a fila vai ser drenada normalmente; só novas capturas usam Blob).
+- `modo: 'completa' | 'rapida'` em `AtendimentoData` (default `'completa'`).
+- `iniciarVisita(modo)` — método que reseta e marca o modo. As telas iniciais passam a chamar isso ao invés de `resetAtendimento()` direto.
+
+Isso permite o `RootRedirect` continuar mandando para a rota salva (visita rápida em andamento volta para onde parou).
+
+## 3. Novas rotas e telas (mobile)
+
+Criar 4 telas em `src/pages/visita/rapida/`:
+
+- `TiposRapida.tsx` (`/visita/rapida/tipos`) — reutiliza a UI atual de `TiposAtendimento.tsx` (grid 2 colunas + busca já existente). Sem ações específicas no fim — vai direto para clientes.
+- `ClientesRapida.tsx` (`/visita/rapida/clientes`) — reutiliza `SelecionarClientesFinal.tsx`.
+- `ResponsavelRapida.tsx` (`/visita/rapida/responsavel`) — reutiliza `SelecionarResponsavel.tsx`.
+- `FotosRapida.tsx` (`/visita/rapida/fotos`) — tela de fotos única (combina câmera + galeria, igual `FotoFinalObrigatoria.tsx`), com tipo `'durante'`. Mínimo 1 foto.
+- O resumo final reusa `ResumoAtendimento.tsx` adaptado para esconder seções vazias (já esconde quando length=0; só falta esconder o título "Foto Inicial" e similares quando estiverem vazios — verificação rápida).
+
+Para evitar duplicação grande, as telas `Tipos/Clientes/Responsavel` ganham uma prop opcional ou checam `data.modo === 'rapida'` para alterar:
+
+- O `ProgressStepper` mostra um stepper menor (4 passos: Tipos → Clientes → Responsável → Fotos).
+- O botão "Continuar" navega para a próxima rota da visita rápida em vez da rota da visita completa.
+
+Implementação preferida: adicionar um helper `getNextRoute(currentStep, modo)` em um único lugar (`src/lib/visitFlow.ts` novo) que cada tela consulta. Mantém o código de cada página igual e só troca a navegação.
+
+## 4. Stepper enxuto
+
+Em `src/components/visita/ProgressStepper.tsx`, exportar um segundo array `VISIT_STEPS_RAPIDA` com 4 passos. As telas escolhem qual passar conforme `data.modo`.
+
+## 5. Persistência e sincronização
+
+Nada muda no `syncEngine.ts` nem no `offlineDB.ts`. A visita rápida é um `atendimento` normal; só vai com vários campos vazios. O `useSaveAtendimento` continua igual.
+
+## 6. Visualização
+
+- `Historico` (mobile e desktop) e `AtendimentoDetalhe` ganham um badge "Rápida" / "Completa" ao lado da data, baseado em quantos campos foram preenchidos (regra simples: sem checklist + sem anotações + sem demandas → "Rápida"). Não precisa migração de banco — derivamos no front.
 
 ## Arquivos afetados
 
-- `src/lib/offlineDB.ts` — nova tabela `fotos` + helpers, migração v2.
-- `src/lib/syncEngine.ts` — leitura de Blob por `fotoId`, upload, marcação `remoteUrl`, limpeza pós-sync.
-- `src/types/atendimento.ts` — novo formato de `fotos[]`.
-- `src/contexts/AtendimentoContext.tsx` — `addFoto(fotoId, tipo)`, `removeFoto(fotoId)`, limpeza no reset.
-- `src/pages/visita/FotoInicialOpcional.tsx` e `FotoFinalObrigatoria.tsx` — captura grava Blob, preview usa `objectURL`.
-- `src/pages/visita/ResumoAtendimento.tsx` (e qualquer outro lugar que renderize `foto.url`) — usar `usePhotoURL(fotoId)`.
-- `src/contexts/SyncContext.tsx` — chamar `cleanupOrphanPhotos()` no boot.
+- `src/types/atendimento.ts` — campo `modo`.
+- `src/contexts/AtendimentoContext.tsx` — método `iniciarVisita(modo)`.
+- `src/pages/Index.tsx`, `src/pages/desktop/IniciarVisita.tsx` — seletor de modo.
+- `src/lib/visitFlow.ts` (novo) — mapa de navegação por modo.
+- `src/components/visita/ProgressStepper.tsx` — `VISIT_STEPS_RAPIDA`.
+- `src/pages/visita/rapida/TiposRapida.tsx`, `ClientesRapida.tsx`, `ResponsavelRapida.tsx`, `FotosRapida.tsx` (novos, finos — reutilizam componentes/lógica das telas completas).
+- `src/App.tsx` — novas rotas.
+- `src/pages/Historico.tsx`, `src/pages/desktop/Historico.tsx`, `src/pages/desktop/AtendimentoDetalhe.tsx` — badge do tipo (derivado).
+
+## Fora de escopo
+
+- Coluna `modo` no banco (derivado no front por enquanto).
+- Editar uma visita finalizada para mudar de modo.
+- Filtros por modo no histórico/dashboard (pode vir depois).

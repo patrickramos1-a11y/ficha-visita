@@ -60,7 +60,10 @@ export interface Demanda {
   personalizada: boolean;
 }
 
+export type VisitaModo = 'completa' | 'rapida';
+
 export interface AtendimentoData {
+  modo?: VisitaModo;
   cliente_ids: string[];
   responsavel_id?: string;
   data_inicio: Date;

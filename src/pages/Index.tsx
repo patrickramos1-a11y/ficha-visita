@@ -1,18 +1,18 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { DateTimeDisplay } from '@/components/visita/DateTimeDisplay';
 import { Button } from '@/components/ui/button';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { Play, History, PlayCircle } from 'lucide-react';
+import { StartVisitDialog } from '@/components/visita/StartVisitDialog';
 
 export default function Index() {
   const navigate = useNavigate();
-  const { resetAtendimento, ativo, getRotaAtual } = useAtendimento();
+  const { ativo, getRotaAtual } = useAtendimento();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  const handleStartVisit = () => {
-    resetAtendimento();
-    navigate('/visita/foto-inicial');
-  };
+  const handleStartVisit = () => setPickerOpen(true);
 
   const handleContinueVisit = () => {
     const savedRoute = getRotaAtual();
@@ -61,6 +61,7 @@ export default function Index() {
           Registre visitas técnicas e atendimentos de forma rápida e organizada
         </p>
       </div>
+      <StartVisitDialog open={pickerOpen} onOpenChange={setPickerOpen} />
     </MobileLayout>
   );
 }
