@@ -7,6 +7,7 @@ import { AtendimentoProvider, useAtendimento } from "@/contexts/AtendimentoConte
 import { SyncProvider } from "@/contexts/SyncContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { InstallPromptBanner } from "@/components/pwa/InstallPromptBanner";
+import { ConfigCachePrefetcher } from "@/components/config/ConfigCachePrefetcher";
 
 // Mobile pages
 import Index from "./pages/Index";
