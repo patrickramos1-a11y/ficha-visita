@@ -205,6 +205,7 @@ export default function FotoFinalObrigatoria() {
         ref={galleryInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleFileChange}
         className="hidden"
       />
