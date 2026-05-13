@@ -11,11 +11,12 @@ import { toast } from 'sonner';
 export default function FotoInicialOpcional() {
   useVisitRoute('/visita/foto-inicial');
   const navigate = useNavigate();
-  const { addFoto, data } = useAtendimento();
+  const { addFotoFile, data } = useAtendimento();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [showChoice, setShowChoice] = useState(true);
-  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [capturedFile, setCapturedFile] = useState<File | null>(null);
+  const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
 
   const fotoInicial = data.fotos.find(f => f.tipo === 'inicial');
 
@@ -27,54 +28,49 @@ export default function FotoInicialOpcional() {
     galleryInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
     if (files.length === 0) return;
 
     // Single file: keep preview/confirm flow
     if (files.length === 1) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setCapturedPhoto(event.target?.result as string);
-        setShowChoice(false);
-      };
-      reader.readAsDataURL(files[0]);
-      e.target.value = '';
+      const file = files[0];
+      setCapturedFile(file);
+      setCapturedPreview(URL.createObjectURL(file));
+      setShowChoice(false);
       return;
     }
 
-    // Multiple files: add all directly and continue
-    Promise.all(
-      files.map(
-        (file) =>
-          new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (event) => resolve(event.target?.result as string);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(file);
-          })
-      )
-    )
-      .then((urls) => {
-        urls.forEach((url) => addFoto(url, 'inicial'));
-        toast.success(`${urls.length} fotos adicionadas!`);
-        navigate('/visita/responsavel');
-      })
-      .catch(() => toast.error('Erro ao carregar uma das fotos'));
-
-    e.target.value = '';
+    try {
+      for (const file of files) {
+        await addFotoFile(file, 'inicial');
+      }
+      toast.success(`${files.length} fotos adicionadas!`);
+      navigate('/visita/responsavel');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao salvar fotos no aparelho');
+    }
   };
 
-  const handleConfirmPhoto = () => {
-    if (capturedPhoto) {
-      addFoto(capturedPhoto, 'inicial');
+  const handleConfirmPhoto = async () => {
+    if (!capturedFile) return;
+    try {
+      await addFotoFile(capturedFile, 'inicial');
+      if (capturedPreview) URL.revokeObjectURL(capturedPreview);
       toast.success('Foto inicial registrada!');
       navigate('/visita/responsavel');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao salvar foto no aparelho');
     }
   };
 
   const handleRetakePhoto = () => {
-    setCapturedPhoto(null);
+    if (capturedPreview) URL.revokeObjectURL(capturedPreview);
+    setCapturedFile(null);
+    setCapturedPreview(null);
     setShowChoice(true);
   };
 
