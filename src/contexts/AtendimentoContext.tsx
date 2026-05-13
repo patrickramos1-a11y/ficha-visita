@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo } from '@/types/atendimento';
+import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo } from '@/types/atendimento';
 import { getPlanoFromTipo, getPlanoFromAcao } from '@/types/tiposAtendimentoConfig';
 import { savePhotoBlob, deletePhoto, getPhotoObjectURL } from '@/lib/offlineDB';
 
@@ -33,12 +33,14 @@ interface AtendimentoContextType {
   clearDemandas: () => void;
   finalizarAtendimento: () => void;
   resetAtendimento: () => void;
+  iniciarVisita: (modo: VisitaModo) => void;
   gerarSugestoesDemandas: () => Demanda[];
   setRotaAtual: (rota: string) => void;
   getRotaAtual: () => string | null;
 }
 
 const initialData: AtendimentoData = {
+  modo: 'completa',
   cliente_ids: [],
   data_inicio: new Date(),
   anotacoes: '',
@@ -250,6 +252,12 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     clearStorage();
     setAtivo(false);
     setData({ ...initialData, data_inicio: new Date() });
+  }, []);
+
+  const iniciarVisita = useCallback((modo: VisitaModo) => {
+    clearStorage();
+    setData({ ...initialData, modo, data_inicio: new Date() });
+    setAtivo(true);
   }, []);
 
   const gerarSugestoesDemandas = (): Demanda[] => {
