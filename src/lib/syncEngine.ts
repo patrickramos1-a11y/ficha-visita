@@ -116,7 +116,7 @@ class SyncEngine {
 
 export const syncEngine = new SyncEngine();
 
-async function pushAtendimento(_localId: string, data: AtendimentoData) {
+async function pushAtendimento(localId: string, data: AtendimentoData): Promise<string[]> {
   // Re-hydrate dates if needed
   const dataInicio = data.data_inicio instanceof Date
     ? data.data_inicio
@@ -153,30 +153,60 @@ async function pushAtendimento(_localId: string, data: AtendimentoData) {
     if (error) throw error;
   }
 
-  for (const foto of data.fotos) {
-    if (!foto.url.startsWith('http')) {
-      const fileName = `${atendimento.id}/${foto.tipo}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+  // Upload photos: prefer IndexedDB blob (fotoId); fall back to legacy data: URL
+  const uploadedFotoIds: string[] = [];
+  const updatedFotos = [...data.fotos];
+  for (let i = 0; i < updatedFotos.length; i++) {
+    const foto = updatedFotos[i] as any;
+    // Skip if already uploaded in a previous attempt
+    if (foto.remoteUrl) continue;
+
+    let blob: Blob | null = null;
+    let ext = 'jpg';
+    let contentType = 'image/jpeg';
+
+    if (foto.fotoId) {
+      const row = await getPhotoBlob(foto.fotoId);
+      if (row) {
+        blob = row.blob;
+        contentType = row.mimeType || contentType;
+        if (contentType.includes('png')) ext = 'png';
+        else if (contentType.includes('webp')) ext = 'webp';
+      }
+    }
+
+    if (!blob && typeof foto.url === 'string' && foto.url.startsWith('data:')) {
       const base64Data = foto.url.split(',')[1];
       const byteCharacters = atob(base64Data);
       const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      for (let j = 0; j < byteCharacters.length; j++) {
+        byteNumbers[j] = byteCharacters.charCodeAt(j);
       }
-      const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'image/jpeg' });
-      const { error: upErr } = await supabase.storage
-        .from('atendimento-fotos')
-        .upload(fileName, blob);
-      if (upErr) throw upErr;
-      const { data: publicUrl } = supabase.storage
-        .from('atendimento-fotos')
-        .getPublicUrl(fileName);
-      const { error: insErr } = await supabase.from('atendimento_fotos').insert({
-        atendimento_id: atendimento.id,
-        foto_url: publicUrl.publicUrl,
-        tipo: foto.tipo,
-      });
-      if (insErr) throw insErr;
+      blob = new Blob([new Uint8Array(byteNumbers)], { type: 'image/jpeg' });
     }
+
+    if (!blob) continue; // nothing to upload
+
+    const fileName = `${atendimento.id}/${foto.tipo}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from('atendimento-fotos')
+      .upload(fileName, blob, { contentType });
+    if (upErr) throw upErr;
+    const { data: publicUrl } = supabase.storage
+      .from('atendimento-fotos')
+      .getPublicUrl(fileName);
+    const { error: insErr } = await supabase.from('atendimento_fotos').insert({
+      atendimento_id: atendimento.id,
+      foto_url: publicUrl.publicUrl,
+      tipo: foto.tipo,
+    });
+    if (insErr) throw insErr;
+
+    // Mark uploaded for idempotency on retries
+    updatedFotos[i] = { ...foto, remoteUrl: publicUrl.publicUrl } as any;
+    if (foto.fotoId) uploadedFotoIds.push(foto.fotoId);
+    // Persist progress so a partial failure doesn't re-upload successful photos
+    await updateAtendimentoData(localId, { ...data, fotos: updatedFotos });
   }
 
   if (data.demandas.length > 0) {
@@ -194,4 +224,8 @@ async function pushAtendimento(_localId: string, data: AtendimentoData) {
       if (error) throw error;
     }
   }
+
+  return uploadedFotoIds;
+}
+
 }
