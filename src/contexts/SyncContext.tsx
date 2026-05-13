@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { syncEngine } from '@/lib/syncEngine';
-import { countPending } from '@/lib/offlineDB';
+import { cleanupOrphanPhotos, countPending } from '@/lib/offlineDB';
 import { toast } from 'sonner';
 
 interface SyncContextValue {
@@ -58,6 +58,19 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   // Initial pending count + sync on app load if online
   useEffect(() => {
     void (async () => {
+      // Read fotoIds currently held by the active visit session, then clean up orphans
+      let activeFotoIds: string[] = [];
+      try {
+        const raw = localStorage.getItem('atendimento-em-andamento');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          activeFotoIds = (parsed?.data?.fotos ?? [])
+            .map((f: any) => f?.fotoId)
+            .filter(Boolean);
+        }
+      } catch { /* noop */ }
+      try { await cleanupOrphanPhotos(activeFotoIds); } catch { /* noop */ }
+
       await refreshPending();
       if (navigator.onLine) {
         void triggerSync();
