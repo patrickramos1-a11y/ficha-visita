@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useAtendimento } from '@/contexts/AtendimentoContext';
 
 interface Step {
   id: string;
