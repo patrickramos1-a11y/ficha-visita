@@ -7,22 +7,21 @@ import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
 import { SelectionCard, PageHeader, EmptyState, CountBadge, MobileFooter } from '@/components/mobile';
-import { TIPOS_ATENDIMENTO_CONFIG } from '@/types/tiposAtendimentoConfig';
+import { useTiposAtendimentoConfig } from '@/hooks/useConfigEntities';
 import { AtendimentoTipo } from '@/types/atendimento';
-import { Check, ChevronRight, ClipboardList, Search, X } from 'lucide-react';
+import { Check, ChevronRight, ClipboardList, Search, X, Loader2 } from 'lucide-react';
 
 export default function TiposAtendimento() {
   useVisitRoute('/visita/tipos');
   const navigate = useNavigate();
   const { data, setTiposAtendimento } = useAtendimento();
+  const { data: tipos, isLoading } = useTiposAtendimentoConfig();
   const [selectedTipos, setSelectedTipos] = useState<AtendimentoTipo[]>(data.tipos_atendimento);
   const [search, setSearch] = useState('');
 
   const toggleTipo = (tipo: AtendimentoTipo) => {
     setSelectedTipos(prev =>
-      prev.includes(tipo)
-        ? prev.filter(t => t !== tipo)
-        : [...prev, tipo]
+      prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo]
     );
   };
 
@@ -32,18 +31,17 @@ export default function TiposAtendimento() {
   };
 
   const q = search.trim().toLowerCase();
-  const availableTipos = TIPOS_ATENDIMENTO_CONFIG
-    .filter(t => !selectedTipos.includes(t.nome as AtendimentoTipo))
-    .filter(t =>
-      !q ||
-      t.nome.toLowerCase().includes(q) ||
-      (t.descricao || '').toLowerCase().includes(q)
+  const ativos = (tipos || []).filter((t: any) => t.ativo !== false);
+  const availableTipos = ativos
+    .filter((t: any) => !selectedTipos.includes(t.nome))
+    .filter((t: any) =>
+      !q || t.nome.toLowerCase().includes(q) || (t.descricao || '').toLowerCase().includes(q)
     );
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/anotacoes')} title="Tipos de Atendimento">
       <ProgressStepper steps={VISIT_STEPS} currentStep={3} />
-      
+
       <PageHeader
         icon={ClipboardList}
         title="Atividades Realizadas"
@@ -61,12 +59,7 @@ export default function TiposAtendimento() {
             className="pl-9 pr-9 h-11"
           />
           {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-              aria-label="Limpar busca"
-            >
+            <button type="button" onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground" aria-label="Limpar busca">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -74,19 +67,17 @@ export default function TiposAtendimento() {
       </div>
 
       <div className="flex-1 overflow-auto scroll-smooth-y px-4 pb-4">
-        {availableTipos.length === 0 && selectedTipos.length > 0 ? (
-          <EmptyState
-            icon={Check}
-            title="Todos os tipos selecionados"
-            description="Você selecionou todas as opções disponíveis"
-          />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : availableTipos.length === 0 && selectedTipos.length > 0 ? (
+          <EmptyState icon={Check} title="Todos os tipos selecionados" description="Você selecionou todas as opções disponíveis" />
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {availableTipos.map((tipoConfig) => (
+            {availableTipos.map((tipoConfig: any) => (
               <SelectionCard
-                key={tipoConfig.nome}
-                onClick={() => toggleTipo(tipoConfig.nome as AtendimentoTipo)}
-                description={tipoConfig.descricao}
+                key={tipoConfig.id}
+                onClick={() => toggleTipo(tipoConfig.nome)}
+                description={tipoConfig.descricao || ''}
                 showCheckbox
               >
                 {tipoConfig.nome}

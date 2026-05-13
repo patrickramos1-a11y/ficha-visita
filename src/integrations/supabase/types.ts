@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      acoes_especificas_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          plano_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          plano_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          plano_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acoes_especificas_config_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atendimento_clientes: {
         Row: {
           atendimento_id: string
@@ -98,9 +133,7 @@ export type Database = {
           origem_id: string | null
           possui_foto_final: boolean | null
           responsavel_id: string | null
-          tipos_atendimento:
-            | Database["public"]["Enums"]["atendimento_tipo"][]
-            | null
+          tipos_atendimento: string[] | null
           topicos_reuniao: Json | null
           updated_at: string
         }
@@ -119,9 +152,7 @@ export type Database = {
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
-          tipos_atendimento?:
-            | Database["public"]["Enums"]["atendimento_tipo"][]
-            | null
+          tipos_atendimento?: string[] | null
           topicos_reuniao?: Json | null
           updated_at?: string
         }
@@ -140,9 +171,7 @@ export type Database = {
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
-          tipos_atendimento?:
-            | Database["public"]["Enums"]["atendimento_tipo"][]
-            | null
+          tipos_atendimento?: string[] | null
           topicos_reuniao?: Json | null
           updated_at?: string
         }
@@ -199,9 +228,7 @@ export type Database = {
           id: string
           personalizada: boolean
           plano: Database["public"]["Enums"]["plano_tipo"] | null
-          tipo_atendimento:
-            | Database["public"]["Enums"]["atendimento_tipo"]
-            | null
+          tipo_atendimento: string | null
           updated_at: string
         }
         Insert: {
@@ -211,9 +238,7 @@ export type Database = {
           id?: string
           personalizada?: boolean
           plano?: Database["public"]["Enums"]["plano_tipo"] | null
-          tipo_atendimento?:
-            | Database["public"]["Enums"]["atendimento_tipo"]
-            | null
+          tipo_atendimento?: string | null
           updated_at?: string
         }
         Update: {
@@ -223,9 +248,7 @@ export type Database = {
           id?: string
           personalizada?: boolean
           plano?: Database["public"]["Enums"]["plano_tipo"] | null
-          tipo_atendimento?:
-            | Database["public"]["Enums"]["atendimento_tipo"]
-            | null
+          tipo_atendimento?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -415,6 +438,44 @@ export type Database = {
           },
         ]
       }
+      tipos_atendimento_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          plano_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          plano_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          plano_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipos_atendimento_config_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topicos: {
         Row: {
           ativo: boolean
@@ -480,18 +541,6 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      atendimento_tipo:
-        | "Acompanhamento Ambiental"
-        | "ETE / ETA"
-        | "Tomada de Ciência"
-        | "Consultoria Ambiental"
-        | "Reunião de Alinhamento"
-        | "Planejamento de Ação"
-        | "Implementação de Melhoria"
-        | "Licenciamento Ambiental"
-        | "Fiscalização Ambiental"
-        | "Órgão Ambiental"
-        | "Treinamento Ambiental"
       plano_tipo: "VIP" | "Premium" | "Master" | "Integracao"
     }
     CompositeTypes: {
@@ -620,19 +669,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      atendimento_tipo: [
-        "Acompanhamento Ambiental",
-        "ETE / ETA",
-        "Tomada de Ciência",
-        "Consultoria Ambiental",
-        "Reunião de Alinhamento",
-        "Planejamento de Ação",
-        "Implementação de Melhoria",
-        "Licenciamento Ambiental",
-        "Fiscalização Ambiental",
-        "Órgão Ambiental",
-        "Treinamento Ambiental",
-      ],
       plano_tipo: ["VIP", "Premium", "Master", "Integracao"],
     },
   },

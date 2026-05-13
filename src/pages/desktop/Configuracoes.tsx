@@ -3,6 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { SimpleEntityCrud } from '@/components/config/SimpleEntityCrud';
 import { DemandasEspecificasCrud } from '@/components/config/DemandasEspecificasCrud';
+import { TiposAtendimentoCrud } from '@/components/config/TiposAtendimentoCrud';
+import { AcoesEspecificasCrud } from '@/components/config/AcoesEspecificasCrud';
 import {
   usePlanos, useUpsertPlano, useDeletePlano,
   useTopicos, useUpsertTopico, useDeleteTopico,
@@ -211,6 +213,8 @@ export default function Configuracoes() {
   const tabItems = [
     { value: 'empresas', label: 'Empresas' },
     { value: 'responsaveis', label: 'Responsáveis' },
+    { value: 'tipos', label: 'Tipos' },
+    { value: 'acoes', label: 'Ações' },
     { value: 'planos', label: 'Planos' },
     { value: 'topicos', label: 'Tópicos' },
     { value: 'subtopicos', label: 'Subtópicos' },
@@ -239,6 +243,14 @@ export default function Configuracoes() {
 
               <TabsContent value="responsaveis" className="mt-0">
                 <ResponsaveisCrud />
+              </TabsContent>
+
+              <TabsContent value="tipos" className="mt-0">
+                <TiposAtendimentoCrud />
+              </TabsContent>
+
+              <TabsContent value="acoes" className="mt-0">
+                <AcoesEspecificasCrud />
               </TabsContent>
 
               <TabsContent value="planos" className="mt-0">
