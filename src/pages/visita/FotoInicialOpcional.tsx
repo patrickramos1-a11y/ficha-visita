@@ -178,6 +178,7 @@ export default function FotoInicialOpcional() {
         ref={galleryInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleFileChange}
         className="hidden"
       />
