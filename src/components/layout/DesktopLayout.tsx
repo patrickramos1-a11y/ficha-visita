@@ -106,12 +106,14 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
     return (
       <div className="min-h-screen bg-background flex flex-col pb-14">
         {/* Mobile Header */}
-        <header className="sticky top-0 z-40 bg-card border-b border-border flex items-center justify-center px-4 h-12 safe-top">
+        <header className="sticky top-0 z-40 bg-card border-b border-border flex items-center justify-between px-4 h-12 safe-top">
+          <div className="w-16" />
           <img 
             src={logoHorizontal} 
             alt="Ramos Engenharia" 
             className="h-7 object-contain"
           />
+          <SyncStatusBadge compact />
         </header>
 
         {/* Content */}
@@ -160,10 +162,11 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b border-border bg-card flex items-center px-6 shrink-0">
+        <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 shrink-0">
           <h1 className="text-xl font-semibold text-foreground">
             {getPageTitle()}
           </h1>
+          <SyncStatusBadge />
         </header>
 
         <main className="flex-1 overflow-auto p-6">
