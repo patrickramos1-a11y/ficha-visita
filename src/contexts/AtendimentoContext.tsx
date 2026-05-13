@@ -318,6 +318,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         clearDemandas,
         finalizarAtendimento,
         resetAtendimento,
+        iniciarVisita,
         gerarSugestoesDemandas,
         setRotaAtual,
         getRotaAtual,
