@@ -33,16 +33,30 @@ export default function FotoFinalObrigatoria() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      addFoto(result, 'final');
-      toast.success('Foto final adicionada!');
-    };
-    reader.readAsDataURL(file);
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target?.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          })
+      )
+    )
+      .then((urls) => {
+        urls.forEach((url) => addFoto(url, 'final'));
+        toast.success(
+          urls.length === 1
+            ? 'Foto final adicionada!'
+            : `${urls.length} fotos adicionadas!`
+        );
+      })
+      .catch(() => toast.error('Erro ao carregar uma das fotos'));
+
     e.target.value = '';
   };
 
@@ -191,6 +205,7 @@ export default function FotoFinalObrigatoria() {
         ref={galleryInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleFileChange}
         className="hidden"
       />

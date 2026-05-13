@@ -28,16 +28,40 @@ export default function FotoInicialOpcional() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      setCapturedPhoto(result);
-      setShowChoice(false);
-    };
-    reader.readAsDataURL(file);
+    // Single file: keep preview/confirm flow
+    if (files.length === 1) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCapturedPhoto(event.target?.result as string);
+        setShowChoice(false);
+      };
+      reader.readAsDataURL(files[0]);
+      e.target.value = '';
+      return;
+    }
+
+    // Multiple files: add all directly and continue
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target?.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          })
+      )
+    )
+      .then((urls) => {
+        urls.forEach((url) => addFoto(url, 'inicial'));
+        toast.success(`${urls.length} fotos adicionadas!`);
+        navigate('/visita/responsavel');
+      })
+      .catch(() => toast.error('Erro ao carregar uma das fotos'));
+
     e.target.value = '';
   };
 
@@ -154,6 +178,7 @@ export default function FotoInicialOpcional() {
         ref={galleryInputRef}
         type="file"
         accept="image/*"
+        multiple
         onChange={handleFileChange}
         className="hidden"
       />
