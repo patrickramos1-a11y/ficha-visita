@@ -1,31 +1,7 @@
 export type PlanoTipo = 'VIP' | 'Premium' | 'Master' | 'Integracao';
 
-export type AtendimentoTipo = 
-  | 'Acompanhamento Ambiental'
-  | 'ETE / ETA'
-  | 'Tomada de Ciência'
-  | 'Consultoria Ambiental'
-  | 'Reunião de Alinhamento'
-  | 'Planejamento de Ação'
-  | 'Implementação de Melhoria'
-  | 'Licenciamento Ambiental'
-  | 'Fiscalização Ambiental'
-  | 'Órgão Ambiental'
-  | 'Treinamento Ambiental';
-
-export const TIPOS_ATENDIMENTO: AtendimentoTipo[] = [
-  'Acompanhamento Ambiental',
-  'ETE / ETA',
-  'Tomada de Ciência',
-  'Consultoria Ambiental',
-  'Reunião de Alinhamento',
-  'Planejamento de Ação',
-  'Implementação de Melhoria',
-  'Licenciamento Ambiental',
-  'Fiscalização Ambiental',
-  'Órgão Ambiental',
-  'Treinamento Ambiental',
-];
+// Agora dinâmico — gerenciado em Configurações → Tipos
+export type AtendimentoTipo = string;
 
 export const PLANOS: PlanoTipo[] = ['VIP', 'Premium', 'Master', 'Integracao'];
 
@@ -74,9 +50,9 @@ export interface AtendimentoData {
   acoes_especificas: string[];
   topicos_reuniao: TopicoReuniao[];
   fotos: {
-    fotoId?: string; // local IndexedDB blob id (offline-first)
-    url: string; // displayable URL: blob:, data: or http(s)
-    remoteUrl?: string; // populated after Supabase upload
+    fotoId?: string;
+    url: string;
+    remoteUrl?: string;
     tipo: 'inicial' | 'durante' | 'final';
   }[];
   demandas: Demanda[];
