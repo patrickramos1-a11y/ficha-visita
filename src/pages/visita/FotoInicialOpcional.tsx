@@ -88,7 +88,7 @@ export default function FotoInicialOpcional() {
       <ProgressStepper steps={VISIT_STEPS} currentStep={0} />
       
       <div className="flex-1 flex flex-col items-center justify-center p-6 safe-bottom">
-        {showChoice && !capturedPhoto && (
+        {showChoice && !capturedPreview && (
           <>
             <div className="text-center mb-10">
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
@@ -130,11 +130,11 @@ export default function FotoInicialOpcional() {
           </>
         )}
 
-        {capturedPhoto && (
+        {capturedPreview && (
           <div className="w-full max-w-md space-y-6">
             <div className="relative aspect-video rounded-xl overflow-hidden bg-muted border-2 border-primary shadow-lg">
               <img
-                src={capturedPhoto}
+                src={capturedPreview}
                 alt="Foto inicial"
                 className="w-full h-full object-cover"
               />
