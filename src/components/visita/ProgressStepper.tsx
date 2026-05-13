@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useAtendimento } from '@/contexts/AtendimentoContext';
 
 interface Step {
   id: string;
@@ -16,7 +17,33 @@ interface ProgressStepperProps {
 
 export function ProgressStepper({ steps, currentStep }: ProgressStepperProps) {
   const navigate = useNavigate();
-  const progress = ((currentStep) / (steps.length - 1)) * 100;
+  const { data } = useAtendimento();
+
+  const isStepDone = (stepId: string): boolean => {
+    switch (stepId) {
+      case 'foto-inicial':
+        return data.fotos.some(f => f.tipo === 'inicial');
+      case 'responsavel':
+        return !!data.responsavel_id;
+      case 'anotacoes':
+        return (data.anotacoes?.trim().length ?? 0) > 0 || data.checklist.length > 0;
+      case 'tipos':
+        return data.tipos_atendimento.length > 0;
+      case 'acoes':
+        return data.acoes_especificas.length > 0;
+      case 'demandas':
+        return data.demandas.length > 0;
+      case 'clientes':
+        return data.cliente_ids.length > 0;
+      case 'foto-final':
+        return data.possui_foto_final;
+      default:
+        return false;
+    }
+  };
+
+  const doneCount = steps.filter(s => isStepDone(s.id)).length;
+  const progress = (doneCount / steps.length) * 100;
 
   const handleStepClick = (step: Step, index: number) => {
     if (index === currentStep) return;
@@ -34,8 +61,8 @@ export function ProgressStepper({ steps, currentStep }: ProgressStepperProps) {
 
       <div className="flex items-center justify-between">
         {steps.map((step, index) => {
-          const isDone = index < currentStep;
           const isCurrent = index === currentStep;
+          const isDone = isStepDone(step.id) && !isCurrent;
           const clickable = !!step.route && !isCurrent;
           return (
             <button
