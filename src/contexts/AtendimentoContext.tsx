@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo } from '@/types/atendimento';
 import { getPlanoFromTipo, getPlanoFromAcao } from '@/types/tiposAtendimentoConfig';
+import { savePhotoBlob, deletePhoto, getPhotoObjectURL } from '@/lib/offlineDB';
 
 const STORAGE_KEY = 'atendimento-em-andamento';
 const ROUTE_KEY = 'atendimento-rota-atual';
@@ -22,6 +23,7 @@ interface AtendimentoContextType {
   toggleChecklistItem: (id: string) => void;
   removeChecklistItem: (id: string) => void;
   addFoto: (url: string, tipo: 'inicial' | 'durante' | 'final') => void;
+  addFotoFile: (file: File | Blob, tipo: 'inicial' | 'durante' | 'final') => Promise<void>;
   removeFoto: (url: string) => void;
   setTiposAtendimento: (tipos: AtendimentoTipo[]) => void;
   setAcoesEspecificas: (acoes: string[]) => void;
@@ -157,8 +159,22 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const addFotoFile = async (file: File | Blob, tipo: 'inicial' | 'durante' | 'final') => {
+    const { fotoId, objectUrl } = await savePhotoBlob(file, tipo);
+    setData(prev => {
+      const newFotos = [...prev.fotos, { fotoId, url: objectUrl, tipo }];
+      const possuiFotoFinal = newFotos.some(f => f.tipo === 'final');
+      return { ...prev, fotos: newFotos, possui_foto_final: possuiFotoFinal };
+    });
+  };
+
   const removeFoto = (url: string) => {
     setData(prev => {
+      const target = prev.fotos.find(f => f.url === url);
+      if (target?.fotoId) void deletePhoto(target.fotoId);
+      if (target?.url?.startsWith('blob:')) {
+        try { URL.revokeObjectURL(target.url); } catch { /* noop */ }
+      }
       const newFotos = prev.fotos.filter(f => f.url !== url);
       const possuiFotoFinal = newFotos.some(f => f.tipo === 'final');
       return { ...prev, fotos: newFotos, possui_foto_final: possuiFotoFinal };
