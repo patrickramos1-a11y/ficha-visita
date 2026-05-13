@@ -3,6 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 import logoHorizontal from '@/assets/logo-horizontal.png';
 import { cn } from '@/lib/utils';
 import { CancelarVisitaButton } from '@/components/visita/CancelarVisitaButton';
+import { SyncStatusBadge } from '@/components/sync/SyncStatusBadge';
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -62,6 +63,11 @@ export function MobileLayout({
           </div>
         )}
       </header>
+
+      {/* Sync status strip */}
+      <div className="px-3 py-1 flex justify-center bg-background">
+        <SyncStatusBadge compact />
+      </div>
 
       {/* Content */}
       <main className={cn(

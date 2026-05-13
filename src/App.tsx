@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AtendimentoProvider, useAtendimento } from "@/contexts/AtendimentoContext";
+import { SyncProvider } from "@/contexts/SyncContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { InstallPromptBanner } from "@/components/pwa/InstallPromptBanner";
 
@@ -66,6 +67,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AtendimentoProvider>
+          <SyncProvider>
           <InstallPromptBanner />
           <Routes>
             {/* Root - redirects based on device */}
@@ -101,6 +103,7 @@ const App = () => (
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </SyncProvider>
         </AtendimentoProvider>
       </BrowserRouter>
     </TooltipProvider>
