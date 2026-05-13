@@ -72,6 +72,7 @@ const App = () => (
       <BrowserRouter>
         <AtendimentoProvider>
           <SyncProvider>
+          <ConfigCachePrefetcher />
           <InstallPromptBanner />
           <Routes>
             {/* Root - redirects based on device */}
