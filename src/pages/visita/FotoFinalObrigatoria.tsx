@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 export default function FotoFinalObrigatoria() {
   useVisitRoute('/visita/foto-final');
   const navigate = useNavigate();
-  const { data, addFoto, removeFoto } = useAtendimento();
+  const { data, addFotoFile, removeFoto } = useAtendimento();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,32 +32,21 @@ export default function FotoFinalObrigatoria() {
     galleryInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    if (files.length === 0) return;
-
-    Promise.all(
-      files.map(
-        (file) =>
-          new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (event) => resolve(event.target?.result as string);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(file);
-          })
-      )
-    )
-      .then((urls) => {
-        urls.forEach((url) => addFoto(url, 'final'));
-        toast.success(
-          urls.length === 1
-            ? 'Foto final adicionada!'
-            : `${urls.length} fotos adicionadas!`
-        );
-      })
-      .catch(() => toast.error('Erro ao carregar uma das fotos'));
-
     e.target.value = '';
+    if (files.length === 0) return;
+    try {
+      for (const file of files) {
+        await addFotoFile(file, 'final');
+      }
+      toast.success(
+        files.length === 1 ? 'Foto final adicionada!' : `${files.length} fotos adicionadas!`,
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao salvar foto no aparelho');
+    }
   };
 
   const handleRemovePhoto = (url: string) => {

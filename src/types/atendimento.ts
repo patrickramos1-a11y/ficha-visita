@@ -70,7 +70,12 @@ export interface AtendimentoData {
   tipos_atendimento: AtendimentoTipo[];
   acoes_especificas: string[];
   topicos_reuniao: TopicoReuniao[];
-  fotos: { url: string; tipo: 'inicial' | 'durante' | 'final' }[];
+  fotos: {
+    fotoId?: string; // local IndexedDB blob id (offline-first)
+    url: string; // displayable URL: blob:, data: or http(s)
+    remoteUrl?: string; // populated after Supabase upload
+    tipo: 'inicial' | 'durante' | 'final';
+  }[];
   demandas: Demanda[];
   possui_foto_final: boolean;
 }

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo } from '@/types/atendimento';
 import { getPlanoFromTipo, getPlanoFromAcao } from '@/types/tiposAtendimentoConfig';
+import { savePhotoBlob, deletePhoto, getPhotoObjectURL } from '@/lib/offlineDB';
 
 const STORAGE_KEY = 'atendimento-em-andamento';
 const ROUTE_KEY = 'atendimento-rota-atual';
@@ -22,6 +23,7 @@ interface AtendimentoContextType {
   toggleChecklistItem: (id: string) => void;
   removeChecklistItem: (id: string) => void;
   addFoto: (url: string, tipo: 'inicial' | 'durante' | 'final') => void;
+  addFotoFile: (file: File | Blob, tipo: 'inicial' | 'durante' | 'final') => Promise<void>;
   removeFoto: (url: string) => void;
   setTiposAtendimento: (tipos: AtendimentoTipo[]) => void;
   setAcoesEspecificas: (acoes: string[]) => void;
@@ -66,7 +68,15 @@ function loadFromStorage(): { data: AtendimentoData; ativo: boolean } | null {
 
 function saveToStorage(data: AtendimentoData, ativo: boolean) {
   try {
-    const state: PersistedState = { data, ativo };
+    // Strip transient blob: URLs (they are recreated on load from fotoId)
+    const safe: AtendimentoData = {
+      ...data,
+      fotos: data.fotos.map(f => ({
+        ...f,
+        url: f.url?.startsWith('blob:') ? '' : f.url,
+      })),
+    };
+    const state: PersistedState = { data: safe, ativo };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
     console.warn('Failed to persist visit data:', e);
@@ -90,6 +100,29 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     const stored = loadFromStorage();
     return stored?.data ?? { ...initialData, data_inicio: new Date() };
   });
+
+  // After mount, regenerate object URLs for any persisted photos that lost their URL
+  useEffect(() => {
+    const needsRehydrate = data.fotos.some(f => f.fotoId && (!f.url || f.url.startsWith('blob:') === false && f.url === ''));
+    if (!needsRehydrate) return;
+    let cancelled = false;
+    (async () => {
+      const rehydrated = await Promise.all(
+        data.fotos.map(async (f) => {
+          if (f.fotoId && (!f.url || f.url === '')) {
+            const url = await getPhotoObjectURL(f.fotoId);
+            return url ? { ...f, url } : null;
+          }
+          return f;
+        }),
+      );
+      if (cancelled) return;
+      const cleaned = rehydrated.filter(Boolean) as typeof data.fotos;
+      setData(prev => ({ ...prev, fotos: cleaned }));
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persist to localStorage on every change
   useEffect(() => {
@@ -157,8 +190,22 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const addFotoFile = async (file: File | Blob, tipo: 'inicial' | 'durante' | 'final') => {
+    const { fotoId, objectUrl } = await savePhotoBlob(file, tipo);
+    setData(prev => {
+      const newFotos = [...prev.fotos, { fotoId, url: objectUrl, tipo }];
+      const possuiFotoFinal = newFotos.some(f => f.tipo === 'final');
+      return { ...prev, fotos: newFotos, possui_foto_final: possuiFotoFinal };
+    });
+  };
+
   const removeFoto = (url: string) => {
     setData(prev => {
+      const target = prev.fotos.find(f => f.url === url);
+      if (target?.fotoId) void deletePhoto(target.fotoId);
+      if (target?.url?.startsWith('blob:')) {
+        try { URL.revokeObjectURL(target.url); } catch { /* noop */ }
+      }
       const newFotos = prev.fotos.filter(f => f.url !== url);
       const possuiFotoFinal = newFotos.some(f => f.tipo === 'final');
       return { ...prev, fotos: newFotos, possui_foto_final: possuiFotoFinal };
@@ -253,6 +300,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         toggleChecklistItem,
         removeChecklistItem,
         addFoto,
+        addFotoFile,
         removeFoto,
         setTiposAtendimento,
         setAcoesEspecificas,

@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 export default function Anotacoes() {
   useVisitRoute('/visita/anotacoes');
   const navigate = useNavigate();
-  const { data, setAnotacoes, addChecklistItem, toggleChecklistItem, removeChecklistItem, addFoto } = useAtendimento();
+  const { data, setAnotacoes, addChecklistItem, toggleChecklistItem, removeChecklistItem, addFotoFile } = useAtendimento();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   
@@ -37,18 +37,17 @@ export default function Anotacoes() {
     galleryInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      addFoto(result, 'durante');
-      toast.success('Foto adicionada!');
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    try {
+      await addFotoFile(file, 'durante');
+      toast.success('Foto adicionada!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao salvar foto no aparelho');
+    }
   };
 
   const handleContinue = () => {
