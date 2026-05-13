@@ -16,6 +16,7 @@ export default function TiposAtendimento() {
   const navigate = useNavigate();
   const { data, setTiposAtendimento } = useAtendimento();
   const [selectedTipos, setSelectedTipos] = useState<AtendimentoTipo[]>(data.tipos_atendimento);
+  const [search, setSearch] = useState('');
 
   const toggleTipo = (tipo: AtendimentoTipo) => {
     setSelectedTipos(prev =>
