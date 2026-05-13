@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
 import { SelectionCard, PageHeader, EmptyState, CountBadge, MobileFooter } from '@/components/mobile';
 import { TIPOS_ATENDIMENTO_CONFIG } from '@/types/tiposAtendimentoConfig';
 import { AtendimentoTipo } from '@/types/atendimento';
-import { Check, ChevronRight, ClipboardList } from 'lucide-react';
+import { Check, ChevronRight, ClipboardList, Search, X } from 'lucide-react';
 
 export default function TiposAtendimento() {
   useVisitRoute('/visita/tipos');
