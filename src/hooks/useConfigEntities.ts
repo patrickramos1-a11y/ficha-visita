@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { setTiposCache, setAcoesCache } from '@/lib/tiposAcoesCache';
+import type { PlanoTipo } from '@/types/atendimento';
 
 // ── Planos ──
 export function usePlanos() {
