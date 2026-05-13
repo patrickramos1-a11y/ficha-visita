@@ -263,3 +263,108 @@ export function useDeleteDemandaEspecifica() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['demandas_especificas'] }),
   });
 }
+
+// ── Tipos de Atendimento (configurável) ──
+export function useTiposAtendimentoConfig() {
+  return useQuery({
+    queryKey: ['tipos_atendimento_config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tipos_atendimento_config')
+        .select('*, planos(nome, cor)')
+        .order('nome');
+      if (error) throw error;
+      // Sync cache for offline / sync engine
+      setTiposCache((data || []).map((t: any) => ({
+        nome: t.nome,
+        descricao: t.descricao || '',
+        plano: (t.planos?.nome as PlanoTipo) || 'VIP',
+      })));
+      return data;
+    },
+  });
+}
+
+export function useUpsertTipoAtendimento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (t: { id?: string; nome: string; descricao?: string | null; plano_id?: string | null; ativo?: boolean }) => {
+      const payload = {
+        nome: t.nome,
+        descricao: t.descricao || null,
+        plano_id: t.plano_id || null,
+        ativo: t.ativo ?? true,
+      };
+      if (t.id) {
+        const { error } = await supabase.from('tipos_atendimento_config').update(payload).eq('id', t.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('tipos_atendimento_config').insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tipos_atendimento_config'] }),
+  });
+}
+
+export function useDeleteTipoAtendimento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('tipos_atendimento_config').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tipos_atendimento_config'] }),
+  });
+}
+
+// ── Ações Específicas (configurável) ──
+export function useAcoesEspecificasConfig() {
+  return useQuery({
+    queryKey: ['acoes_especificas_config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('acoes_especificas_config')
+        .select('*, planos(nome, cor)')
+        .order('nome');
+      if (error) throw error;
+      setAcoesCache((data || []).map((a: any) => ({
+        nome: a.nome,
+        plano: (a.planos?.nome as PlanoTipo) || 'VIP',
+      })));
+      return data;
+    },
+  });
+}
+
+export function useUpsertAcaoEspecifica() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { id?: string; nome: string; plano_id?: string | null; ativo?: boolean }) => {
+      const payload = {
+        nome: a.nome,
+        plano_id: a.plano_id || null,
+        ativo: a.ativo ?? true,
+      };
+      if (a.id) {
+        const { error } = await supabase.from('acoes_especificas_config').update(payload).eq('id', a.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('acoes_especificas_config').insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['acoes_especificas_config'] }),
+  });
+}
+
+export function useDeleteAcaoEspecifica() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('acoes_especificas_config').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['acoes_especificas_config'] }),
+  });
+}
