@@ -52,7 +52,7 @@ export default function TiposAtendimento() {
             description="Você selecionou todas as opções disponíveis"
           />
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {availableTipos.map((tipoConfig) => (
               <SelectionCard
                 key={tipoConfig.nome}
