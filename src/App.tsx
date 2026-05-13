@@ -103,6 +103,7 @@ const App = () => (
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </SyncProvider>
         </AtendimentoProvider>
       </BrowserRouter>
     </TooltipProvider>
