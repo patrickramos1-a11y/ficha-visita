@@ -64,6 +64,11 @@ export function MobileLayout({
         )}
       </header>
 
+      {/* Sync status strip */}
+      <div className="px-3 py-1 flex justify-center bg-background">
+        <SyncStatusBadge compact />
+      </div>
+
       {/* Content */}
       <main className={cn(
         "flex-1 flex flex-col overflow-hidden",
