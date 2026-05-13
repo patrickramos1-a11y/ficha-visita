@@ -61,6 +61,7 @@ export default function Index() {
           Registre visitas técnicas e atendimentos de forma rápida e organizada
         </p>
       </div>
+      <StartVisitDialog open={pickerOpen} onOpenChange={setPickerOpen} />
     </MobileLayout>
   );
 }

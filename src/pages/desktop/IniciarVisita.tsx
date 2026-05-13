@@ -8,12 +8,14 @@ import { Play, History, ArrowLeft, Clock, PlayCircle } from 'lucide-react';
 import logoHorizontal from '@/assets/logo-horizontal.png';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { DesktopLayout } from '@/components/layout/DesktopLayout';
+import { StartVisitDialog } from '@/components/visita/StartVisitDialog';
 
 export default function IniciarVisita() {
   const navigate = useNavigate();
-  const { resetAtendimento, ativo, getRotaAtual } = useAtendimento();
+  const { ativo, getRotaAtual } = useAtendimento();
   const isMobile = useIsMobile();
   const [now, setNow] = useState(new Date());
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -23,10 +25,7 @@ export default function IniciarVisita() {
   const formattedDate = format(now, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   const formattedTime = format(now, 'HH:mm:ss');
 
-  const handleStartVisit = () => {
-    resetAtendimento();
-    navigate('/visita/foto-inicial');
-  };
+  const handleStartVisit = () => setPickerOpen(true);
 
   const handleContinueVisit = () => {
     const savedRoute = getRotaAtual();
