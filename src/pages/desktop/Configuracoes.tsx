@@ -5,6 +5,7 @@ import { SimpleEntityCrud } from '@/components/config/SimpleEntityCrud';
 import { DemandasEspecificasCrud } from '@/components/config/DemandasEspecificasCrud';
 import { TiposAtendimentoCrud } from '@/components/config/TiposAtendimentoCrud';
 import { AcoesEspecificasCrud } from '@/components/config/AcoesEspecificasCrud';
+import { UpdateCheckCard } from '@/components/pwa/UpdateCheckCard';
 import {
   usePlanos, useUpsertPlano, useDeletePlano,
   useTopicos, useUpsertTopico, useDeleteTopico,
@@ -226,6 +227,7 @@ export default function Configuracoes() {
   return (
     <DesktopLayout>
       <div className="max-w-4xl mx-auto space-y-6">
+        <UpdateCheckCard />
         <Tabs defaultValue="empresas">
           <TabsList className={isMobile ? "w-full flex-wrap h-auto gap-1 p-1" : "w-full justify-start"}>
             {tabItems.map(tab => (
