@@ -8,6 +8,7 @@ import { SyncProvider } from "@/contexts/SyncContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { InstallPromptBanner } from "@/components/pwa/InstallPromptBanner";
 import { ConfigCachePrefetcher } from "@/components/config/ConfigCachePrefetcher";
+import { UpdatePrompt } from "@/components/pwa/UpdatePrompt";
 
 // Mobile pages
 import Index from "./pages/Index";
@@ -75,6 +76,7 @@ const App = () => (
           <SyncProvider>
           <ConfigCachePrefetcher />
           <InstallPromptBanner />
+          <UpdatePrompt />
           <Routes>
             {/* Root - redirects based on device */}
             <Route path="/" element={<RootRedirect />} />
