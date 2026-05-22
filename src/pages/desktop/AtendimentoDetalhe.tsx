@@ -141,6 +141,13 @@ export default function AtendimentoDetalhe() {
                 : <Badge variant="outline">Pendente</Badge>
               }
               <GerarPDF data={pdfData} responsavelNome={atendimento.responsavel?.nome} clientesNomes={clientesNomes} />
+              {demandas && demandas.length > 0 && (
+                <BaixarProgramacaoButton
+                  atendimento={{ data_inicio: new Date(atendimento.created_at), demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada })) }}
+                  clienteNomes={clientesNomes}
+                  responsavelNome={atendimento.responsavel?.nome}
+                />
+              )}
             </div>
           </div>
         )}
