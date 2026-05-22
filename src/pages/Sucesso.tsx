@@ -56,6 +56,24 @@ export default function Sucesso() {
           </Button>
 
           <Button 
+            onClick={handleNovaVisita}
+            className="w-full h-14 text-lg haptic-press"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Nova Visita
+          </Button>
+
+          {temDemandas && (
+            <BaixarProgramacaoButton
+              atendimento={data}
+              clienteNomes={clienteNomes}
+              responsavelNome={responsavelNome}
+              fullWidth
+              className="h-12"
+            />
+          )}
+
+          <Button 
             variant="outline"
             onClick={() => navigate('/')}
             className="w-full h-12 haptic-press"
