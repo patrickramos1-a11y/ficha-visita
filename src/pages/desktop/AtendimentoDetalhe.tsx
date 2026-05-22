@@ -301,8 +301,16 @@ export default function AtendimentoDetalhe() {
 
         {/* PDF on mobile */}
         {isMobile && (
-          <div className="pb-2">
+          <div className="pb-2 space-y-2">
             <GerarPDF data={pdfData} responsavelNome={atendimento.responsavel?.nome} clientesNomes={clientesNomes} />
+            {demandas && demandas.length > 0 && (
+              <BaixarProgramacaoButton
+                atendimento={{ data_inicio: new Date(atendimento.created_at), demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada })) }}
+                clienteNomes={clientesNomes}
+                responsavelNome={atendimento.responsavel?.nome}
+                fullWidth
+              />
+            )}
           </div>
         )}
       </div>
