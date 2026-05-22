@@ -4,8 +4,11 @@ import { format } from 'date-fns';
 import type { AtendimentoData, Demanda } from '@/types/atendimento';
 
 const TEMPLATE_URL = '/templates/programacao-modelo.xlsx';
-const ORIGEM_FIXA = 'VISITA / ATENDIMENTO';
+const ORIGEM_FIXA = 'FICHA';
 const STATUS_FIXO = 'EM_EXECUCAO';
+const PLANO_FIXO = 'AVULSO';
+const TOPICO_FIXO = 'Sisramos';
+const SUBTOPICO_FIXO = 'Visita';
 
 // Catálogo lookup type (subset of demandas_especificas with joined topicos/subtopicos)
 export interface DemandaCatalogoLookup {
