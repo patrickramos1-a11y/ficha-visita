@@ -4,8 +4,11 @@ import { format } from 'date-fns';
 import type { AtendimentoData, Demanda } from '@/types/atendimento';
 
 const TEMPLATE_URL = '/templates/programacao-modelo.xlsx';
-const ORIGEM_FIXA = 'VISITA / ATENDIMENTO';
+const ORIGEM_FIXA = 'FICHA';
 const STATUS_FIXO = 'EM_EXECUCAO';
+const PLANO_FIXO = 'AVULSO';
+const TOPICO_FIXO = 'Sisramos';
+const SUBTOPICO_FIXO = 'Visita';
 
 // Catálogo lookup type (subset of demandas_especificas with joined topicos/subtopicos)
 export interface DemandaCatalogoLookup {
@@ -28,8 +31,6 @@ function resolverDemanda(d: Demanda, catalogo: DemandaCatalogoLookup[] = []) {
   );
   return {
     descricao: match?.descricao_detalhada || d.descricao,
-    topico: match?.topicos?.nome || '',
-    subtopico: match?.subtopicos?.nome || '',
   };
 }
 
@@ -69,14 +70,14 @@ export async function gerarProgramacaoXlsx(input: ProgramacaoInput): Promise<Blo
       // I: Responsável
       row.getCell(9).value = responsavelNome || '';
       // J: Plano
-      row.getCell(10).value = demanda.plano || '';
+      row.getCell(10).value = PLANO_FIXO;
       // K: Status
       row.getCell(11).value = STATUS_FIXO;
       // L: Comentário (vazio)
       // M: Tópico
-      row.getCell(13).value = resolved.topico;
+      row.getCell(13).value = TOPICO_FIXO;
       // N: Subtópico
-      row.getCell(14).value = resolved.subtopico;
+      row.getCell(14).value = SUBTOPICO_FIXO;
       row.commit();
       rowIdx++;
     }
