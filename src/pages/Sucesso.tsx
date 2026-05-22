@@ -55,14 +55,6 @@ export default function Sucesso() {
             Nova Visita
           </Button>
 
-          <Button 
-            onClick={handleNovaVisita}
-            className="w-full h-14 text-lg haptic-press"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Nova Visita
-          </Button>
-
           {temDemandas && (
             <BaixarProgramacaoButton
               atendimento={data}
