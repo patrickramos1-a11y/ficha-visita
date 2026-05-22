@@ -12,6 +12,7 @@ import {
   CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { GerarPDF } from '@/components/relatorio/GerarPDF';
+import { BaixarProgramacaoButton } from '@/components/relatorio/BaixarProgramacaoButton';
 import { TIPOS_ATENDIMENTO_CONFIG, ACOES_ESPECIFICAS_CONFIG } from '@/types/tiposAtendimentoConfig';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobilePageHeader } from '@/components/layout/MobilePageHeader';
