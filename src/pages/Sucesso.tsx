@@ -3,10 +3,21 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Home, Plus } from 'lucide-react';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
+import { useClientes } from '@/hooks/useClientes';
+import { useResponsaveis } from '@/hooks/useResponsaveis';
+import { BaixarProgramacaoButton } from '@/components/relatorio/BaixarProgramacaoButton';
 
 export default function Sucesso() {
   const navigate = useNavigate();
-  const { resetAtendimento } = useAtendimento();
+  const { data, resetAtendimento } = useAtendimento();
+  const { data: clientes = [] } = useClientes();
+  const { data: responsaveis = [] } = useResponsaveis();
+
+  const clienteNomes = data.cliente_ids
+    .map(id => clientes.find(c => c.id === id)?.nome)
+    .filter(Boolean) as string[];
+  const responsavelNome = responsaveis.find(r => r.id === data.responsavel_id)?.nome;
+  const temDemandas = (data.demandas?.length || 0) > 0;
 
   const handleNovaVisita = () => {
     resetAtendimento();
