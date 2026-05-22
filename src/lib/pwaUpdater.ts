@@ -112,4 +112,4 @@ export function onUpdateChecked(fn: CheckedListener): () => void {
 }
 
 export const APP_VERSION: string =
-  (typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev");
+  ((globalThis as any).__APP_VERSION__ as string) ?? "dev";
