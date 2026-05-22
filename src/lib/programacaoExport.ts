@@ -70,14 +70,14 @@ export async function gerarProgramacaoXlsx(input: ProgramacaoInput): Promise<Blo
       // I: Responsável
       row.getCell(9).value = responsavelNome || '';
       // J: Plano
-      row.getCell(10).value = demanda.plano || '';
+      row.getCell(10).value = PLANO_FIXO;
       // K: Status
       row.getCell(11).value = STATUS_FIXO;
       // L: Comentário (vazio)
       // M: Tópico
-      row.getCell(13).value = resolved.topico;
+      row.getCell(13).value = TOPICO_FIXO;
       // N: Subtópico
-      row.getCell(14).value = resolved.subtopico;
+      row.getCell(14).value = SUBTOPICO_FIXO;
       row.commit();
       rowIdx++;
     }
