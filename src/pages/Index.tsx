@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { Play, History, PlayCircle } from 'lucide-react';
 import { StartVisitDialog } from '@/components/visita/StartVisitDialog';
+import { UpdateCheckCard } from '@/components/pwa/UpdateCheckCard';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -60,6 +61,10 @@ export default function Index() {
         <p className="text-sm text-muted-foreground text-center max-w-xs">
           Registre visitas técnicas e atendimentos de forma rápida e organizada
         </p>
+
+        <div className="w-full max-w-xs">
+          <UpdateCheckCard compact />
+        </div>
       </div>
       <StartVisitDialog open={pickerOpen} onOpenChange={setPickerOpen} />
     </MobileLayout>
