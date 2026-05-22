@@ -31,8 +31,6 @@ function resolverDemanda(d: Demanda, catalogo: DemandaCatalogoLookup[] = []) {
   );
   return {
     descricao: match?.descricao_detalhada || d.descricao,
-    topico: match?.topicos?.nome || '',
-    subtopico: match?.subtopicos?.nome || '',
   };
 }
 
