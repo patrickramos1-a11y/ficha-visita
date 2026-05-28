@@ -91,7 +91,7 @@ export default function SugestoesDemandas() {
                 </Select>
                 <Select
                   value={demanda.status || 'EM_EXECUCAO'}
-                  onValueChange={(value) => handleUpdate(index, { status: value as 'EM_EXECUCAO' | 'CONCLUIDA' })}
+                  onValueChange={(value) => handleUpdate(index, { status: value as 'EM_EXECUCAO' | 'CONCLUIDA' | 'NAO_FEITO' })}
                 >
                   <SelectTrigger className="w-[140px] h-9 text-sm">
                     <SelectValue />
@@ -99,6 +99,7 @@ export default function SugestoesDemandas() {
                   <SelectContent>
                     <SelectItem value="EM_EXECUCAO">Em execução</SelectItem>
                     <SelectItem value="CONCLUIDA">Concluída</SelectItem>
+                    <SelectItem value="NAO_FEITO">Não feito</SelectItem>
                   </SelectContent>
                 </Select>
                 {demanda.personalizada && (
