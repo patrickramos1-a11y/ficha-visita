@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Download, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { APP_VERSION, checkForUpdate, isPwaEnabled } from "@/lib/pwaUpdater";
+import { APP_VERSION, applyUpdate, checkForUpdate, isPwaEnabled } from "@/lib/pwaUpdater";
 
 interface Props {
   compact?: boolean;
@@ -24,10 +24,12 @@ export function UpdateCheckCard({ compact }: Props) {
     setChecking(true);
     try {
       const { hasUpdate } = await checkForUpdate();
-      if (!hasUpdate) {
+      if (hasUpdate) {
+        toast.success("Nova versão encontrada, atualizando...");
+        await applyUpdate();
+      } else {
         toast.success("Você já está na versão mais recente");
       }
-      // Se houver update, o UpdatePrompt global abre automaticamente
     } catch {
       toast.error("Não foi possível verificar atualizações");
     } finally {
