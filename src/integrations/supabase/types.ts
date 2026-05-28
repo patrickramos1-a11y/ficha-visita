@@ -248,6 +248,7 @@ export type Database = {
           id: string
           personalizada: boolean
           plano: Database["public"]["Enums"]["plano_tipo"] | null
+          status: string
           subtopico_id: string | null
           tipo_atendimento: string | null
           topico_id: string | null
@@ -260,6 +261,7 @@ export type Database = {
           id?: string
           personalizada?: boolean
           plano?: Database["public"]["Enums"]["plano_tipo"] | null
+          status?: string
           subtopico_id?: string | null
           tipo_atendimento?: string | null
           topico_id?: string | null
@@ -272,6 +274,7 @@ export type Database = {
           id?: string
           personalizada?: boolean
           plano?: Database["public"]["Enums"]["plano_tipo"] | null
+          status?: string
           subtopico_id?: string | null
           tipo_atendimento?: string | null
           topico_id?: string | null
