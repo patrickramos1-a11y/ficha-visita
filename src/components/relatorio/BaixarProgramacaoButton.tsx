@@ -10,6 +10,7 @@ interface Props {
   atendimento: Pick<AtendimentoData, 'data_inicio' | 'demandas'>;
   clienteNomes: string[];
   responsavelNome?: string;
+  acoesEspecificas?: string[];
   variant?: 'default' | 'outline' | 'secondary';
   className?: string;
   size?: 'default' | 'sm' | 'lg';
@@ -20,6 +21,7 @@ export function BaixarProgramacaoButton({
   atendimento,
   clienteNomes,
   responsavelNome,
+  acoesEspecificas,
   variant = 'outline',
   className,
   size = 'default',
@@ -46,6 +48,7 @@ export function BaixarProgramacaoButton({
         atendimento,
         clienteNomes,
         responsavelNome,
+        acoesEspecificas,
         catalogo,
       });
       toast.success('Planilha gerada');

@@ -143,9 +143,10 @@ export default function AtendimentoDetalhe() {
               <GerarPDF data={pdfData} responsavelNome={atendimento.responsavel?.nome} clientesNomes={clientesNomes} />
               {demandas && demandas.length > 0 && (
                 <BaixarProgramacaoButton
-                  atendimento={{ data_inicio: new Date(atendimento.created_at), demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada })) }}
+                  atendimento={{ data_inicio: new Date(atendimento.created_at), demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada, tipo_atendimento: d.tipo_atendimento || undefined })) }}
                   clienteNomes={clientesNomes}
                   responsavelNome={atendimento.responsavel?.nome}
+                  acoesEspecificas={atendimento.acoes_especificas || []}
                 />
               )}
             </div>
@@ -305,9 +306,10 @@ export default function AtendimentoDetalhe() {
             <GerarPDF data={pdfData} responsavelNome={atendimento.responsavel?.nome} clientesNomes={clientesNomes} />
             {demandas && demandas.length > 0 && (
               <BaixarProgramacaoButton
-                atendimento={{ data_inicio: new Date(atendimento.created_at), demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada })) }}
+                atendimento={{ data_inicio: new Date(atendimento.created_at), demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada, tipo_atendimento: d.tipo_atendimento || undefined })) }}
                 clienteNomes={clientesNomes}
                 responsavelNome={atendimento.responsavel?.nome}
+                acoesEspecificas={atendimento.acoes_especificas || []}
                 fullWidth
               />
             )}

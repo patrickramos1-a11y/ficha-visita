@@ -13,27 +13,37 @@ import {
   useUpsertAcaoEspecifica,
   useDeleteAcaoEspecifica,
   usePlanos,
+  useTopicos,
+  useSubtopicos,
 } from '@/hooks/useConfigEntities';
 
 export function AcoesEspecificasCrud() {
   const { data: acoes, isLoading } = useAcoesEspecificasConfig();
   const { data: planos } = usePlanos();
+  const { data: topicos } = useTopicos();
   const upsert = useUpsertAcaoEspecifica();
   const del = useDeleteAcaoEspecifica();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ nome: '', plano_id: '' });
+  const [form, setForm] = useState({ nome: '', plano_id: '', topico_id: '', subtopico_id: '' });
+
+  const { data: subtopicos } = useSubtopicos(form.topico_id || undefined);
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: '', plano_id: '' });
+    setForm({ nome: '', plano_id: '', topico_id: '', subtopico_id: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (a: any) => {
     setEditing(a);
-    setForm({ nome: a.nome, plano_id: a.plano_id || '' });
+    setForm({
+      nome: a.nome,
+      plano_id: a.plano_id || '',
+      topico_id: a.topico_id || '',
+      subtopico_id: a.subtopico_id || '',
+    });
     setDialogOpen(true);
   };
 
@@ -44,6 +54,8 @@ export function AcoesEspecificasCrud() {
         id: editing?.id,
         nome: form.nome.trim(),
         plano_id: form.plano_id || null,
+        topico_id: form.topico_id || null,
+        subtopico_id: form.subtopico_id || null,
       });
       setDialogOpen(false);
       toast.success(editing ? 'Ação atualizada' : 'Ação criada');
@@ -86,6 +98,11 @@ export function AcoesEspecificasCrud() {
                       {a.planos.nome}
                     </Badge>
                   )}
+                  {a.topicos?.nome && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      {a.topicos.nome}{a.subtopicos?.nome ? ` › ${a.subtopicos.nome}` : ''}
+                    </Badge>
+                  )}
                   {a.ativo === false && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
                 </div>
               </div>
@@ -124,6 +141,28 @@ export function AcoesEspecificasCrud() {
                   {planos?.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Tópico</Label>
+                <Select value={form.topico_id} onValueChange={v => setForm(f => ({ ...f, topico_id: v === 'none' ? '' : v, subtopico_id: '' }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar tópico" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {topicos?.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Subtópico</Label>
+                <Select value={form.subtopico_id} onValueChange={v => setForm(f => ({ ...f, subtopico_id: v === 'none' ? '' : v }))} disabled={!form.topico_id}>
+                  <SelectTrigger><SelectValue placeholder={form.topico_id ? 'Selecionar subtópico' : 'Selecione tópico primeiro'} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {subtopicos?.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>

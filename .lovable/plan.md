@@ -1,68 +1,91 @@
-# Exportação da planilha "Programação" com demandas da visita
+# Plano: Tópicos/Subtópicos via planilha + vínculo com Tipos/Ações
 
-## Objetivo
-Ao concluir uma visita, gerar automaticamente uma cópia preenchida da planilha modelo "Programação - Modelo" com as demandas cadastradas, permitindo que o usuário baixe e edite manualmente antes de importar em outra plataforma.
+## Etapa 1 — Banco de dados (migração)
 
-## Onde fica o download
-1. **Tela de Sucesso** (`src/pages/Sucesso.tsx`) — botão "Baixar Programação (.xlsx)" ao lado/abaixo do botão de PDF.
-2. **Detalhe da visita** (`src/pages/desktop/AtendimentoDetalhe.tsx`) — mesmo botão, para baixar novamente depois.
+Adicionar vínculos opcionais nas configurações de Tipos e Ações:
 
-## Mapeamento das colunas (por demanda × cliente)
-A planilha modelo tem cabeçalho na linha 1 com 14 colunas. Para cada demanda da visita, gerar **uma linha por cliente selecionado**:
+- `tipos_atendimento_config`: novas colunas `topico_id uuid` e `subtopico_id uuid`.
+- `acoes_especificas_config`: novas colunas `topico_id uuid` e `subtopico_id uuid`.
 
-| Coluna | Origem do dado |
-|---|---|
-| Código | (vazio — usuário preenche depois) |
-| Data | `data_inicio` da visita (formato data) |
-| Ano / Mês | preservar as fórmulas já existentes do modelo (`=IF(B2<>"",YEAR(B2),"")` etc.) |
-| Mês Inicial | (vazio) |
-| Empresa | nome do cliente |
-| Origem | `"VISITA / ATENDIMENTO"` (fixo) |
-| Descrição | `descricao_detalhada` da demanda quando vier do catálogo; senão `descricao` (texto digitado) |
-| Responsável | nome do responsável da visita |
-| Plano | `demanda.plano` (VIP / Premium / Master / Integracao) |
-| Status | `"EM_EXECUCAO"` (fixo, conforme valores da Planilha2) |
-| Comentário | (vazio) |
-| Tópico | nome do tópico vinculado à demanda (quando vier do catálogo) |
-| Subtópico | nome do subtópico vinculado à demanda (quando vier do catálogo) |
+Ambas nullable (vínculo é opcional). Sem alterar RLS/grants existentes.
 
-Inclui **todas** as demandas (sugestões automáticas + personalizadas).
+> Observação técnica: a tabela `subtopicos` já tem `topico_id` (subtópico pertence a um tópico). A planilha modelo tem tópicos (col G) e subtópicos (col H) como **listas separadas, sem vínculo entre si**. Decisão: ao importar, os subtópicos são criados sob um tópico genérico chamado `"(Importado)"` (criado automaticamente se não existir), preservando a estrutura atual do banco. O usuário poderá reorganizar manualmente depois se quiser.
 
-## Detalhes técnicos
+## Etapa 2 — Importação da planilha em Configurações
 
-### Template
-- Copiar o arquivo enviado para `public/templates/programacao-modelo.xlsx`.
-- Em runtime, fazer `fetch('/templates/programacao-modelo.xlsx')` → carregar com **ExcelJS** (`workbook.xlsx.load(arrayBuffer)`).
-- ExcelJS preserva fórmulas, validações de dados (Planilha2) e formatação ao reescrever — é o que precisamos para que a planilha continue importável.
+Novo componente `ImportarTopicosSubtopicosCard` na aba Tópicos (e/ou na aba Subtópicos) de `desktop/Configuracoes.tsx`:
 
-### Novo módulo `src/lib/programacaoExport.ts`
-```ts
-export async function gerarProgramacaoXlsx(
-  atendimento: AtendimentoData,
-  clientes: Cliente[],
-  responsavel: Responsavel | undefined,
-  demandasCatalogo: DemandaEspecificaConfig[] // para resolver Tópico/Subtópico
-): Promise<Blob>
-```
-- Carrega o template, escreve linhas a partir da linha 2 em Sheet1 (preservando as fórmulas das colunas C/D que já existem até a linha 5055 — basta sobrescrever B com a Data e elas recalculam quando o Excel abrir).
-- Para demandas vindas do catálogo, fazer lookup pelo `id` para obter `topicos.nome` e `subtopicos.nome`.
-- Retorna `Blob` para download via `file-saver` (ou `URL.createObjectURL`).
+- Botão **"Importar da planilha modelo"** → abre file picker (`.xlsx`).
+- Lê com `exceljs` a aba `Planilha2`, extrai valores não-vazios de:
+  - **Coluna G** → tópicos
+  - **Coluna H** → subtópicos
+- Faz `trim` e deduplica (case-insensitive).
+- Mostra `AlertDialog` de confirmação avisando que **todos os tópicos e subtópicos atuais serão substituídos** (mostra contagem: "X tópicos e Y subtópicos serão importados, substituindo os atuais").
+- Ao confirmar, executa em sequência:
+  1. `DELETE FROM subtopicos`
+  2. `DELETE FROM topicos`
+  3. Garante tópico `"(Importado)"`
+  4. `INSERT` dos novos tópicos
+  5. `INSERT` dos novos subtópicos vinculados ao tópico `"(Importado)"`
+- Toast de sucesso e invalidação de queries `topicos`/`subtopicos`.
+- Não toca em Planos, Origens, Status, Tipos, Ações, Demandas Específicas.
 
-### Hook auxiliar
-`src/hooks/useDownloadProgramacao.ts` — encapsula carregar dados (clientes, responsável, catálogo) + chamar `gerarProgramacaoXlsx` + disparar download com nome `Programacao_<DataVisita>_<Cliente>.xlsx`.
+## Etapa 3 — Vínculo nas abas Tipos e Ações
 
-### Dependências
-- `exceljs` (~950 KB minified, lazy-importável)
-- `file-saver`
+Em `TiposAtendimentoCrud.tsx` e `AcoesEspecificasCrud.tsx`:
 
-### Edições
-- `src/pages/Sucesso.tsx`: novo botão.
-- `src/pages/desktop/AtendimentoDetalhe.tsx`: novo botão na seção de ações.
-- `src/lib/programacaoExport.ts` (novo).
-- `src/hooks/useDownloadProgramacao.ts` (novo).
-- `public/templates/programacao-modelo.xlsx` (novo — cópia do arquivo enviado).
+- Adicionar dois `Select` no formulário: **Tópico** e **Subtópico**.
+- Subtópico filtra opções pelo `topico_id` selecionado (usa `useSubtopicos(topicoId)`).
+- Salvar `topico_id` e `subtopico_id` no upsert.
+- Mostrar o vínculo na lista (badge ou texto secundário).
+
+Atualizar `useUpsertTipoAtendimento` e `useUpsertAcaoEspecifica` em `useConfigEntities.ts` para aceitar/persistir os dois novos campos. Ajustar selects das queries para incluir `topicos(nome), subtopicos(nome)`.
+
+## Etapa 4 — Carregar vínculo durante a visita
+
+- Ampliar o cache local (`tiposAcoesCache.ts`) para guardar também `topico` e `subtopico` (nomes) em cada tipo/ação.
+- `useTiposAtendimentoConfig` e `useAcoesEspecificasConfig` passam a popular esses campos no cache.
+- Não há nova UI durante a visita: os campos são apenas resolvidos no momento de gerar a planilha (transparente para o usuário, conforme pedido).
+
+## Etapa 5 — Planilha gerada com Tópico/Subtópico vinculados
+
+Em `src/lib/programacaoExport.ts`:
+
+- Substituir as constantes `TOPICO_FIXO` e `SUBTOPICO_FIXO` por uma resolução por linha:
+  1. Se a `Demanda` tem `tipo_atendimento` → buscar tópico/subtópico vinculados a esse tipo (via cache).
+  2. Senão, se há ações específicas no atendimento e alguma tem vínculo → usar a primeira com vínculo.
+  3. Fallback final: `"Sisramos"` / `"Visita"` (comportamento atual).
+- Assinatura de `gerarProgramacaoXlsx` ganha `acoesEspecificas?: string[]` para o fallback por ação.
+- `BaixarProgramacaoButton` passa `atendimento.acoes_especificas` (já disponível em `AtendimentoData`/`atendimentos`).
+
+## Etapa 6 — Memória do projeto
+
+Atualizar `mem://features/catalogo-demandas-especificas` (ou criar `mem://features/vinculo-topico-subtopico-tipos-acoes`) descrevendo:
+
+- Tipos e Ações podem ter `topico_id`/`subtopico_id`.
+- Importação de tópicos/subtópicos vem da `Planilha2` da planilha modelo (col G e H), substitui todos os existentes, subtópicos são vinculados ao tópico `"(Importado)"`.
+- Geração do XLSX resolve Tópico/Subtópico por tipo da demanda → ação → fallback fixo.
+
+## Arquivos
+
+**Criados**
+- `src/components/config/ImportarTopicosSubtopicosCard.tsx`
+- `src/lib/importarTopicosSubtopicos.ts` (parser xlsx + execução do replace)
+
+**Editados**
+- `src/components/config/TiposAtendimentoCrud.tsx`
+- `src/components/config/AcoesEspecificasCrud.tsx`
+- `src/hooks/useConfigEntities.ts`
+- `src/lib/tiposAcoesCache.ts`
+- `src/types/tiposAtendimentoConfig.ts`
+- `src/lib/programacaoExport.ts`
+- `src/components/relatorio/BaixarProgramacaoButton.tsx`
+- `src/pages/desktop/Configuracoes.tsx` (montar o card de importação na aba Tópicos)
+
+**Migração**: adicionar `topico_id` e `subtopico_id` em `tipos_atendimento_config` e `acoes_especificas_config`.
 
 ## Fora de escopo
-- Editor de planilha dentro do app (usuário edita no Excel/Google Sheets).
-- Envio automático para a outra plataforma.
-- Preenchimento de Código, Comentário e Mês Inicial (ficam em branco).
+
+- Editor de planilha embutido.
+- Atribuição automática de subtópicos aos tópicos corretos (não há essa relação na planilha modelo).
+- Mudar o comportamento de download (continua nas mesmas telas: Sucesso/Histórico).

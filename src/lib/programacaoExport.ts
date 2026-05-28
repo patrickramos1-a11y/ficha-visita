@@ -2,13 +2,14 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import type { AtendimentoData, Demanda } from '@/types/atendimento';
+import { getTopicoSubtopicoFromTipo, getTopicoSubtopicoFromAcao } from '@/lib/tiposAcoesCache';
 
 const TEMPLATE_URL = '/templates/programacao-modelo.xlsx';
 const ORIGEM_FIXA = 'FICHA';
 const STATUS_FIXO = 'EM_EXECUCAO';
 const PLANO_FIXO = 'AVULSO';
-const TOPICO_FIXO = 'Sisramos';
-const SUBTOPICO_FIXO = 'Visita';
+const TOPICO_FALLBACK = 'Sisramos';
+const SUBTOPICO_FALLBACK = 'Visita';
 
 // Catálogo lookup type (subset of demandas_especificas with joined topicos/subtopicos)
 export interface DemandaCatalogoLookup {
@@ -23,6 +24,7 @@ export interface ProgramacaoInput {
   clienteNomes: string[];
   responsavelNome?: string;
   catalogo?: DemandaCatalogoLookup[];
+  acoesEspecificas?: string[];
 }
 
 function resolverDemanda(d: Demanda, catalogo: DemandaCatalogoLookup[] = []) {
@@ -34,8 +36,36 @@ function resolverDemanda(d: Demanda, catalogo: DemandaCatalogoLookup[] = []) {
   };
 }
 
+/**
+ * Resolve tópico/subtópico para uma demanda:
+ * 1. Pelo tipo de atendimento da demanda (vínculo cadastrado em Configurações)
+ * 2. Pela primeira ação específica da visita que tenha vínculo
+ * 3. Fallback fixo "Sisramos" / "Visita"
+ */
+function resolverTopicoSubtopico(d: Demanda, acoes: string[] = []): { topico: string; subtopico: string } {
+  if (d.tipo_atendimento) {
+    const t = getTopicoSubtopicoFromTipo(d.tipo_atendimento);
+    if (t.topico || t.subtopico) {
+      return {
+        topico: t.topico || TOPICO_FALLBACK,
+        subtopico: t.subtopico || SUBTOPICO_FALLBACK,
+      };
+    }
+  }
+  for (const acao of acoes) {
+    const a = getTopicoSubtopicoFromAcao(acao);
+    if (a.topico || a.subtopico) {
+      return {
+        topico: a.topico || TOPICO_FALLBACK,
+        subtopico: a.subtopico || SUBTOPICO_FALLBACK,
+      };
+    }
+  }
+  return { topico: TOPICO_FALLBACK, subtopico: SUBTOPICO_FALLBACK };
+}
+
 export async function gerarProgramacaoXlsx(input: ProgramacaoInput): Promise<Blob> {
-  const { atendimento, clienteNomes, responsavelNome, catalogo = [] } = input;
+  const { atendimento, clienteNomes, responsavelNome, catalogo = [], acoesEspecificas = [] } = input;
 
   const resp = await fetch(TEMPLATE_URL);
   if (!resp.ok) throw new Error('Falha ao carregar template da Programação');
@@ -53,6 +83,7 @@ export async function gerarProgramacaoXlsx(input: ProgramacaoInput): Promise<Blo
   let rowIdx = 2;
   for (const demanda of atendimento.demandas) {
     const resolved = resolverDemanda(demanda, catalogo);
+    const ts = resolverTopicoSubtopico(demanda, acoesEspecificas);
     for (const cliente of clientes) {
       const row = sheet.getRow(rowIdx);
       // A: Código (vazio)
@@ -75,9 +106,9 @@ export async function gerarProgramacaoXlsx(input: ProgramacaoInput): Promise<Blo
       row.getCell(11).value = STATUS_FIXO;
       // L: Comentário (vazio)
       // M: Tópico
-      row.getCell(13).value = TOPICO_FIXO;
+      row.getCell(13).value = ts.topico;
       // N: Subtópico
-      row.getCell(14).value = SUBTOPICO_FIXO;
+      row.getCell(14).value = ts.subtopico;
       row.commit();
       rowIdx++;
     }
