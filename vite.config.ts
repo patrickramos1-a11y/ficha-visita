@@ -1,16 +1,37 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { writeFileSync } from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import pkg from "./package.json";
 
+const APP_VERSION_STRING = `${pkg.version}-${new Date()
+  .toISOString()
+  .slice(0, 16)
+  .replace(/[-:T]/g, "")}`;
+
+function versionJsonPlugin(): Plugin {
+  return {
+    name: "write-version-json",
+    apply: "build",
+    closeBundle() {
+      try {
+        writeFileSync(
+          path.resolve(__dirname, "dist", "version.json"),
+          JSON.stringify({ version: APP_VERSION_STRING }) + "\n"
+        );
+      } catch {
+        // dist may not exist in some build modes
+      }
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
-    __APP_VERSION__: JSON.stringify(
-      `${pkg.version}-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`
-    ),
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(APP_VERSION_STRING),
   },
   server: {
     host: "::",
