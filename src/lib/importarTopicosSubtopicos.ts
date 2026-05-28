@@ -6,6 +6,7 @@ const TOPICO_IMPORTADO_NOME = '(Importado)';
 export interface ParsedTopicosSubtopicos {
   topicos: string[];
   subtopicos: string[];
+  vinculos: { topico: string; subtopico: string }[];
 }
 
 /**
@@ -41,22 +42,34 @@ export async function parseTopicosSubtopicosFromXlsx(file: File): Promise<Parsed
 
   const colG: (string | null)[] = [];
   const colH: (string | null)[] = [];
+  const vinculos: { topico: string; subtopico: string }[] = [];
+  const vinculosSeen = new Set<string>();
   sheet.eachRow({ includeEmpty: false }, (row) => {
     const g = row.getCell(7).value;
     const h = row.getCell(8).value;
-    colG.push(g != null ? String(g) : null);
-    colH.push(h != null ? String(h) : null);
+    const topico = g != null ? String(g).trim() : '';
+    const subtopico = h != null ? String(h).trim() : '';
+    colG.push(topico || null);
+    colH.push(subtopico || null);
+    if (topico && subtopico) {
+      const key = `${topico.toLowerCase()}::${subtopico.toLowerCase()}`;
+      if (!vinculosSeen.has(key)) {
+        vinculosSeen.add(key);
+        vinculos.push({ topico, subtopico });
+      }
+    }
   });
 
   return {
     topicos: dedupe(colG),
     subtopicos: dedupe(colH),
+    vinculos,
   };
 }
 
 /**
  * Substitui completamente tópicos e subtópicos no banco.
- * Subtópicos importados são vinculados a um tópico genérico "(Importado)".
+ * Subtópicos importados são vinculados ao tópico da mesma linha na Planilha2.
  */
 export async function aplicarTopicosSubtopicos(parsed: ParsedTopicosSubtopicos) {
   // 1. Limpa tabelas dependentes primeiro (subtopicos -> topicos)
@@ -70,26 +83,40 @@ export async function aplicarTopicosSubtopicos(parsed: ParsedTopicosSubtopicos) 
   const { error: errTop } = await supabase.from('topicos').delete().not('id', 'is', null);
   if (errTop) throw errTop;
 
-  // 2. Insere tópicos
-  let topicoImportadoId: string | null = null;
+  // 2. Insere tópicos e monta mapa para vincular subtópicos ao tópico correto
+  const normalize = (value: string) => value.trim().toLowerCase();
+  const topicosMap = new Map<string, string>();
+  let topicoFallbackId: string | null = null;
   if (parsed.topicos.length > 0) {
-    const { error } = await supabase.from('topicos').insert(parsed.topicos.map(nome => ({ nome })));
+    const { data: insertedTopicos, error } = await supabase
+      .from('topicos')
+      .insert(parsed.topicos.map(nome => ({ nome })))
+      .select('id, nome');
     if (error) throw error;
+    (insertedTopicos || []).forEach((topico) => topicosMap.set(normalize(topico.nome), topico.id));
+    topicoFallbackId = insertedTopicos?.[0]?.id || null;
   }
 
-  // 3. Garante tópico "(Importado)" para os subtópicos
+  // 3. Insere subtópicos usando o vínculo da linha; se não houver tópico na linha, usa fallback
   if (parsed.subtopicos.length > 0) {
-    const existing = await supabase.from('topicos').select('id').eq('nome', TOPICO_IMPORTADO_NOME).maybeSingle();
-    if (existing.data?.id) {
-      topicoImportadoId = existing.data.id;
-    } else {
+    if (!topicoFallbackId) {
       const { data, error } = await supabase.from('topicos').insert({ nome: TOPICO_IMPORTADO_NOME }).select('id').single();
       if (error) throw error;
-      topicoImportadoId = data.id;
+      topicoFallbackId = data.id;
     }
 
-    // 4. Insere subtópicos sob o tópico genérico
-    const rows = parsed.subtopicos.map(nome => ({ nome, topico_id: topicoImportadoId! }));
+    const subtopicoToTopico = new Map<string, string>();
+    parsed.vinculos.forEach(({ topico, subtopico }) => {
+      const topicoId = topicosMap.get(normalize(topico));
+      if (topicoId && !subtopicoToTopico.has(normalize(subtopico))) {
+        subtopicoToTopico.set(normalize(subtopico), topicoId);
+      }
+    });
+
+    const rows = parsed.subtopicos.map(nome => ({
+      nome,
+      topico_id: subtopicoToTopico.get(normalize(nome)) || topicoFallbackId!,
+    }));
     // Insere em chunks de 500 para evitar limites
     for (let i = 0; i < rows.length; i += 500) {
       const chunk = rows.slice(i, i + 500);

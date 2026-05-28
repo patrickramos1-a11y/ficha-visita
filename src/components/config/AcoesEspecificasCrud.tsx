@@ -28,7 +28,7 @@ export function AcoesEspecificasCrud() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ nome: '', plano_id: '', topico_id: '', subtopico_id: '' });
 
-  const { data: subtopicos } = useSubtopicos(form.topico_id || undefined);
+  const { data: subtopicos } = useSubtopicos();
 
   const openNew = () => {
     setEditing(null);
