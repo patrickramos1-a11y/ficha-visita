@@ -34,6 +34,8 @@ export interface Demanda {
   descricao: string;
   plano?: PlanoTipo;
   personalizada: boolean;
+  topico_id?: string | null;
+  subtopico_id?: string | null;
 }
 
 export type VisitaModo = 'completa' | 'rapida';
