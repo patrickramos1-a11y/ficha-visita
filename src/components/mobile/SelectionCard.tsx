@@ -6,6 +6,7 @@ interface SelectionCardProps {
   children: ReactNode;
   selected?: boolean;
   onClick?: () => void;
+  meta?: string;
   description?: string;
   className?: string;
   showCheckbox?: boolean;
@@ -15,6 +16,7 @@ export function SelectionCard({
   children,
   selected = false,
   onClick,
+  meta,
   description,
   className,
   showCheckbox = true,
@@ -34,6 +36,9 @@ export function SelectionCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <span className="font-medium text-base block">{children}</span>
+          {meta && (
+            <span className="text-xs font-medium text-primary mt-1 block break-words">{meta}</span>
+          )}
           {description && (
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           )}

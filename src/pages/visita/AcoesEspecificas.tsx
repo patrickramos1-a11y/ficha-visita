@@ -29,6 +29,9 @@ export default function AcoesEspecificas() {
 
   const ativas = (acoes || []).filter((a: any) => a.ativo !== false);
   const availableAcoes = ativas.filter((a: any) => !selectedAcoes.includes(a.nome));
+  const acoesPorNome = new Map(ativas.map((a: any) => [a.nome, a]));
+  const formatTopicoSubtopico = (item: any) =>
+    [item?.topicos?.nome, item?.subtopicos?.nome].filter(Boolean).join(' › ');
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/tipos')} title="Ações Específicas">
@@ -47,7 +50,7 @@ export default function AcoesEspecificas() {
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Selecionadas</p>
             <div className="flex flex-wrap gap-2">
               {selectedAcoes.map((acao) => (
-                <SelectionChip key={acao} selected onRemove={() => toggleAcao(acao)}>{acao}</SelectionChip>
+                <SelectionChip key={acao} selected onRemove={() => toggleAcao(acao)} meta={formatTopicoSubtopico(acoesPorNome.get(acao))}>{acao}</SelectionChip>
               ))}
             </div>
           </div>
@@ -58,7 +61,7 @@ export default function AcoesEspecificas() {
         ) : availableAcoes.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {availableAcoes.map((acao: any) => (
-              <SelectionChip key={acao.id} onClick={() => toggleAcao(acao.nome)}>{acao.nome}</SelectionChip>
+              <SelectionChip key={acao.id} onClick={() => toggleAcao(acao.nome)} meta={formatTopicoSubtopico(acao)}>{acao.nome}</SelectionChip>
             ))}
           </div>
         ) : selectedAcoes.length > 0 ? (

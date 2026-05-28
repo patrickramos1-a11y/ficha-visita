@@ -7,6 +7,7 @@ interface SelectionChipProps {
   selected?: boolean;
   onClick?: () => void;
   onRemove?: () => void;
+  meta?: string;
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export function SelectionChip({
   selected = false,
   onClick,
   onRemove,
+  meta,
   className,
 }: SelectionChipProps) {
   if (selected && onRemove) {
@@ -28,7 +30,10 @@ export function SelectionChip({
         )}
       >
         <Check className="w-4 h-4" />
-        {children}
+        <span className="flex flex-col items-start leading-tight">
+          <span>{children}</span>
+          {meta && <span className="text-[11px] font-normal opacity-85">{meta}</span>}
+        </span>
         <X className="w-3 h-3 opacity-70" />
       </button>
     );
@@ -43,7 +48,10 @@ export function SelectionChip({
         className
       )}
     >
-      {children}
+      <span className="flex flex-col items-start leading-tight">
+        <span>{children}</span>
+        {meta && <span className="text-[11px] font-normal text-primary mt-0.5">{meta}</span>}
+      </span>
     </button>
   );
 }
