@@ -248,7 +248,9 @@ export type Database = {
           id: string
           personalizada: boolean
           plano: Database["public"]["Enums"]["plano_tipo"] | null
+          subtopico_id: string | null
           tipo_atendimento: string | null
+          topico_id: string | null
           updated_at: string
         }
         Insert: {
@@ -258,7 +260,9 @@ export type Database = {
           id?: string
           personalizada?: boolean
           plano?: Database["public"]["Enums"]["plano_tipo"] | null
+          subtopico_id?: string | null
           tipo_atendimento?: string | null
+          topico_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -268,7 +272,9 @@ export type Database = {
           id?: string
           personalizada?: boolean
           plano?: Database["public"]["Enums"]["plano_tipo"] | null
+          subtopico_id?: string | null
           tipo_atendimento?: string | null
+          topico_id?: string | null
           updated_at?: string
         }
         Relationships: [
