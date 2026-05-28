@@ -1,6 +1,6 @@
 // PWA update orchestration.
-// Wraps vite-plugin-pwa's registerSW to expose a friendly API for
-// detecting, prompting and applying updates.
+// Compara a versão instalada com /version.json publicado e força recarga limpa
+// quando há atualização, evitando precisar desinstalar/reinstalar o app.
 
 type AvailableListener = () => void;
 type CheckedListener = (hasUpdate: boolean) => void;
@@ -33,9 +33,11 @@ export function isPwaEnabled(): boolean {
   return !isPreviewOrIframe() && "serviceWorker" in navigator;
 }
 
+export const APP_VERSION: string =
+  (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "dev";
+
 export function initPwaUpdater() {
   if (isPreviewOrIframe()) {
-    // Garante que SW antigo não persista no preview
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistrations().then((regs) => {
         regs.forEach((r) => r.unregister());
@@ -54,7 +56,6 @@ export function initPwaUpdater() {
         },
         onRegisteredSW(_swUrl, reg) {
           registration = reg ?? null;
-          // Verifica a cada 30 min
           if (reg) {
             setInterval(() => {
               reg.update().catch(() => {});
@@ -68,40 +69,93 @@ export function initPwaUpdater() {
     });
 }
 
+async function fetchRemoteVersion(): Promise<string | null> {
+  try {
+    const res = await fetch(`/version.json?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { version?: string };
+    return data.version ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function checkForUpdate(): Promise<{ hasUpdate: boolean }> {
   if (!isPwaEnabled()) {
     return { hasUpdate: false };
   }
+
+  const remoteVersion = await fetchRemoteVersion();
+  const hasUpdate =
+    !!remoteVersion && remoteVersion !== "dev" && remoteVersion !== APP_VERSION;
+
+  // Em paralelo, pede ao SW para checar nova versão (pode disparar onNeedRefresh)
   try {
     const reg =
-      registration ??
-      (await navigator.serviceWorker.getRegistration()) ??
-      null;
+      registration ?? (await navigator.serviceWorker.getRegistration()) ?? null;
     if (reg) {
       registration = reg;
-      await reg.update();
+      await reg.update().catch(() => {});
     }
   } catch {
     // ignora
   }
-  // pequena espera para onNeedRefresh disparar caso haja nova versão
-  await new Promise((r) => setTimeout(r, 800));
-  const hasUpdate = updateAvailable;
-  checkedListeners.forEach((fn) => fn(hasUpdate));
-  return { hasUpdate };
+
+  if (hasUpdate) updateAvailable = true;
+  checkedListeners.forEach((fn) => fn(hasUpdate || updateAvailable));
+  return { hasUpdate: hasUpdate || updateAvailable };
+}
+
+async function clearAllCachesAndUnregister(): Promise<void> {
+  try {
+    if ("caches" in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map((n) => caches.delete(n)));
+    }
+  } catch {
+    // ignora
+  }
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+  } catch {
+    // ignora
+  }
 }
 
 export async function applyUpdate(): Promise<void> {
-  if (updateSW) {
-    await updateSW(true);
-  } else {
-    window.location.reload();
+  // 1. Tenta promover SW em waiting
+  try {
+    const reg =
+      registration ?? (await navigator.serviceWorker.getRegistration()) ?? null;
+    if (reg) {
+      await reg.update().catch(() => {});
+      const waiting = reg.waiting;
+      if (waiting) {
+        waiting.postMessage({ type: "SKIP_WAITING" });
+        // dá um instante para o controllerchange
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    }
+  } catch {
+    // ignora
   }
+
+  // 2. Limpeza forçada — garante que da próxima vez o navegador busque tudo de novo
+  await clearAllCachesAndUnregister();
+
+  // 3. Reload bypass cache
+  const url = new URL(window.location.href);
+  url.searchParams.set("u", Date.now().toString());
+  window.location.replace(url.toString());
 }
 
 export function onUpdateAvailable(fn: AvailableListener): () => void {
   availableListeners.add(fn);
-  // dispara imediatamente caso já esteja disponível
   if (updateAvailable) fn();
   return () => availableListeners.delete(fn);
 }
@@ -110,6 +164,3 @@ export function onUpdateChecked(fn: CheckedListener): () => void {
   checkedListeners.add(fn);
   return () => checkedListeners.delete(fn);
 }
-
-export const APP_VERSION: string =
-  ((globalThis as any).__APP_VERSION__ as string) ?? "dev";
