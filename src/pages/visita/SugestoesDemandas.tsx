@@ -89,6 +89,18 @@ export default function SugestoesDemandas() {
                     <SelectItem value="Master">Master</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select
+                  value={demanda.status || 'EM_EXECUCAO'}
+                  onValueChange={(value) => handleUpdate(index, { status: value as 'EM_EXECUCAO' | 'CONCLUIDA' })}
+                >
+                  <SelectTrigger className="w-[140px] h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EM_EXECUCAO">Em execução</SelectItem>
+                    <SelectItem value="CONCLUIDA">Concluída</SelectItem>
+                  </SelectContent>
+                </Select>
                 {demanda.personalizada && (
                   <span className="text-xs text-muted-foreground">Personalizada</span>
                 )}

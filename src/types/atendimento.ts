@@ -28,6 +28,8 @@ export interface Responsavel {
   ativo: boolean;
 }
 
+export type DemandaStatus = 'EM_EXECUCAO' | 'CONCLUIDA';
+
 export interface Demanda {
   id?: string;
   tipo_atendimento?: AtendimentoTipo;
@@ -36,6 +38,7 @@ export interface Demanda {
   personalizada: boolean;
   topico_id?: string | null;
   subtopico_id?: string | null;
+  status?: DemandaStatus;
 }
 
 export type VisitaModo = 'completa' | 'rapida';

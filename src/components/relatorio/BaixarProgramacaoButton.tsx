@@ -7,7 +7,7 @@ import { baixarProgramacaoXlsx, type DemandaCatalogoLookup } from '@/lib/program
 import type { AtendimentoData } from '@/types/atendimento';
 
 interface Props {
-  atendimento: Pick<AtendimentoData, 'data_inicio' | 'demandas'>;
+  atendimento: Pick<AtendimentoData, 'data_inicio' | 'demandas' | 'tipos_atendimento' | 'acoes_especificas'>;
   clienteNomes: string[];
   responsavelNome?: string;
   acoesEspecificas?: string[];

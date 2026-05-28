@@ -2,11 +2,12 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import type { AtendimentoData, Demanda } from '@/types/atendimento';
-import { getTopicoSubtopicoFromTipo, getTopicoSubtopicoFromAcao } from '@/lib/tiposAcoesCache';
+import { getTopicoSubtopicoFromTipo, getTopicoSubtopicoFromAcao, getTiposCache } from '@/lib/tiposAcoesCache';
 
 const TEMPLATE_URL = '/templates/programacao-modelo.xlsx';
 const ORIGEM_FIXA = 'FICHA';
-const STATUS_FIXO = 'EM_EXECUCAO';
+const STATUS_EXECUCAO = 'EM_EXECUCAO';
+const STATUS_CONCLUIDA = 'CONCLUIDA';
 const PLANO_FIXO = 'AVULSO';
 const TOPICO_FALLBACK = 'Sisramos';
 const SUBTOPICO_FALLBACK = 'Visita';
@@ -20,7 +21,7 @@ export interface DemandaCatalogoLookup {
 }
 
 export interface ProgramacaoInput {
-  atendimento: Pick<AtendimentoData, 'data_inicio' | 'demandas'>;
+  atendimento: Pick<AtendimentoData, 'data_inicio' | 'demandas' | 'tipos_atendimento' | 'acoes_especificas'>;
   clienteNomes: string[];
   responsavelNome?: string;
   catalogo?: DemandaCatalogoLookup[];
@@ -64,6 +65,13 @@ function resolverTopicoSubtopico(d: Demanda, acoes: string[] = []): { topico: st
   return { topico: TOPICO_FALLBACK, subtopico: SUBTOPICO_FALLBACK };
 }
 
+interface LinhaPlanilha {
+  descricao: string;
+  topico: string;
+  subtopico: string;
+  status: string;
+}
+
 export async function gerarProgramacaoXlsx(input: ProgramacaoInput): Promise<Blob> {
   const { atendimento, clienteNomes, responsavelNome, catalogo = [], acoesEspecificas = [] } = input;
 
@@ -80,10 +88,47 @@ export async function gerarProgramacaoXlsx(input: ProgramacaoInput): Promise<Blo
   const dataVisita = atendimento.data_inicio ? new Date(atendimento.data_inicio) : new Date();
   const clientes = clienteNomes.length > 0 ? clienteNomes : [''];
 
-  let rowIdx = 2;
+  // Monta a lista consolidada de linhas a partir das três fontes
+  const linhas: LinhaPlanilha[] = [];
+
+  // 1) Tipos de atendimento selecionados → status CONCLUIDA
+  const tiposCache = getTiposCache();
+  for (const tipo of atendimento.tipos_atendimento || []) {
+    const cache = tiposCache.find(t => t.nome === tipo);
+    const ts = getTopicoSubtopicoFromTipo(tipo);
+    linhas.push({
+      descricao: cache?.descricao || tipo,
+      topico: ts.topico || TOPICO_FALLBACK,
+      subtopico: ts.subtopico || SUBTOPICO_FALLBACK,
+      status: STATUS_CONCLUIDA,
+    });
+  }
+
+  // 2) Ações específicas selecionadas → status CONCLUIDA
+  for (const acao of atendimento.acoes_especificas || []) {
+    const ts = getTopicoSubtopicoFromAcao(acao);
+    linhas.push({
+      descricao: acao,
+      topico: ts.topico || TOPICO_FALLBACK,
+      subtopico: ts.subtopico || SUBTOPICO_FALLBACK,
+      status: STATUS_CONCLUIDA,
+    });
+  }
+
+  // 3) Demandas → status escolhido pelo usuário (default EM_EXECUCAO)
   for (const demanda of atendimento.demandas) {
     const resolved = resolverDemanda(demanda, catalogo);
     const ts = resolverTopicoSubtopico(demanda, acoesEspecificas);
+    linhas.push({
+      descricao: resolved.descricao,
+      topico: ts.topico,
+      subtopico: ts.subtopico,
+      status: demanda.status || STATUS_EXECUCAO,
+    });
+  }
+
+  let rowIdx = 2;
+  for (const linha of linhas) {
     for (const cliente of clientes) {
       const row = sheet.getRow(rowIdx);
       // A: Código (vazio)
@@ -97,18 +142,18 @@ export async function gerarProgramacaoXlsx(input: ProgramacaoInput): Promise<Blo
       // G: Origem
       row.getCell(7).value = ORIGEM_FIXA;
       // H: Descrição
-      row.getCell(8).value = resolved.descricao;
+      row.getCell(8).value = linha.descricao;
       // I: Responsável
       row.getCell(9).value = responsavelNome || '';
       // J: Plano
       row.getCell(10).value = PLANO_FIXO;
       // K: Status
-      row.getCell(11).value = STATUS_FIXO;
+      row.getCell(11).value = linha.status;
       // L: Comentário (vazio)
       // M: Tópico
-      row.getCell(13).value = ts.topico;
+      row.getCell(13).value = linha.topico;
       // N: Subtópico
-      row.getCell(14).value = ts.subtopico;
+      row.getCell(14).value = linha.subtopico;
       row.commit();
       rowIdx++;
     }
