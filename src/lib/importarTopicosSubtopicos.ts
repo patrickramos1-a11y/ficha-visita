@@ -88,15 +88,11 @@ export async function aplicarTopicosSubtopicos(parsed: ParsedTopicosSubtopicos) 
   const topicosMap = new Map<string, string>();
   let topicoFallbackId: string | null = null;
   if (parsed.topicos.length > 0) {
-    const { error } = await supabase.from('topicos').insert(parsed.topicos.map(nome => ({ nome })));
-    if (error) throw error;
-
-    const { data: insertedTopicos, error: errFetchTopicos } = await supabase
+    const { data: insertedTopicos, error } = await supabase
       .from('topicos')
-      .select('id, nome')
-      .in('nome', parsed.topicos)
-      .limit(5000);
-    if (errFetchTopicos) throw errFetchTopicos;
+      .insert(parsed.topicos.map(nome => ({ nome })))
+      .select('id, nome');
+    if (error) throw error;
     (insertedTopicos || []).forEach((topico) => topicosMap.set(normalize(topico.nome), topico.id));
     topicoFallbackId = insertedTopicos?.[0]?.id || null;
   }
