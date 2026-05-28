@@ -218,6 +218,8 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
         descricao: d.descricao,
         plano: d.plano || (d.tipo_atendimento ? getPlanoFromTipo(d.tipo_atendimento) : 'VIP'),
         personalizada: d.personalizada,
+        topico_id: d.topico_id || null,
+        subtopico_id: d.subtopico_id || null,
       }));
     if (rows.length > 0) {
       const { error } = await supabase.from('demandas').insert(rows);
