@@ -306,7 +306,7 @@ export default function AtendimentoDetalhe() {
             <GerarPDF data={pdfData} responsavelNome={atendimento.responsavel?.nome} clientesNomes={clientesNomes} />
             {demandas && demandas.length > 0 && (
               <BaixarProgramacaoButton
-                atendimento={{ data_inicio: new Date(atendimento.created_at), demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada, tipo_atendimento: d.tipo_atendimento || undefined })) }}
+                atendimento={{ data_inicio: new Date(atendimento.created_at), tipos_atendimento: atendimento.tipos_atendimento || [], acoes_especificas: atendimento.acoes_especificas || [], demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada, tipo_atendimento: d.tipo_atendimento || undefined, status: (d.status as any) || 'EM_EXECUCAO' })) }}
                 clienteNomes={clientesNomes}
                 responsavelNome={atendimento.responsavel?.nome}
                 acoesEspecificas={atendimento.acoes_especificas || []}
