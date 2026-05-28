@@ -28,7 +28,7 @@ export interface Responsavel {
   ativo: boolean;
 }
 
-export type DemandaStatus = 'EM_EXECUCAO' | 'CONCLUIDA';
+export type DemandaStatus = 'EM_EXECUCAO' | 'CONCLUIDA' | 'NAO_FEITO';
 
 export interface Demanda {
   id?: string;
