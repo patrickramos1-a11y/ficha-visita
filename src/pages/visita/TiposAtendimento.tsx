@@ -37,6 +37,8 @@ export default function TiposAtendimento() {
     .filter((t: any) =>
       !q || t.nome.toLowerCase().includes(q) || (t.descricao || '').toLowerCase().includes(q)
     );
+  const formatTopicoSubtopico = (item: any) =>
+    [item.topicos?.nome, item.subtopicos?.nome].filter(Boolean).join(' › ');
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/anotacoes')} title="Tipos de Atendimento">
@@ -77,6 +79,7 @@ export default function TiposAtendimento() {
               <SelectionCard
                 key={tipoConfig.id}
                 onClick={() => toggleTipo(tipoConfig.nome)}
+                meta={formatTopicoSubtopico(tipoConfig)}
                 description={tipoConfig.descricao || ''}
                 showCheckbox
               >
