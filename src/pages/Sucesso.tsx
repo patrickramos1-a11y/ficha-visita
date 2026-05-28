@@ -60,6 +60,7 @@ export default function Sucesso() {
               atendimento={data}
               clienteNomes={clienteNomes}
               responsavelNome={responsavelNome}
+              acoesEspecificas={data.acoes_especificas}
               fullWidth
               className="h-12"
             />

@@ -5,6 +5,7 @@ import { SimpleEntityCrud } from '@/components/config/SimpleEntityCrud';
 import { DemandasEspecificasCrud } from '@/components/config/DemandasEspecificasCrud';
 import { TiposAtendimentoCrud } from '@/components/config/TiposAtendimentoCrud';
 import { AcoesEspecificasCrud } from '@/components/config/AcoesEspecificasCrud';
+import { ImportarTopicosSubtopicosCard } from '@/components/config/ImportarTopicosSubtopicosCard';
 import { UpdateCheckCard } from '@/components/pwa/UpdateCheckCard';
 import {
   usePlanos, useUpsertPlano, useDeletePlano,
@@ -267,7 +268,8 @@ export default function Configuracoes() {
                 />
               </TabsContent>
 
-              <TabsContent value="topicos" className="mt-0">
+              <TabsContent value="topicos" className="mt-0 space-y-4">
+                <ImportarTopicosSubtopicosCard />
                 <SimpleEntityCrud
                   title="Tópicos"
                   entities={topicos}

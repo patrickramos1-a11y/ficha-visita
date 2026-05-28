@@ -14,27 +14,38 @@ import {
   useUpsertTipoAtendimento,
   useDeleteTipoAtendimento,
   usePlanos,
+  useTopicos,
+  useSubtopicos,
 } from '@/hooks/useConfigEntities';
 
 export function TiposAtendimentoCrud() {
   const { data: tipos, isLoading } = useTiposAtendimentoConfig();
   const { data: planos } = usePlanos();
+  const { data: topicos } = useTopicos();
   const upsert = useUpsertTipoAtendimento();
   const del = useDeleteTipoAtendimento();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ nome: '', descricao: '', plano_id: '' });
+  const [form, setForm] = useState({ nome: '', descricao: '', plano_id: '', topico_id: '', subtopico_id: '' });
+
+  const { data: subtopicos } = useSubtopicos(form.topico_id || undefined);
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: '', descricao: '', plano_id: '' });
+    setForm({ nome: '', descricao: '', plano_id: '', topico_id: '', subtopico_id: '' });
     setDialogOpen(true);
   };
 
   const openEdit = (t: any) => {
     setEditing(t);
-    setForm({ nome: t.nome, descricao: t.descricao || '', plano_id: t.plano_id || '' });
+    setForm({
+      nome: t.nome,
+      descricao: t.descricao || '',
+      plano_id: t.plano_id || '',
+      topico_id: t.topico_id || '',
+      subtopico_id: t.subtopico_id || '',
+    });
     setDialogOpen(true);
   };
 
@@ -46,6 +57,8 @@ export function TiposAtendimentoCrud() {
         nome: form.nome.trim(),
         descricao: form.descricao.trim() || null,
         plano_id: form.plano_id || null,
+        topico_id: form.topico_id || null,
+        subtopico_id: form.subtopico_id || null,
       });
       setDialogOpen(false);
       toast.success(editing ? 'Tipo atualizado' : 'Tipo criado');
@@ -87,6 +100,11 @@ export function TiposAtendimentoCrud() {
                   {t.planos && (
                     <Badge variant="outline" className="text-[10px] px-1.5" style={{ borderColor: t.planos.cor, color: t.planos.cor }}>
                       {t.planos.nome}
+                    </Badge>
+                  )}
+                  {t.topicos?.nome && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      {t.topicos.nome}{t.subtopicos?.nome ? ` › ${t.subtopicos.nome}` : ''}
                     </Badge>
                   )}
                   {t.ativo === false && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
@@ -131,6 +149,28 @@ export function TiposAtendimentoCrud() {
                   {planos?.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Tópico</Label>
+                <Select value={form.topico_id} onValueChange={v => setForm(f => ({ ...f, topico_id: v === 'none' ? '' : v, subtopico_id: '' }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar tópico" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {topicos?.map(t => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Subtópico</Label>
+                <Select value={form.subtopico_id} onValueChange={v => setForm(f => ({ ...f, subtopico_id: v === 'none' ? '' : v }))} disabled={!form.topico_id}>
+                  <SelectTrigger><SelectValue placeholder={form.topico_id ? 'Selecionar subtópico' : 'Selecione tópico primeiro'} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {subtopicos?.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>

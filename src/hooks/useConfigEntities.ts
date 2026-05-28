@@ -265,13 +265,14 @@ export function useDeleteDemandaEspecifica() {
 }
 
 // ── Tipos de Atendimento (configurável) ──
+
 export function useTiposAtendimentoConfig() {
   return useQuery({
     queryKey: ['tipos_atendimento_config'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tipos_atendimento_config')
-        .select('*, planos(nome, cor)')
+        .select('*, planos(nome, cor), topicos(nome), subtopicos(nome)')
         .order('nome');
       if (error) throw error;
       // Sync cache for offline / sync engine
@@ -279,6 +280,8 @@ export function useTiposAtendimentoConfig() {
         nome: t.nome,
         descricao: t.descricao || '',
         plano: (t.planos?.nome as PlanoTipo) || 'VIP',
+        topico: t.topicos?.nome || null,
+        subtopico: t.subtopicos?.nome || null,
       })));
       return data;
     },
@@ -288,11 +291,13 @@ export function useTiposAtendimentoConfig() {
 export function useUpsertTipoAtendimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (t: { id?: string; nome: string; descricao?: string | null; plano_id?: string | null; ativo?: boolean }) => {
+    mutationFn: async (t: { id?: string; nome: string; descricao?: string | null; plano_id?: string | null; topico_id?: string | null; subtopico_id?: string | null; ativo?: boolean }) => {
       const payload = {
         nome: t.nome,
         descricao: t.descricao || null,
         plano_id: t.plano_id || null,
+        topico_id: t.topico_id || null,
+        subtopico_id: t.subtopico_id || null,
         ativo: t.ativo ?? true,
       };
       if (t.id) {
@@ -306,6 +311,7 @@ export function useUpsertTipoAtendimento() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tipos_atendimento_config'] }),
   });
 }
+
 
 export function useDeleteTipoAtendimento() {
   const qc = useQueryClient();
@@ -325,12 +331,14 @@ export function useAcoesEspecificasConfig() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('acoes_especificas_config')
-        .select('*, planos(nome, cor)')
+        .select('*, planos(nome, cor), topicos(nome), subtopicos(nome)')
         .order('nome');
       if (error) throw error;
       setAcoesCache((data || []).map((a: any) => ({
         nome: a.nome,
         plano: (a.planos?.nome as PlanoTipo) || 'VIP',
+        topico: a.topicos?.nome || null,
+        subtopico: a.subtopicos?.nome || null,
       })));
       return data;
     },
@@ -340,10 +348,12 @@ export function useAcoesEspecificasConfig() {
 export function useUpsertAcaoEspecifica() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (a: { id?: string; nome: string; plano_id?: string | null; ativo?: boolean }) => {
+    mutationFn: async (a: { id?: string; nome: string; plano_id?: string | null; topico_id?: string | null; subtopico_id?: string | null; ativo?: boolean }) => {
       const payload = {
         nome: a.nome,
         plano_id: a.plano_id || null,
+        topico_id: a.topico_id || null,
+        subtopico_id: a.subtopico_id || null,
         ativo: a.ativo ?? true,
       };
       if (a.id) {
@@ -357,6 +367,7 @@ export function useUpsertAcaoEspecifica() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['acoes_especificas_config'] }),
   });
 }
+
 
 export function useDeleteAcaoEspecifica() {
   const qc = useQueryClient();

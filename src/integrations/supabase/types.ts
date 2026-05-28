@@ -21,6 +21,8 @@ export type Database = {
           id: string
           nome: string
           plano_id: string | null
+          subtopico_id: string | null
+          topico_id: string | null
           updated_at: string
         }
         Insert: {
@@ -29,6 +31,8 @@ export type Database = {
           id?: string
           nome: string
           plano_id?: string | null
+          subtopico_id?: string | null
+          topico_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -37,6 +41,8 @@ export type Database = {
           id?: string
           nome?: string
           plano_id?: string | null
+          subtopico_id?: string | null
+          topico_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -446,6 +452,8 @@ export type Database = {
           id: string
           nome: string
           plano_id: string | null
+          subtopico_id: string | null
+          topico_id: string | null
           updated_at: string
         }
         Insert: {
@@ -455,6 +463,8 @@ export type Database = {
           id?: string
           nome: string
           plano_id?: string | null
+          subtopico_id?: string | null
+          topico_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -464,6 +474,8 @@ export type Database = {
           id?: string
           nome?: string
           plano_id?: string | null
+          subtopico_id?: string | null
+          topico_id?: string | null
           updated_at?: string
         }
         Relationships: [
