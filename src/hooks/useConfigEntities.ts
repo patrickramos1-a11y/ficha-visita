@@ -269,14 +269,26 @@ export function useDeleteDemandaEspecifica() {
 export function useTiposAtendimentoConfig() {
   return useQuery({
     queryKey: ['tipos_atendimento_config'],
+    staleTime: 30_000,
+    retry: 1,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tipos_atendimento_config')
-        .select('*, planos(nome, cor), topicos(nome), subtopicos(nome)')
-        .order('nome');
-      if (error) throw error;
-      // Sync cache for offline / sync engine
-      setTiposCache((data || []).map((t: any) => ({
+      const [tiposRes, planosRes, topicosRes, subtopicosRes] = await Promise.all([
+        supabase.from('tipos_atendimento_config').select('*').order('nome'),
+        supabase.from('planos').select('id, nome, cor'),
+        supabase.from('topicos').select('id, nome'),
+        supabase.from('subtopicos').select('id, nome'),
+      ]);
+      if (tiposRes.error) throw tiposRes.error;
+      const planosMap = new Map((planosRes.data || []).map((p: any) => [p.id, p]));
+      const topicosMap = new Map((topicosRes.data || []).map((t: any) => [t.id, t]));
+      const subtopicosMap = new Map((subtopicosRes.data || []).map((s: any) => [s.id, s]));
+      const data = (tiposRes.data || []).map((t: any) => ({
+        ...t,
+        planos: t.plano_id ? planosMap.get(t.plano_id) || null : null,
+        topicos: t.topico_id ? topicosMap.get(t.topico_id) || null : null,
+        subtopicos: t.subtopico_id ? subtopicosMap.get(t.subtopico_id) || null : null,
+      }));
+      setTiposCache(data.map((t: any) => ({
         nome: t.nome,
         descricao: t.descricao || '',
         plano: (t.planos?.nome as PlanoTipo) || 'VIP',
@@ -328,13 +340,26 @@ export function useDeleteTipoAtendimento() {
 export function useAcoesEspecificasConfig() {
   return useQuery({
     queryKey: ['acoes_especificas_config'],
+    staleTime: 30_000,
+    retry: 1,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('acoes_especificas_config')
-        .select('*, planos(nome, cor), topicos(nome), subtopicos(nome)')
-        .order('nome');
-      if (error) throw error;
-      setAcoesCache((data || []).map((a: any) => ({
+      const [acoesRes, planosRes, topicosRes, subtopicosRes] = await Promise.all([
+        supabase.from('acoes_especificas_config').select('*').order('nome'),
+        supabase.from('planos').select('id, nome, cor'),
+        supabase.from('topicos').select('id, nome'),
+        supabase.from('subtopicos').select('id, nome'),
+      ]);
+      if (acoesRes.error) throw acoesRes.error;
+      const planosMap = new Map((planosRes.data || []).map((p: any) => [p.id, p]));
+      const topicosMap = new Map((topicosRes.data || []).map((t: any) => [t.id, t]));
+      const subtopicosMap = new Map((subtopicosRes.data || []).map((s: any) => [s.id, s]));
+      const data = (acoesRes.data || []).map((a: any) => ({
+        ...a,
+        planos: a.plano_id ? planosMap.get(a.plano_id) || null : null,
+        topicos: a.topico_id ? topicosMap.get(a.topico_id) || null : null,
+        subtopicos: a.subtopico_id ? subtopicosMap.get(a.subtopico_id) || null : null,
+      }));
+      setAcoesCache(data.map((a: any) => ({
         nome: a.nome,
         plano: (a.planos?.nome as PlanoTipo) || 'VIP',
         topico: a.topicos?.nome || null,
