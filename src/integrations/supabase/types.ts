@@ -53,6 +53,20 @@ export type Database = {
             referencedRelation: "planos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "acoes_especificas_config_subtopico_id_fkey"
+            columns: ["subtopico_id"]
+            isOneToOne: false
+            referencedRelation: "subtopicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acoes_especificas_config_topico_id_fkey"
+            columns: ["topico_id"]
+            isOneToOne: false
+            referencedRelation: "topicos"
+            referencedColumns: ["id"]
+          },
         ]
       }
       atendimento_clientes: {
@@ -484,6 +498,20 @@ export type Database = {
             columns: ["plano_id"]
             isOneToOne: false
             referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipos_atendimento_config_subtopico_id_fkey"
+            columns: ["subtopico_id"]
+            isOneToOne: false
+            referencedRelation: "subtopicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipos_atendimento_config_topico_id_fkey"
+            columns: ["topico_id"]
+            isOneToOne: false
+            referencedRelation: "topicos"
             referencedColumns: ["id"]
           },
         ]
