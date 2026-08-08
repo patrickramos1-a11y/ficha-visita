@@ -146,13 +146,10 @@ export type Database = {
           created_at: string
           data_fim: string | null
           data_inicio: string
-          dados_modalidade: Json | null
           finalizado: boolean
           id: string
           link_publico: string | null
           notas: string | null
-          modo: string
-          obra_id: string | null
           origem_id: string | null
           possui_foto_final: boolean | null
           responsavel_id: string | null
@@ -168,13 +165,10 @@ export type Database = {
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
-          dados_modalidade?: Json | null
           finalizado?: boolean
           id?: string
           link_publico?: string | null
           notas?: string | null
-          modo?: string
-          obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
@@ -190,13 +184,10 @@ export type Database = {
           created_at?: string
           data_fim?: string | null
           data_inicio?: string
-          dados_modalidade?: Json | null
           finalizado?: boolean
           id?: string
           link_publico?: string | null
           notas?: string | null
-          modo?: string
-          obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
@@ -224,41 +215,6 @@ export type Database = {
             columns: ["responsavel_id"]
             isOneToOne: false
             referencedRelation: "responsaveis"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      obras: {
-        Row: {
-          ativo: boolean
-          cliente_id: string
-          created_at: string
-          id: string
-          nome: string
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          cliente_id: string
-          created_at?: string
-          id?: string
-          nome: string
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          cliente_id?: string
-          created_at?: string
-          id?: string
-          nome?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "obras_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
         ]
