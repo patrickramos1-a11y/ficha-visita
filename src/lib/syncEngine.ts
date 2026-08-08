@@ -125,6 +125,17 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
     ? (data.data_fim instanceof Date ? data.data_fim : new Date(data.data_fim as unknown as string))
     : new Date();
 
+  let obraId = data.acompanhamento_obra?.obra_id || null;
+  if (!obraId && data.acompanhamento_obra?.cliente_id && data.acompanhamento_obra.obra_nome.trim()) {
+    const { data: obra, error } = await supabase.from('obras').upsert({
+      cliente_id: data.acompanhamento_obra.cliente_id,
+      nome: data.acompanhamento_obra.obra_nome.trim(),
+    }, { onConflict: 'cliente_id,nome' }).select('id').single();
+    if (error) throw error;
+    obraId = obra.id;
+  }
+
+  const dadosModalidade = data.modo === 'obras' ? data.acompanhamento_obra : data.modo === 'ambiental' ? data.acompanhamento_ambiental : null;
   const { data: atendimento, error: atendimentoError } = await supabase
     .from('atendimentos')
     .insert({
@@ -137,6 +148,9 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       acoes_especificas: data.acoes_especificas,
       topicos_reuniao: JSON.parse(JSON.stringify(data.topicos_reuniao)),
       possui_foto_final: data.possui_foto_final,
+      modo: data.modo || 'completa',
+      obra_id: obraId,
+      dados_modalidade: dadosModalidade ? JSON.parse(JSON.stringify(dadosModalidade)) : null,
       finalizado: true,
     })
     .select()

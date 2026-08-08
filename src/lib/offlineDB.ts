@@ -1,5 +1,6 @@
 import Dexie, { Table } from 'dexie';
 import { AtendimentoData } from '@/types/atendimento';
+import { compressVisitPhoto } from '@/lib/imageCompression';
 
 export type PendingStatus = 'pending' | 'syncing' | 'failed';
 
@@ -67,15 +68,16 @@ export async function savePhotoBlob(
   tipo: 'inicial' | 'durante' | 'final',
 ): Promise<{ fotoId: string; objectUrl: string }> {
   const fotoId = crypto.randomUUID();
-  const mimeType = source.type || 'image/jpeg';
+  const blob = await compressVisitPhoto(source);
+  const mimeType = blob.type || 'image/jpeg';
   await offlineDB.photos.add({
     fotoId,
-    blob: source,
+    blob,
     mimeType,
     tipo,
     createdAt: new Date().toISOString(),
   });
-  const objectUrl = URL.createObjectURL(source);
+  const objectUrl = URL.createObjectURL(blob);
   return { fotoId, objectUrl };
 }
 

@@ -28,6 +28,8 @@ import TiposRapida from "./pages/visita/rapida/TiposRapida";
 import ClientesRapida from "./pages/visita/rapida/ClientesRapida";
 import ResponsavelRapida from "./pages/visita/rapida/ResponsavelRapida";
 import FotosRapida from "./pages/visita/rapida/FotosRapida";
+import AcompanhamentoObras from "./pages/visita/AcompanhamentoObras";
+import AcompanhamentoAmbiental from "./pages/visita/AcompanhamentoAmbiental";
 
 // Desktop pages
 import Dashboard from "./pages/desktop/Dashboard";
@@ -95,6 +97,8 @@ const App = () => (
             <Route path="/visita/rapida/clientes" element={<ClientesRapida />} />
             <Route path="/visita/rapida/responsavel" element={<ResponsavelRapida />} />
             <Route path="/visita/rapida/fotos" element={<FotosRapida />} />
+            <Route path="/visita/obras" element={<AcompanhamentoObras />} />
+            <Route path="/visita/ambiental" element={<AcompanhamentoAmbiental />} />
             <Route path="/visita/resumo" element={<ResumoAtendimento />} />
             <Route path="/sucesso" element={<Sucesso />} />
             <Route path="/historico" element={<Historico />} />

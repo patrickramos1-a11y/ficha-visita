@@ -116,6 +116,46 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
         yPos += 3;
       }
 
+      if (data.acompanhamento_obra) {
+        const obra = data.acompanhamento_obra;
+        drawSectionHeader('ACOMPANHAMENTO DE OBRAS');
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        const resumo = [
+          `Obra: ${obra.obra_nome || 'Não informada'}`,
+          `Status: ${obra.status_geral || 'Não informado'} | Fase: ${obra.fase_atual || 'Não informada'} | Avanço: ${obra.percentual_avanco}%`,
+          `Resumo da semana: ${obra.resumo_semana || 'Não informado'}`,
+          `Mudanças desde a visita anterior: ${obra.mudou_desde_visita_anterior || 'Não informado'}`,
+        ];
+        resumo.forEach(item => { const lines = pdf.splitTextToSize(item, contentWidth - 6); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 3, yPos); yPos += 5; }); });
+        if (obra.nao_conformidades.length > 0) {
+          checkNewPage(7); pdf.setFont('helvetica', 'bold'); pdf.text('Não conformidades:', margin + 3, yPos); yPos += 5; pdf.setFont('helvetica', 'normal');
+          obra.nao_conformidades.forEach((item, index) => { const lines = pdf.splitTextToSize(`${index + 1}. ${item.tipo}: ${item.descricao} | ${item.gravidade} | ${item.status} | ${item.responsavel || 'Sem responsável'} | ${item.prazo || 'Sem prazo'}`, contentWidth - 8); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; }); });
+        }
+        if (obra.pendencias.length > 0) {
+          checkNewPage(7); pdf.setFont('helvetica', 'bold'); pdf.text('Pendências:', margin + 3, yPos); yPos += 5; pdf.setFont('helvetica', 'normal');
+          obra.pendencias.forEach((item, index) => { const lines = pdf.splitTextToSize(`${index + 1}. ${item.descricao} | ${item.prioridade} | ${item.status} | ${item.responsavel || 'Sem responsável'} | ${item.prazo || 'Sem prazo'}`, contentWidth - 8); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; }); });
+        }
+        yPos += 3;
+      }
+
+      if (data.acompanhamento_ambiental) {
+        const ambiental = data.acompanhamento_ambiental;
+        drawSectionHeader('ACOMPANHAMENTO AMBIENTAL');
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        const resumo = [
+          `Atividade: ${ambiental.atividade || 'Não informada'} | Motivo: ${ambiental.motivo_visita.replaceAll('_', ' ')}`,
+          `Política ambiental: ${ambiental.politica_ambiental.replaceAll('_', ' ')} | Coleta de resíduos: ${ambiental.coleta_residuos.replaceAll('_', ' ')}`,
+          `Gerenciamento de resíduos: ${ambiental.gerenciamento_residuos.replaceAll('_', ' ')} | ETE: ${ambiental.ete.possui.replaceAll('_', ' ')}`,
+          `Documentos: ${ambiental.documentos_ambientais.join(', ') || 'Nenhum informado'}`,
+          `Orientações e pendências: ${ambiental.orientacao_pendencias || 'Não informado'}`,
+          `Observações: ${ambiental.observacoes || 'Não informado'}`,
+        ];
+        resumo.forEach(item => { const lines = pdf.splitTextToSize(item, contentWidth - 6); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 3, yPos); yPos += 5; }); });
+        yPos += 3;
+      }
+
       // Service Types
       if (data.tipos_atendimento.length > 0) {
         drawSectionHeader('TIPOS DE ATENDIMENTO');

@@ -237,6 +237,7 @@ export default function DesktopHistorico() {
                       )}
                     </div>
                   )}
+                  {a.modo && a.modo !== 'completa' && <Badge variant="outline" className="text-[10px] h-5 px-1.5 mt-2">{a.modo === 'obras' ? 'Obras' : a.modo === 'ambiental' ? 'Ambiental' : 'Rápida'}</Badge>}
                 </CardContent>
               </Card>
             ))}
@@ -265,6 +266,7 @@ export default function DesktopHistorico() {
                     <TableCell>{a.responsavel?.nome || '—'}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
+                        {a.modo && a.modo !== 'completa' && <Badge variant="outline" className="text-xs">{a.modo === 'obras' ? 'Obras' : a.modo === 'ambiental' ? 'Ambiental' : 'Rápida'}</Badge>}
                         {a.tipos_atendimento?.slice(0, 2).map((tipo: string, i: number) => (
                           <Badge key={i} variant="secondary" className="text-xs">{tipo}</Badge>
                         ))}

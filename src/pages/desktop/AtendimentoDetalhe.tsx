@@ -88,6 +88,7 @@ export default function AtendimentoDetalhe() {
   }
 
   const clientesNomes = atendimentoClientes?.map(ac => ac.cliente?.nome).filter(Boolean) as string[] || [];
+  const dadosModalidade = atendimento.dados_modalidade as any;
 
   const pdfData = {
     data_inicio: new Date(atendimento.created_at),
@@ -102,6 +103,9 @@ export default function AtendimentoDetalhe() {
     cliente_ids: atendimentoClientes?.map(ac => ac.cliente?.id).filter(Boolean) as string[] || [],
     topicos_reuniao: [],
     possui_foto_final: atendimento.possui_foto_final || false,
+    modo: atendimento.modo || 'completa',
+    acompanhamento_obra: atendimento.modo === 'obras' ? dadosModalidade : undefined,
+    acompanhamento_ambiental: atendimento.modo === 'ambiental' ? dadosModalidade : undefined,
     selectedClientes: atendimentoClientes?.map(ac => ac.cliente?.id).filter(Boolean) as string[] || [],
   };
 
@@ -184,6 +188,9 @@ export default function AtendimentoDetalhe() {
         </div>
 
         {/* Clientes */}
+        {atendimento.modo && atendimento.modo !== 'completa' && (
+          <Card><CardContent className="p-3 md:p-4"><p className="text-[10px] md:text-xs text-muted-foreground mb-1">Modalidade</p><Badge variant="secondary">{atendimento.modo === 'obras' ? 'Acompanhamento de Obras' : atendimento.modo === 'ambiental' ? 'Acompanhamento Ambiental' : 'Visita Rápida'}</Badge></CardContent></Card>
+        )}
         {clientesNomes.length > 0 && (
           <Card>
             <CardHeader className="pb-2 px-3 md:px-6 pt-3 md:pt-6">

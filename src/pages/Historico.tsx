@@ -81,6 +81,9 @@ export default function Historico() {
                 )}
 
                 {/* Types */}
+                {atendimento.modo && atendimento.modo !== 'completa' && (
+                  <span className="inline-flex w-fit px-2.5 py-1 bg-secondary text-secondary-foreground text-xs rounded-full">{atendimento.modo === 'obras' ? 'Acompanhamento de Obras' : atendimento.modo === 'ambiental' ? 'Acompanhamento Ambiental' : 'Visita Rápida'}</span>
+                )}
                 {atendimento.tipos_atendimento && atendimento.tipos_atendimento.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {atendimento.tipos_atendimento.slice(0, 3).map((tipo: string, i: number) => (

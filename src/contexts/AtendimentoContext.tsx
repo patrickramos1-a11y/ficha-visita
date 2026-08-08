@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo } from '@/types/atendimento';
+import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo, AcompanhamentoObraData, AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra } from '@/types/atendimento';
 import { getPlanoFromTipo, getPlanoFromAcao } from '@/types/tiposAtendimentoConfig';
 import { savePhotoBlob, deletePhoto, getPhotoObjectURL } from '@/lib/offlineDB';
 
@@ -27,6 +27,14 @@ interface AtendimentoContextType {
   removeFoto: (url: string) => void;
   setTiposAtendimento: (tipos: AtendimentoTipo[]) => void;
   setAcoesEspecificas: (acoes: string[]) => void;
+  setAcompanhamentoObra: (updater: (prev: AcompanhamentoObraData) => AcompanhamentoObraData) => void;
+  setAcompanhamentoAmbiental: (updater: (prev: AcompanhamentoAmbientalData) => AcompanhamentoAmbientalData) => void;
+  addNaoConformidade: (item: NaoConformidadeObra) => void;
+  updateNaoConformidade: (index: number, item: NaoConformidadeObra) => void;
+  removeNaoConformidade: (index: number) => void;
+  addPendenciaObra: (item: PendenciaObra) => void;
+  updatePendenciaObra: (index: number, item: PendenciaObra) => void;
+  removePendenciaObra: (index: number) => void;
   addDemanda: (demanda: Demanda) => void;
   updateDemanda: (index: number, demanda: Demanda) => void;
   removeDemanda: (index: number) => void;
@@ -51,6 +59,98 @@ const initialData: AtendimentoData = {
   fotos: [],
   demandas: [],
   possui_foto_final: false,
+};
+
+const initialAcompanhamentoObra: AcompanhamentoObraData = {
+  cliente_id: '',
+  cliente_nome: '',
+  obra_nome: '',
+  obra_existente: true,
+  status_geral: '',
+  fase_atual: '',
+  houve_avanco: true,
+  dentro_do_previsto: true,
+  percentual_avanco: 0,
+  resumo_semana: '',
+  mudou_desde_visita_anterior: '',
+  pendencias_resolvidas: true,
+  controle_ambiental: {
+    controle_visivel: 'NAO_SE_APLICA',
+    area_delimitada: 'NAO_SE_APLICA',
+    interferencia_vegetacao: 'NAO_SE_APLICA',
+    supressao_poda: 'NAO_SE_APLICA',
+    erosao: 'NAO_SE_APLICA',
+    carreamento_sedimentos: 'NAO_SE_APLICA',
+    material_inadequado: 'NAO_SE_APLICA',
+    intervencao_area_sensivel: 'NAO_SE_APLICA',
+    contaminacao_solo: 'NAO_SE_APLICA',
+    poeira: 'NAO_SE_APLICA',
+    ruido: 'NAO_SE_APLICA',
+    odor_emissao: 'NAO_SE_APLICA',
+    observacoes: '',
+  },
+  organizacao_seguranca: {
+    obra_organizada: 'NAO_SE_APLICA',
+    materiais_armazenados: 'NAO_SE_APLICA',
+    acessos_livres: 'NAO_SE_APLICA',
+    sinalizacao_basica: 'NAO_SE_APLICA',
+    area_materiais: 'NAO_SE_APLICA',
+    area_residuos: 'NAO_SE_APLICA',
+    limpeza_geral: 'NAO_SE_APLICA',
+    risco_aparente: 'NAO_SE_APLICA',
+    uso_epi: 'NAO_SE_APLICA',
+    equipe_trabalhando: 'NAO_SE_APLICA',
+    responsavel_presente: 'NAO_SE_APLICA',
+    condicao_insegura: 'NAO_SE_APLICA',
+    orientacao_repassada: 'NAO_SE_APLICA',
+    observacoes: '',
+  },
+  residuos: {
+    ha_residuos: 'NAO_SE_APLICA',
+    segregados: 'NAO_SE_APLICA',
+    acondicionados: 'NAO_SE_APLICA',
+    ha_cacamba: 'NAO_SE_APLICA',
+    mistura_residuos: 'NAO_SE_APLICA',
+    residuos_espalhados: 'NAO_SE_APLICA',
+    residuos_perigosos: 'NAO_SE_APLICA',
+    houve_coleta: 'NAO_SE_APLICA',
+    comprovante_destinacao: 'NAO_SE_APLICA',
+    tipos_observados: '',
+    destinacao_observada: '',
+    responsavel_coleta: '',
+    observacoes: '',
+  },
+  efluentes: {
+    acumulo_agua: 'NAO_SE_APLICA',
+    drenagem_provisoria: 'NAO_SE_APLICA',
+    erosao_escoamento: 'NAO_SE_APLICA',
+    lancamento_irregular: 'NAO_SE_APLICA',
+    lama_via_publica: 'NAO_SE_APLICA',
+    protecao_bocas_lobo: 'NAO_SE_APLICA',
+    uso_agua: '',
+    origem_agua: '',
+    banheiro_quimico: 'NAO_SE_APLICA',
+    destinacao_efluentes: '',
+    vazamento: 'NAO_SE_APLICA',
+    odor_extravasamento: 'NAO_SE_APLICA',
+    registro_coleta_manutencao: 'NAO_SE_APLICA',
+    observacoes: '',
+  },
+  nao_conformidades: [],
+  pendencias: [],
+  foto_itens: [],
+};
+
+const initialAcompanhamentoAmbiental: AcompanhamentoAmbientalData = {
+  cliente_id: '', cliente_nome: '', atividade: '', motivo_visita: 'VISITA_TECNICA',
+  politica_ambiental: 'NAO_SE_APLICA', coleta_residuos: 'NAO_SE_APLICA', dificuldade_coleta: '',
+  gerenciamento_residuos: 'NAO_SE_APLICA', uso_lixeiras: 'NAO_SE_APLICA', necessidade_palestra: '',
+  documentos_ambientais: [],
+  ete: { possui: 'NAO_SE_APLICA', produtos: [], problema_operacao: 'NAO_SE_APLICA', novo_operador: 'NAO_SE_APLICA', coleta_efluente: 'NAO_SE_APLICA' },
+  agua: { leitura_hidrometro: 'NAO_SE_APLICA', coleta_poco: 'NAO_SE_APLICA' },
+  alteracao_funcionarios: 'NAO_SE_APLICA', alteracao_producao: 'NAO_SE_APLICA', documento_entregue: '', orientacao_pendencias: '',
+  levantamentos: ['Fotos da empresa', 'Fotos da ETE', 'Fotos do poço', 'Fotos do reservatório', 'Cópias da documentação'].map(nome => ({ nome, status: 'NAO_SE_APLICA' })),
+  colaborador_nome: '', colaborador_cargo: '', observacoes: '',
 };
 
 function loadFromStorage(): { data: AtendimentoData; ativo: boolean } | null {
@@ -222,6 +322,56 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     setData(prev => ({ ...prev, acoes_especificas: acoes }));
   };
 
+  const setAcompanhamentoObra = (updater: (prev: AcompanhamentoObraData) => AcompanhamentoObraData) => {
+    setData(prev => {
+      const acompanhamento_obra = updater(prev.acompanhamento_obra ?? { ...initialAcompanhamentoObra });
+      return { ...prev, acompanhamento_obra, cliente_ids: acompanhamento_obra.cliente_id ? [...new Set([...prev.cliente_ids, acompanhamento_obra.cliente_id])] : prev.cliente_ids };
+    });
+  };
+
+  const setAcompanhamentoAmbiental = (updater: (prev: AcompanhamentoAmbientalData) => AcompanhamentoAmbientalData) => {
+    setData(prev => {
+      const acompanhamento_ambiental = updater(prev.acompanhamento_ambiental ?? { ...initialAcompanhamentoAmbiental });
+      return { ...prev, acompanhamento_ambiental, cliente_ids: acompanhamento_ambiental.cliente_id ? [...new Set([...prev.cliente_ids, acompanhamento_ambiental.cliente_id])] : prev.cliente_ids };
+    });
+  };
+
+  const addNaoConformidade = (item: NaoConformidadeObra) => {
+    setAcompanhamentoObra(prev => ({ ...prev, nao_conformidades: [...prev.nao_conformidades, item] }));
+  };
+
+  const updateNaoConformidade = (index: number, item: NaoConformidadeObra) => {
+    setAcompanhamentoObra(prev => ({
+      ...prev,
+      nao_conformidades: prev.nao_conformidades.map((n, i) => (i === index ? item : n)),
+    }));
+  };
+
+  const removeNaoConformidade = (index: number) => {
+    setAcompanhamentoObra(prev => ({
+      ...prev,
+      nao_conformidades: prev.nao_conformidades.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addPendenciaObra = (item: PendenciaObra) => {
+    setAcompanhamentoObra(prev => ({ ...prev, pendencias: [...prev.pendencias, item] }));
+  };
+
+  const updatePendenciaObra = (index: number, item: PendenciaObra) => {
+    setAcompanhamentoObra(prev => ({
+      ...prev,
+      pendencias: prev.pendencias.map((p, i) => (i === index ? item : p)),
+    }));
+  };
+
+  const removePendenciaObra = (index: number) => {
+    setAcompanhamentoObra(prev => ({
+      ...prev,
+      pendencias: prev.pendencias.filter((_, i) => i !== index),
+    }));
+  };
+
   const addDemanda = (demanda: Demanda) => {
     setData(prev => ({ ...prev, demandas: [...prev.demandas, demanda] }));
   };
@@ -256,7 +406,13 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
 
   const iniciarVisita = useCallback((modo: VisitaModo) => {
     clearStorage();
-    setData({ ...initialData, modo, data_inicio: new Date() });
+    setData({
+      ...initialData,
+      modo,
+      data_inicio: new Date(),
+      acompanhamento_obra: modo === 'obras' ? { ...initialAcompanhamentoObra } : undefined,
+      acompanhamento_ambiental: modo === 'ambiental' ? { ...initialAcompanhamentoAmbiental } : undefined,
+    });
     setAtivo(true);
   }, []);
 
@@ -312,6 +468,14 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         removeFoto,
         setTiposAtendimento,
         setAcoesEspecificas,
+        setAcompanhamentoObra,
+        setAcompanhamentoAmbiental,
+        addNaoConformidade,
+        updateNaoConformidade,
+        removeNaoConformidade,
+        addPendenciaObra,
+        updatePendenciaObra,
+        removePendenciaObra,
         addDemanda,
         updateDemanda,
         removeDemanda,

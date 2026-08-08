@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
-import { ClipboardList, Zap, ChevronRight } from 'lucide-react';
+import { ClipboardList, Zap, ChevronRight, Hammer, Leaf } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -18,10 +18,13 @@ export function StartVisitDialog({ open, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { iniciarVisita } = useAtendimento();
 
-  const start = (modo: 'completa' | 'rapida') => {
+  const start = (modo: 'completa' | 'rapida' | 'obras' | 'ambiental') => {
     iniciarVisita(modo);
     onOpenChange(false);
-    navigate(modo === 'completa' ? '/visita/foto-inicial' : '/visita/rapida/tipos');
+    if (modo === 'completa') navigate('/visita/foto-inicial');
+    else if (modo === 'rapida') navigate('/visita/rapida/tipos');
+    else if (modo === 'obras') navigate('/visita/obras');
+    else navigate('/visita/ambiental');
   };
 
   return (
@@ -74,6 +77,34 @@ export function StartVisitDialog({ open, onOpenChange }: Props) {
                   Para registros pontuais (15–20 min) sem contato direto. Apenas tipos, cliente, técnico e fotos.
                 </p>
               </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => start('obras')}
+            className="w-full text-left p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-colors haptic-press touch-safe"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                <Hammer className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold">Acompanhamento de Obras</p>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Fluxo fixo para registrar status, ambiente, segurança, resíduos, drenagem e pendências da obra.
+                </p>
+              </div>
+            </div>
+          </button>
+
+          <button type="button" onClick={() => start('ambiental')} className="w-full text-left p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-colors haptic-press touch-safe">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-lime-500/10 text-lime-700 flex items-center justify-center flex-shrink-0"><Leaf className="w-5 h-5" /></div>
+              <div className="flex-1 min-w-0"><div className="flex items-center justify-between gap-2"><p className="font-semibold">Acompanhamento Ambiental</p><ChevronRight className="w-4 h-4 text-muted-foreground" /></div><p className="text-xs text-muted-foreground mt-1">Fluxo para resíduos, ETE, água, documentos ambientais, orientações e levantamentos.</p></div>
             </div>
           </button>
         </div>
