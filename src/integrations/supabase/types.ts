@@ -144,12 +144,15 @@ export type Database = {
           checklist: Json | null
           cliente_id: string | null
           created_at: string
+          dados_modalidade: Json | null
           data_fim: string | null
           data_inicio: string
           finalizado: boolean
           id: string
           link_publico: string | null
+          modo: string
           notas: string | null
+          obra_id: string | null
           origem_id: string | null
           possui_foto_final: boolean | null
           responsavel_id: string | null
@@ -163,12 +166,15 @@ export type Database = {
           checklist?: Json | null
           cliente_id?: string | null
           created_at?: string
+          dados_modalidade?: Json | null
           data_fim?: string | null
           data_inicio?: string
           finalizado?: boolean
           id?: string
           link_publico?: string | null
+          modo?: string
           notas?: string | null
+          obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
@@ -182,12 +188,15 @@ export type Database = {
           checklist?: Json | null
           cliente_id?: string | null
           created_at?: string
+          dados_modalidade?: Json | null
           data_fim?: string | null
           data_inicio?: string
           finalizado?: boolean
           id?: string
           link_publico?: string | null
+          modo?: string
           notas?: string | null
+          obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
@@ -201,6 +210,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
             referencedColumns: ["id"]
           },
           {
@@ -344,6 +360,41 @@ export type Database = {
             columns: ["topico_id"]
             isOneToOne: false
             referencedRelation: "topicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obras: {
+        Row: {
+          ativo: boolean
+          cliente_id: string
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cliente_id: string
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obras_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
         ]
