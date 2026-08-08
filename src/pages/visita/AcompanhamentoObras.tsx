@@ -93,7 +93,7 @@ export default function AcompanhamentoObras() {
 
   const updateObra = (patch: Partial<typeof obra>) => setAcompanhamentoObra(prev => ({ ...prev, ...patch }));
   const updateNested = (section: keyof typeof obra, patch: Record<string, any>) =>
-    setAcompanhamentoObra(prev => ({ ...prev, [section]: { ...prev[section], ...patch } }));
+    setAcompanhamentoObra(prev => ({ ...prev, [section]: { ...(prev[section] as Record<string, any>), ...patch } }));
 
   const handleAddNc = () => {
     if (!novaNc.tipo.trim() && !novaNc.descricao.trim()) return;

@@ -1,3 +1,4 @@
+import type { VisitaModo } from '@/types/atendimento';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DesktopLayout } from '@/components/layout/DesktopLayout';
@@ -103,7 +104,7 @@ export default function AtendimentoDetalhe() {
     cliente_ids: atendimentoClientes?.map(ac => ac.cliente?.id).filter(Boolean) as string[] || [],
     topicos_reuniao: [],
     possui_foto_final: atendimento.possui_foto_final || false,
-    modo: atendimento.modo || 'completa',
+    modo: (atendimento.modo || 'completa') as VisitaModo,
     acompanhamento_obra: atendimento.modo === 'obras' ? dadosModalidade : undefined,
     acompanhamento_ambiental: atendimento.modo === 'ambiental' ? dadosModalidade : undefined,
     selectedClientes: atendimentoClientes?.map(ac => ac.cliente?.id).filter(Boolean) as string[] || [],
