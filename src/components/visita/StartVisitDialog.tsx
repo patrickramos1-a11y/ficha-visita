@@ -21,8 +21,7 @@ export function StartVisitDialog({ open, onOpenChange }: Props) {
   const start = (modo: 'completa' | 'rapida' | 'obras' | 'ambiental' | 'processos') => {
     iniciarVisita(modo);
     onOpenChange(false);
-    if (modo === 'completa' || modo === 'obras' || modo === 'ambiental' || modo === 'processos') navigate('/visita/foto-inicial');
-    else if (modo === 'rapida') navigate('/visita/rapida/tipos');
+    navigate('/visita/foto-inicial');
   };
 
   return (

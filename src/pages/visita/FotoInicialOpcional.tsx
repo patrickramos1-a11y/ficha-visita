@@ -12,7 +12,7 @@ export default function FotoInicialOpcional() {
   useVisitRoute('/visita/foto-inicial');
   const navigate = useNavigate();
   const { addFotoFile, data } = useAtendimento();
-  const nextRoute = data.modo === 'obras' ? '/visita/obras' : data.modo === 'ambiental' ? '/visita/ambiental' : data.modo === 'processos' ? '/visita/processos' : '/visita/responsavel';
+  const nextRoute = '/visita/responsavel';
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [showChoice, setShowChoice] = useState(true);
