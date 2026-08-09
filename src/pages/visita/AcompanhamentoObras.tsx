@@ -14,16 +14,18 @@ import { Badge } from '@/components/ui/badge';
 import { MobileFooter } from '@/components/mobile';
 import { StructuredAnswer } from '@/components/visita/StructuredAnswer';
 import { RegistroVisita } from '@/components/visita/RegistroVisita';
+import { AcompanhamentoStepper } from '@/components/visita/AcompanhamentoStepper';
+import { FinalizacaoVisita } from '@/components/visita/FinalizacaoVisita';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useClientes } from '@/hooks/useClientes';
 import { useResponsaveis } from '@/hooks/useResponsaveis';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { useSaveAtendimento } from '@/hooks/useSaveAtendimento';
 import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
 import type { AvancoObraFaixa, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
-const STEPS = ['Identificação', 'Situação', 'Ambiente', 'Segurança', 'Resíduos/água', 'Pendências', 'Registro', 'Fotos/revisão'];
+const MODULE_STEPS = ['Identificação', 'Situação', 'Ambiente', 'Segurança', 'Resíduos/água', 'Pendências', 'Registro', 'Final'];
+const STEPS = ['Foto', 'Técnico', ...MODULE_STEPS];
 const STATUS_OBRA = ['Em planejamento', 'Em execução', 'Paralisada', 'Atrasada', 'Concluída'];
 const FASES_OBRA = ['Mobilização', 'Terraplenagem', 'Fundação', 'Estrutura', 'Alvenaria', 'Instalações', 'Acabamento', 'Entrega'];
 const AVANCOS: AvancoObraFaixa[] = ['0-25%', '26-50%', '51-75%', '76-99%', 'CONCLUIDA'];
@@ -85,26 +87,6 @@ const efluentes: [string, string][] = [
   ['registro_coleta_manutencao', 'Registro de manutenção'],
 ];
 
-function StepTabs({ step, setStep }: { step: number; setStep: (step: number) => void }) {
-  return (
-    <div className="flex gap-2 overflow-x-auto px-4 py-3">
-      {STEPS.map((label, index) => (
-        <button
-          key={label}
-          type="button"
-          onClick={() => setStep(index)}
-          className={cn(
-            'h-9 shrink-0 rounded-full border px-3 text-xs font-medium',
-            step === index ? 'border-primary bg-primary text-primary-foreground' : 'bg-background text-muted-foreground',
-          )}
-        >
-          {index + 1}. {label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Card className="border-border/70">
@@ -131,7 +113,7 @@ export default function AcompanhamentoObras() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(0);
-  const { data, setResponsavelId, setAcompanhamentoObra, addNaoConformidade, removeNaoConformidade, addPendenciaObra, removePendenciaObra, addFotoFile, removeFoto, finalizarAtendimento } = useAtendimento();
+  const { data, setTitulo, setAcompanhamentoObra, addNaoConformidade, removeNaoConformidade, addPendenciaObra, removePendenciaObra, addFotoFile, removeFoto, finalizarAtendimento } = useAtendimento();
   const { data: clientes = [] } = useClientes();
   const { data: responsaveis = [] } = useResponsaveis();
   const saveAtendimento = useSaveAtendimento();
@@ -217,15 +199,12 @@ export default function AcompanhamentoObras() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/desktop/iniciar-visita')} title="Acompanhamento de Obras">
-      <StepTabs step={step} setStep={setStep} />
+      <AcompanhamentoStepper steps={STEPS} currentStep={step + 2} onStepChange={(index) => setStep(index - 2)} />
 
       <div className="flex-1 overflow-auto p-4 space-y-4 pb-32">
         {step === 0 && (
           <Section title="1. Identificação">
-            <div className="rounded-md bg-primary/5 p-3 text-sm">
-              <p className="font-semibold">{data.titulo}</p>
-              <p className="text-xs text-muted-foreground">Título automático da visita. O cliente fica vinculado no relatório e histórico.</p>
-            </div>
+            <div className="space-y-2 rounded-md bg-primary/5 p-3 text-sm"><Label htmlFor="titulo-obra">Título da visita</Label><Input id="titulo-obra" value={data.titulo ?? ''} onChange={(event) => setTitulo(event.target.value)} /><p className="text-xs text-muted-foreground">Título sugerido automaticamente; pode ser ajustado quando necessário.</p></div>
 
             <div className="space-y-2">
               <Label>Cliente</Label>
@@ -235,13 +214,6 @@ export default function AcompanhamentoObras() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Responsável técnico</Label>
-              <Select value={data.responsavel_id} onValueChange={setResponsavelId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
-                <SelectContent>{responsaveis.map((responsavel) => <SelectItem key={responsavel.id} value={responsavel.id}>{responsavel.nome}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
 
             <div className="grid grid-cols-2 gap-2">
               <Button type="button" variant={obra.obra_existente ? 'default' : 'outline'} onClick={() => updateObra({ obra_existente: true, obra_id: undefined, obra_nome: '' })}>Selecionar obra</Button>
@@ -387,6 +359,7 @@ export default function AcompanhamentoObras() {
                 <Badge variant="secondary">{data.fotos.length} fotos</Badge>
               </div>
             </div>
+            <FinalizacaoVisita />
           </Section>
         )}
       </div>
@@ -394,8 +367,8 @@ export default function AcompanhamentoObras() {
       <MobileFooter>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0}><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Button>
-          {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))}>Continuar<ArrowRight className="ml-2 h-4 w-4" /></Button>
+          {step < MODULE_STEPS.length - 1 ? (
+            <Button onClick={() => setStep((current) => Math.min(MODULE_STEPS.length - 1, current + 1))}>Continuar<ArrowRight className="ml-2 h-4 w-4" /></Button>
           ) : (
             <Button onClick={handleFinalizar} disabled={saveAtendimento.isPending || !canFinish}><CheckCircle2 className="mr-2 h-4 w-4" />Finalizar</Button>
           )}

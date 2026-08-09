@@ -4,6 +4,8 @@ alter table public.atendimentos add column if not exists natureza text not null 
 alter table public.atendimentos add column if not exists anotacoes_itens jsonb not null default '[]'::jsonb;
 alter table public.atendimentos add column if not exists dados_modalidade jsonb;
 alter table public.atendimentos add column if not exists modo text not null default 'completa';
+alter table public.tipos_atendimento_config add column if not exists naturezas text[] not null default array['ATENDIMENTO'];
+alter table public.acoes_especificas_config add column if not exists naturezas text[] not null default array['ATENDIMENTO'];
 
 create table if not exists public.naturezas_visita (
   codigo text primary key,
@@ -45,6 +47,8 @@ create table if not exists public.atendimento_processos (
   created_at timestamptz not null default now(),
   check (orgao_id is not null or processo_id is not null)
 );
+
+alter table public.processos_clientes add column if not exists situacao_atual text not null default 'AGUARDANDO_ANALISE';
 
 create table if not exists public.mapeamentos_clientes_radar (
   cliente_id uuid primary key references public.clientes(id) on delete cascade,

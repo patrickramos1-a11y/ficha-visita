@@ -53,11 +53,9 @@ export interface AnotacaoVisita {
 export interface AcompanhamentoProcessosData {
   cliente_id: string;
   cliente_nome?: string;
-  obra_id?: string;
-  obra_nome?: string;
+  cliente_ids: string[];
   orgao_ids: string[];
   processo_ids: string[];
-  situacao: string;
   foto_itens: string[];
 }
 

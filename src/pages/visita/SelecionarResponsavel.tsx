@@ -10,12 +10,12 @@ import { User, Users } from 'lucide-react';
 export default function SelecionarResponsavel() {
   useVisitRoute('/visita/responsavel');
   const navigate = useNavigate();
-  const { setResponsavelId } = useAtendimento();
+  const { setResponsavelId, data } = useAtendimento();
   const { data: responsaveis, isLoading } = useResponsaveis();
 
   const handleSelect = (id: string) => {
     setResponsavelId(id);
-    navigate('/visita/anotacoes');
+    navigate(data.modo === 'obras' ? '/visita/obras' : data.modo === 'ambiental' ? '/visita/ambiental' : data.modo === 'processos' ? '/visita/processos' : '/visita/anotacoes');
   };
 
   return (

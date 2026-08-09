@@ -13,15 +13,17 @@ import { Badge } from '@/components/ui/badge';
 import { MobileFooter } from '@/components/mobile';
 import { StructuredAnswer } from '@/components/visita/StructuredAnswer';
 import { RegistroVisita } from '@/components/visita/RegistroVisita';
+import { AcompanhamentoStepper } from '@/components/visita/AcompanhamentoStepper';
+import { FinalizacaoVisita } from '@/components/visita/FinalizacaoVisita';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useClientes } from '@/hooks/useClientes';
 import { useResponsaveis } from '@/hooks/useResponsaveis';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { useSaveAtendimento } from '@/hooks/useSaveAtendimento';
-import { cn } from '@/lib/utils';
 import type { AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
-const STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Registro', 'Fotos/revisão'];
+const MODULE_STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Registro', 'Final'];
+const STEPS = ['Foto', 'Técnico', ...MODULE_STEPS];
 const FOTO_ITENS = ['Fachada/identificação', 'Área de produção', 'Armazenamento de resíduos', 'Lixeiras/segregação', 'ETE', 'Poço', 'Reservatório', 'Ponto de lançamento', 'Área externa', 'Não conformidade', 'Correção realizada'];
 
 const gestao: [keyof AcompanhamentoAmbientalData, string][] = [
@@ -59,26 +61,6 @@ const operacao: [string, string][] = [
   ['orientacao_repassada', 'Orientação repassada em campo'],
 ];
 
-function StepTabs({ step, setStep }: { step: number; setStep: (step: number) => void }) {
-  return (
-    <div className="flex gap-2 overflow-x-auto px-4 py-3">
-      {STEPS.map((label, index) => (
-        <button
-          key={label}
-          type="button"
-          onClick={() => setStep(index)}
-          className={cn(
-            'h-9 shrink-0 rounded-full border px-3 text-xs font-medium',
-            step === index ? 'border-primary bg-primary text-primary-foreground' : 'bg-background text-muted-foreground',
-          )}
-        >
-          {index + 1}. {label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Card className="border-border/70">
@@ -105,7 +87,7 @@ export default function AcompanhamentoAmbiental() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(0);
-  const { data, setResponsavelId, setAcompanhamentoAmbiental, addFotoFile, removeFoto, finalizarAtendimento } = useAtendimento();
+  const { data, setTitulo, setAcompanhamentoAmbiental, addFotoFile, removeFoto, finalizarAtendimento } = useAtendimento();
   const { data: clientes = [] } = useClientes();
   const { data: responsaveis = [] } = useResponsaveis();
   const ambiental = data.acompanhamento_ambiental;
@@ -164,30 +146,20 @@ export default function AcompanhamentoAmbiental() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/desktop/iniciar-visita')} title="Acompanhamento Ambiental">
-      <StepTabs step={step} setStep={setStep} />
+      <AcompanhamentoStepper steps={STEPS} currentStep={step + 2} onStepChange={(index) => setStep(index - 2)} />
 
       <div className="flex-1 overflow-auto p-4 space-y-4 pb-32">
         {step === 0 && (
           <Section title="1. Identificação">
             <div className="flex gap-3 rounded-md bg-lime-500/10 p-3 text-sm">
               <Leaf className="mt-0.5 h-5 w-5 text-lime-700" />
-              <div>
-                <p className="font-semibold">{data.titulo}</p>
-                <p className="text-xs text-muted-foreground">Título automático. O cliente aparece no relatório e no histórico.</p>
-              </div>
+              <div className="flex-1 space-y-2"><Label htmlFor="titulo-ambiental">Título da visita</Label><Input id="titulo-ambiental" value={data.titulo ?? ''} onChange={(event) => setTitulo(event.target.value)} /><p className="text-xs text-muted-foreground">Título sugerido automaticamente; pode ser ajustado quando necessário.</p></div>
             </div>
             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select value={ambiental.cliente_id} onValueChange={(cliente_id) => update({ cliente_id, cliente_nome: clientes.find((cliente) => cliente.id === cliente_id)?.nome })}>
                 <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
                 <SelectContent>{clientes.map((cliente) => <SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Responsável técnico</Label>
-              <Select value={data.responsavel_id} onValueChange={setResponsavelId}>
-                <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
-                <SelectContent>{responsaveis.map((responsavel) => <SelectItem key={responsavel.id} value={responsavel.id}>{responsavel.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
@@ -291,6 +263,7 @@ export default function AcompanhamentoAmbiental() {
                 <Badge variant="secondary">{data.fotos.length} fotos</Badge>
               </div>
             </div>
+            <FinalizacaoVisita />
           </Section>
         )}
       </div>
@@ -298,8 +271,8 @@ export default function AcompanhamentoAmbiental() {
       <MobileFooter>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0}><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Button>
-          {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))}>Continuar<ArrowRight className="ml-2 h-4 w-4" /></Button>
+          {step < MODULE_STEPS.length - 1 ? (
+            <Button onClick={() => setStep((current) => Math.min(MODULE_STEPS.length - 1, current + 1))}>Continuar<ArrowRight className="ml-2 h-4 w-4" /></Button>
           ) : (
             <Button onClick={handleFinalizar} disabled={saveAtendimento.isPending || !canFinish}><CheckCircle2 className="mr-2 h-4 w-4" />Finalizar</Button>
           )}

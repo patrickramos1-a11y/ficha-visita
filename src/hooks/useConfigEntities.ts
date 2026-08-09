@@ -303,14 +303,15 @@ export function useTiposAtendimentoConfig() {
 export function useUpsertTipoAtendimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (t: { id?: string; nome: string; descricao?: string | null; plano_id?: string | null; topico_id?: string | null; subtopico_id?: string | null; ativo?: boolean }) => {
-      const payload = {
+    mutationFn: async (t: { id?: string; nome: string; descricao?: string | null; plano_id?: string | null; topico_id?: string | null; subtopico_id?: string | null; naturezas?: string[]; ativo?: boolean }) => {
+      const payload: any = {
         nome: t.nome,
         descricao: t.descricao || null,
         plano_id: t.plano_id || null,
         topico_id: t.topico_id || null,
         subtopico_id: t.subtopico_id || null,
         ativo: t.ativo ?? true,
+        naturezas: t.naturezas ?? ['ATENDIMENTO'],
       };
       if (t.id) {
         const { error } = await supabase.from('tipos_atendimento_config').update(payload).eq('id', t.id);
@@ -373,13 +374,14 @@ export function useAcoesEspecificasConfig() {
 export function useUpsertAcaoEspecifica() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (a: { id?: string; nome: string; plano_id?: string | null; topico_id?: string | null; subtopico_id?: string | null; ativo?: boolean }) => {
-      const payload = {
+    mutationFn: async (a: { id?: string; nome: string; plano_id?: string | null; topico_id?: string | null; subtopico_id?: string | null; naturezas?: string[]; ativo?: boolean }) => {
+      const payload: any = {
         nome: a.nome,
         plano_id: a.plano_id || null,
         topico_id: a.topico_id || null,
         subtopico_id: a.subtopico_id || null,
         ativo: a.ativo ?? true,
+        naturezas: a.naturezas ?? ['ATENDIMENTO'],
       };
       if (a.id) {
         const { error } = await supabase.from('acoes_especificas_config').update(payload).eq('id', a.id);

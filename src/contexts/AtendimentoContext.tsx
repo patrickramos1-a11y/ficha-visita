@@ -19,6 +19,7 @@ interface AtendimentoContextType {
   addClienteId: (id: string) => void;
   removeClienteId: (id: string) => void;
   setResponsavelId: (id: string) => void;
+  setHorarioVisita: (inicio: Date, fim?: Date) => void;
   setTitulo: (titulo: string) => void;
   setAnotacoes: (texto: string) => void;
   addAnotacao: (texto: string) => void;
@@ -189,9 +190,9 @@ const initialAcompanhamentoAmbiental: AcompanhamentoAmbientalData = {
 const initialAcompanhamentoProcessos: AcompanhamentoProcessosData = {
   cliente_id: '',
   cliente_nome: '',
+  cliente_ids: [],
   orgao_ids: [],
   processo_ids: [],
-  situacao: '',
   foto_itens: [],
 };
 
@@ -297,6 +298,10 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     setData(prev => ({ ...prev, responsavel_id: id }));
   };
 
+  const setHorarioVisita = (inicio: Date, fim?: Date) => {
+    setData(prev => ({ ...prev, data_inicio: inicio, data_fim: fim }));
+  };
+
   const setTitulo = (titulo: string) => {
     setData(prev => ({ ...prev, titulo }));
   };
@@ -400,7 +405,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
   const setAcompanhamentoProcessos = (updater: (prev: AcompanhamentoProcessosData) => AcompanhamentoProcessosData) => {
     setData(prev => {
       const acompanhamento_processos = updater(prev.acompanhamento_processos ?? { ...initialAcompanhamentoProcessos });
-      return { ...prev, acompanhamento_processos, cliente_ids: acompanhamento_processos.cliente_id ? [...new Set([...prev.cliente_ids, acompanhamento_processos.cliente_id])] : prev.cliente_ids };
+      return { ...prev, acompanhamento_processos, cliente_ids: acompanhamento_processos.cliente_ids };
     });
   };
 
@@ -540,6 +545,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         addClienteId,
         removeClienteId,
         setResponsavelId,
+        setHorarioVisita,
         setTitulo,
         setAnotacoes,
         addAnotacao,

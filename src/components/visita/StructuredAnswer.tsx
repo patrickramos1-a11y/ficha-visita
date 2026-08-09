@@ -1,4 +1,3 @@
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 import type { SimNaoParcialNA } from '@/types/atendimento';
 
@@ -6,22 +5,22 @@ const ANSWERS: { value: SimNaoParcialNA; label: string; className: string }[] = 
   {
     value: 'SIM',
     label: 'Conforme',
-    className: 'data-[state=on]:bg-emerald-600 data-[state=on]:text-white data-[state=on]:border-emerald-600',
+    className: 'bg-emerald-600 text-white border-emerald-600',
   },
   {
     value: 'PARCIALMENTE',
     label: 'Parcial',
-    className: 'data-[state=on]:bg-amber-500 data-[state=on]:text-white data-[state=on]:border-amber-500',
+    className: 'bg-amber-500 text-white border-amber-500',
   },
   {
     value: 'NAO',
     label: 'Não conforme',
-    className: 'data-[state=on]:bg-red-600 data-[state=on]:text-white data-[state=on]:border-red-600',
+    className: 'bg-red-600 text-white border-red-600',
   },
   {
     value: 'NAO_SE_APLICA',
     label: 'N/A',
-    className: 'data-[state=on]:bg-slate-500 data-[state=on]:text-white data-[state=on]:border-slate-500',
+    className: 'bg-slate-500 text-white border-slate-500',
   },
 ];
 
@@ -32,27 +31,25 @@ interface StructuredAnswerProps {
 
 export function StructuredAnswer({ value, onChange }: StructuredAnswerProps) {
   return (
-    <ToggleGroup
-      type="single"
-      value={value}
-      onValueChange={(next) => next && onChange(next as SimNaoParcialNA)}
-      className="grid grid-cols-4 gap-1.5"
-    >
+    <div className="grid grid-cols-4 gap-1.5" role="radiogroup">
       {ANSWERS.map((answer) => (
-        <ToggleGroupItem
+        <button
           key={answer.value}
-          value={answer.value}
+          type="button"
+          role="radio"
+          aria-checked={value === answer.value}
           aria-label={answer.label}
+          onClick={() => onChange(answer.value)}
           className={cn(
             'h-10 min-w-0 rounded-md border px-1.5 text-[11px] leading-tight text-muted-foreground',
-            'data-[state=on]:shadow-sm',
-            answer.className,
+            value === answer.value && 'shadow-sm',
+            value === answer.value && answer.className,
           )}
         >
           {answer.label}
-        </ToggleGroupItem>
+        </button>
       ))}
-    </ToggleGroup>
+    </div>
   );
 }
 

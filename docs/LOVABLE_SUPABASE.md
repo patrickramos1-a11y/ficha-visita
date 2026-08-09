@@ -16,6 +16,8 @@ Checklist após aplicar:
 
 1. Ficha: existem `naturezas_visita`, `orgaos`, `processos_clientes`, `atendimento_processos`, `mapeamentos_clientes_radar` e `integracao_radar_itens`.
 2. Ficha: `atendimentos` possui `titulo`, `modo`, `natureza`, `anotacoes_itens` e `dados_modalidade`.
-3. Radar: `tasks` e `client_comments` possuem as cinco colunas `external_source`, `external_source_item_id`, `source_visit_id`, `source_visit_title` e `source_visit_date`.
-4. Abrir a Ficha sem login e criar uma visita de Processos.
-5. No Vercel da Ficha, configurar `FICHA_SUPABASE_URL`, `FICHA_SUPABASE_SERVICE_ROLE_KEY`, `RADAR_VITAL_SUPABASE_URL` e `RADAR_VITAL_SUPABASE_SERVICE_ROLE_KEY` em Production e Preview. As quatro variáveis são de servidor e não devem começar com `VITE_`.
+3. Ficha: `tipos_atendimento_config` e `acoes_especificas_config` possuem `naturezas`; os registros existentes ficam vinculados apenas a `ATENDIMENTO`.
+4. Ficha: `processos_clientes` possui `situacao_atual` e permite cadastrar processo com cliente e órgão.
+5. Radar: `tasks` e `client_comments` possuem as cinco colunas `external_source`, `external_source_item_id`, `source_visit_id`, `source_visit_title` e `source_visit_date`.
+6. Abrir a Ficha sem login e criar uma visita de Processos com mais de um cliente.
+7. No Vercel da Ficha, configurar `FICHA_SUPABASE_URL`, `FICHA_SUPABASE_SERVICE_ROLE_KEY`, `RADAR_VITAL_SUPABASE_URL` e `RADAR_VITAL_SUPABASE_SERVICE_ROLE_KEY` em Production e Preview. As quatro variáveis são de servidor e não devem começar com `VITE_`.

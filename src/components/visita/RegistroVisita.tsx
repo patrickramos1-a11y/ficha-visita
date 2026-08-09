@@ -12,6 +12,7 @@ export function RegistroVisita() {
   const { data: tipos = [] } = useTiposAtendimentoConfig();
   const { data: acoes = [] } = useAcoesEspecificasConfig();
   const [note, setNote] = useState('');
+  const natureza = data.natureza ?? (data.modo === 'obras' ? 'OBRAS' : data.modo === 'ambiental' ? 'AMBIENTAL' : data.modo === 'processos' ? 'PROCESSOS' : 'ATENDIMENTO');
 
   const toggle = (items: string[], value: string, set: (next: string[]) => void) =>
     set(items.includes(value) ? items.filter(item => item !== value) : [...items, value]);
@@ -21,22 +22,22 @@ export function RegistroVisita() {
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm"><ClipboardList className="h-4 w-4" />Tipos de atendimento</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          {tipos.filter((item: any) => item.ativo !== false).map((item: any) => {
+          {tipos.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza)).map((item: any) => {
             const selected = data.tipos_atendimento.includes(item.nome);
             return <Button key={item.id} type="button" size="sm" variant={selected ? 'default' : 'outline'} onClick={() => toggle(data.tipos_atendimento, item.nome, setTiposAtendimento)}>{selected && <Check className="mr-1 h-3.5 w-3.5" />}{item.nome}</Button>;
           })}
-          {tipos.length === 0 && <p className="text-sm text-muted-foreground">Cadastre tipos em Configurações.</p>}
+          {tipos.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza)).length === 0 && <p className="text-sm text-muted-foreground">Nenhum tipo vinculado a esta natureza. Configure em Configurações.</p>}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm"><Wrench className="h-4 w-4" />Ações realizadas</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          {acoes.filter((item: any) => item.ativo !== false).map((item: any) => {
+          {acoes.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza)).map((item: any) => {
             const selected = data.acoes_especificas.includes(item.nome);
             return <Button key={item.id} type="button" size="sm" variant={selected ? 'default' : 'outline'} onClick={() => toggle(data.acoes_especificas, item.nome, setAcoesEspecificas)}>{selected && <Check className="mr-1 h-3.5 w-3.5" />}{item.nome}</Button>;
           })}
-          {acoes.length === 0 && <p className="text-sm text-muted-foreground">Cadastre ações em Configurações.</p>}
+          {acoes.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza)).length === 0 && <p className="text-sm text-muted-foreground">Nenhuma ação vinculada a esta natureza. Configure em Configurações.</p>}
         </CardContent>
       </Card>
 

@@ -18,6 +18,8 @@ import {
   useSubtopicos,
 } from '@/hooks/useConfigEntities';
 
+const NATUREZAS = [{ codigo: 'ATENDIMENTO', nome: 'Atendimento' }, { codigo: 'OBRAS', nome: 'Obras' }, { codigo: 'AMBIENTAL', nome: 'Ambiental' }, { codigo: 'PROCESSOS', nome: 'Processos' }];
+
 export function TiposAtendimentoCrud() {
   const { data: tipos, isLoading } = useTiposAtendimentoConfig();
   const { data: planos } = usePlanos();
@@ -27,13 +29,13 @@ export function TiposAtendimentoCrud() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ nome: '', descricao: '', plano_id: '', topico_id: '', subtopico_id: '' });
+  const [form, setForm] = useState({ nome: '', descricao: '', plano_id: '', topico_id: '', subtopico_id: '', naturezas: ['ATENDIMENTO'] });
 
   const { data: subtopicos } = useSubtopicos();
 
   const openNew = () => {
     setEditing(null);
-    setForm({ nome: '', descricao: '', plano_id: '', topico_id: '', subtopico_id: '' });
+    setForm({ nome: '', descricao: '', plano_id: '', topico_id: '', subtopico_id: '', naturezas: ['ATENDIMENTO'] });
     setDialogOpen(true);
   };
 
@@ -45,6 +47,7 @@ export function TiposAtendimentoCrud() {
       plano_id: t.plano_id || '',
       topico_id: t.topico_id || '',
       subtopico_id: t.subtopico_id || '',
+      naturezas: t.naturezas ?? ['ATENDIMENTO'],
     });
     setDialogOpen(true);
   };
@@ -59,6 +62,7 @@ export function TiposAtendimentoCrud() {
         plano_id: form.plano_id || null,
         topico_id: form.topico_id || null,
         subtopico_id: form.subtopico_id || null,
+        naturezas: form.naturezas,
       });
       setDialogOpen(false);
       toast.success(editing ? 'Tipo atualizado' : 'Tipo criado');
@@ -140,6 +144,7 @@ export function TiposAtendimentoCrud() {
               <Label>Descrição</Label>
               <Textarea value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descrição mostrada nos cards de seleção..." rows={3} />
             </div>
+            <div className="space-y-2"><Label>Naturezas da visita</Label><div className="flex flex-wrap gap-2">{NATUREZAS.map((natureza) => <Button key={natureza.codigo} type="button" size="sm" variant={form.naturezas.includes(natureza.codigo) ? 'default' : 'outline'} onClick={() => setForm((current) => ({ ...current, naturezas: current.naturezas.includes(natureza.codigo) ? current.naturezas.filter((item) => item !== natureza.codigo) : [...current.naturezas, natureza.codigo] }))}>{natureza.nome}</Button>)}</div></div>
             <div>
               <Label>Plano</Label>
               <Select value={form.plano_id} onValueChange={v => setForm(f => ({ ...f, plano_id: v === 'none' ? '' : v }))}>

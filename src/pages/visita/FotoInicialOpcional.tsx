@@ -12,6 +12,7 @@ export default function FotoInicialOpcional() {
   useVisitRoute('/visita/foto-inicial');
   const navigate = useNavigate();
   const { addFotoFile, data } = useAtendimento();
+  const nextRoute = data.modo === 'obras' ? '/visita/obras' : data.modo === 'ambiental' ? '/visita/ambiental' : data.modo === 'processos' ? '/visita/processos' : '/visita/responsavel';
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [showChoice, setShowChoice] = useState(true);
@@ -47,7 +48,7 @@ export default function FotoInicialOpcional() {
         await addFotoFile(file, 'inicial');
       }
       toast.success(`${files.length} fotos adicionadas!`);
-      navigate('/visita/responsavel');
+      navigate(nextRoute);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao salvar fotos no aparelho');
@@ -60,7 +61,7 @@ export default function FotoInicialOpcional() {
       await addFotoFile(capturedFile, 'inicial');
       if (capturedPreview) URL.revokeObjectURL(capturedPreview);
       toast.success('Foto inicial registrada!');
-      navigate('/visita/responsavel');
+      navigate(nextRoute);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao salvar foto no aparelho');
@@ -75,11 +76,11 @@ export default function FotoInicialOpcional() {
   };
 
   const handleSkip = () => {
-    navigate('/visita/responsavel');
+    navigate(nextRoute);
   };
 
   if (fotoInicial) {
-    navigate('/visita/responsavel');
+    navigate(nextRoute);
     return null;
   }
 
