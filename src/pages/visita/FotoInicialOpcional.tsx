@@ -4,7 +4,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
-import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
+import { getVisitStepsForMode, ProgressStepper } from '@/components/visita/ProgressStepper';
 import { Camera, SkipForward, Check, X, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -86,7 +86,7 @@ export default function FotoInicialOpcional() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/')} title="Foto Inicial">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={0} />
+      <ProgressStepper steps={getVisitStepsForMode(data.modo)} currentStep={0} />
       
       <div className="flex-1 flex flex-col items-center justify-center p-6 safe-bottom">
         {showChoice && !capturedPreview && (

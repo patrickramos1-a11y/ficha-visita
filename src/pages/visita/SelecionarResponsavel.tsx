@@ -3,7 +3,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { useResponsaveis } from '@/hooks/useResponsaveis';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
-import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
+import { getVisitStepsForMode, ProgressStepper } from '@/components/visita/ProgressStepper';
 import { SelectionCard, PageHeader, EmptyState } from '@/components/mobile';
 import { User, Users } from 'lucide-react';
 
@@ -20,7 +20,7 @@ export default function SelecionarResponsavel() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/foto-inicial')} title="Responsável Técnico">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={1} />
+      <ProgressStepper steps={getVisitStepsForMode(data.modo)} currentStep={1} />
       
       <PageHeader
         icon={User}

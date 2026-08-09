@@ -2,6 +2,7 @@ import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
+import type { VisitaModo } from '@/types/atendimento';
 
 interface Step {
   id: string;
@@ -127,3 +128,19 @@ export const VISIT_STEPS_RAPIDA = [
   { id: 'responsavel', label: 'Técnico', route: '/visita/rapida/responsavel' },
   { id: 'foto-final', label: 'Fotos', route: '/visita/rapida/fotos' },
 ];
+
+export function getVisitStepsForMode(modo: VisitaModo): Step[] {
+  if (modo === 'obras') return [
+    { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' }, { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
+    { id: 'obra-identificacao', label: 'Identificação', route: '/visita/obras' }, { id: 'obra-situacao', label: 'Situação', route: '/visita/obras' }, { id: 'obra-ambiente', label: 'Ambiente', route: '/visita/obras' }, { id: 'obra-seguranca', label: 'Segurança', route: '/visita/obras' }, { id: 'obra-residuos', label: 'Resíduos', route: '/visita/obras' }, { id: 'obra-pendencias', label: 'Pendências', route: '/visita/obras' }, { id: 'obra-registro', label: 'Registro', route: '/visita/obras' }, { id: 'obra-final', label: 'Final', route: '/visita/obras' },
+  ];
+  if (modo === 'ambiental') return [
+    { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' }, { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
+    { id: 'ambiental-identificacao', label: 'Identificação', route: '/visita/ambiental' }, { id: 'ambiental-gestao', label: 'Gestão', route: '/visita/ambiental' }, { id: 'ambiental-ete', label: 'ETE/água', route: '/visita/ambiental' }, { id: 'ambiental-operacao', label: 'Operação', route: '/visita/ambiental' }, { id: 'ambiental-pendencias', label: 'Pendências', route: '/visita/ambiental' }, { id: 'ambiental-registro', label: 'Registro', route: '/visita/ambiental' }, { id: 'ambiental-final', label: 'Final', route: '/visita/ambiental' },
+  ];
+  if (modo === 'processos') return [
+    { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' }, { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
+    { id: 'processos-identificacao', label: 'Identificação', route: '/visita/processos' }, { id: 'processos-cadastro', label: 'Processos', route: '/visita/processos' }, { id: 'processos-registro', label: 'Registro', route: '/visita/processos' }, { id: 'processos-final', label: 'Final', route: '/visita/processos' },
+  ];
+  return modo === 'rapida' ? [{ id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' }, { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' }, ...VISIT_STEPS_RAPIDA.slice(0, 2), VISIT_STEPS_RAPIDA[3]] : VISIT_STEPS;
+}
