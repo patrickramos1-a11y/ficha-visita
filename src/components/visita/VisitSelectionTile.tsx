@@ -64,6 +64,24 @@ function pickIcon(label: string, kind: 'tipo' | 'acao'): LucideIcon {
   return kind === 'acao' ? Wrench : BriefcaseBusiness;
 }
 
+function getTextStyle(label: string, kind: 'tipo' | 'acao'): React.CSSProperties {
+  const words = label.trim().split(/\s+/).filter(Boolean);
+  const longestWord = words.reduce((max, word) => Math.max(max, word.length), 0);
+  const length = label.length;
+  const baseSize = kind === 'acao' ? 13.5 : 14;
+  const lengthPenalty = length > 48 ? 2.2 : length > 38 ? 1.6 : length > 28 ? 0.9 : 0;
+  const wordPenalty = longestWord > 18 ? 1 : longestWord > 14 ? 0.5 : 0;
+  const fontSize = Math.max(kind === 'acao' ? 11.2 : 11.6, baseSize - lengthPenalty - wordPenalty);
+
+  return {
+    fontSize: `${fontSize}px`,
+    lineHeight: '1.08',
+    overflowWrap: 'normal',
+    wordBreak: 'normal',
+    textWrap: 'balance',
+  };
+}
+
 interface VisitSelectionTileProps {
   label: string;
   selected?: boolean;
@@ -93,23 +111,23 @@ export function VisitSelectionTile({
       title={label}
       aria-pressed={selected}
       className={cn(
-        'group flex w-full min-w-0 flex-col rounded-md border px-2 py-1 text-left transition-all',
-        kind === 'acao' ? 'min-h-[44px]' : 'min-h-[50px]',
+        'group flex w-full min-w-0 flex-col rounded-md border px-2.5 py-1.5 text-left transition-all',
+        kind === 'acao' ? 'min-h-[50px]' : 'min-h-[56px]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         selected ? tone.selected : tone.base,
         className,
       )}
     >
-      <span className="flex min-w-0 items-start gap-1.5">
-        <span className={cn('mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded', selected ? 'bg-white/20 text-white' : tone.icon)}>
-          <Icon className="h-2.5 w-2.5" />
+      <span className="flex min-w-0 items-start gap-2">
+        <span className={cn('mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded', selected ? 'bg-white/20 text-white' : tone.icon)}>
+          <Icon className="h-3.5 w-3.5" />
         </span>
-        <span className={cn('min-w-0 flex-1 font-semibold break-words', kind === 'acao' ? 'line-clamp-2 text-[10px] leading-[1.05]' : 'line-clamp-2 text-[10.5px] leading-[1.08]')}>
+        <span className="min-w-0 flex-1 whitespace-normal font-semibold line-clamp-2" style={getTextStyle(label, kind)}>
           {label}
         </span>
       </span>
-      {meta && <span className={cn('ml-[22px] line-clamp-1 text-[8px] leading-none', selected ? 'text-white/80' : 'text-muted-foreground')}>{meta}</span>}
-      {kind !== 'acao' && description && <span className={cn('ml-[22px] line-clamp-1 text-[8.5px] leading-tight', selected ? 'text-white/80' : 'text-muted-foreground')}>{description}</span>}
+      {meta && <span className={cn('ml-7 line-clamp-1 text-[8.5px] leading-none', selected ? 'text-white/80' : 'text-muted-foreground')}>{meta}</span>}
+      {kind !== 'acao' && description && <span className={cn('ml-7 line-clamp-1 text-[9px] leading-tight', selected ? 'text-white/80' : 'text-muted-foreground')}>{description}</span>}
     </button>
   );
 }
