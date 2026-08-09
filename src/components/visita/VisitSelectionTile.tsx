@@ -95,22 +95,23 @@ export function VisitSelectionTile({
       title={label}
       aria-pressed={selected}
       className={cn(
-        'group flex min-h-[76px] w-full min-w-0 flex-col gap-1 rounded-md border p-2 text-left transition-all',
+        'group flex w-full min-w-0 flex-col gap-0.5 rounded-md border px-2 py-1.5 text-left transition-all',
+        kind === 'acao' ? 'min-h-[52px]' : 'min-h-[60px]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         selected ? tone.selected : tone.base,
         className,
       )}
     >
       <span className="flex min-w-0 items-start gap-1.5">
-        <span className={cn('mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded', selected ? 'bg-white/20 text-white' : tone.icon)}>
-          <Icon className="h-3.5 w-3.5" />
+        <span className={cn('mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded', selected ? 'bg-white/20 text-white' : tone.icon)}>
+          <Icon className="h-3 w-3" />
         </span>
-        <span className="min-w-0 flex-1 text-[10.5px] font-semibold leading-[1.12] break-words line-clamp-3">
+        <span className={cn('min-w-0 flex-1 font-semibold break-words', kind === 'acao' ? 'line-clamp-2 text-[10.5px] leading-[1.08]' : 'line-clamp-3 text-[11px] leading-[1.1]')}>
           {label}
         </span>
       </span>
-      {meta && <span className={cn('ml-6 line-clamp-1 text-[9px] leading-tight', selected ? 'text-white/80' : 'text-muted-foreground')}>{meta}</span>}
-      {description && <span className={cn('ml-6 line-clamp-2 text-[9.5px] leading-tight', selected ? 'text-white/80' : 'text-muted-foreground')}>{description}</span>}
+      {meta && <span className={cn('ml-6 line-clamp-1 text-[8.5px] leading-tight', selected ? 'text-white/80' : 'text-muted-foreground')}>{meta}</span>}
+      {kind !== 'acao' && description && <span className={cn('ml-6 line-clamp-1 text-[9px] leading-tight', selected ? 'text-white/80' : 'text-muted-foreground')}>{description}</span>}
     </button>
   );
 }

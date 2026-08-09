@@ -48,7 +48,7 @@ export default function AcoesEspecificas() {
         {isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : availableAcoes.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {availableAcoes.map((acao: any) => (
               <VisitSelectionTile key={acao.id} label={acao.nome} selected={selectedAcoes.includes(acao.nome)} onClick={() => toggleAcao(acao.nome)} meta={formatTopicoSubtopico(acao)} kind="acao" />
             ))}

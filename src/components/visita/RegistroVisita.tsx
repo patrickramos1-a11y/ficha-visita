@@ -25,23 +25,23 @@ export function RegistroVisita() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm"><ClipboardList className="h-4 w-4" />Tipos de atendimento</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-3 gap-2">
+        <CardContent className="grid grid-cols-2 gap-2">
           {tiposNatureza.map((item: any) => {
             const selected = data.tipos_atendimento.includes(item.nome);
-            return <VisitSelectionTile key={item.id} label={item.nome} selected={selected} onClick={() => toggle(data.tipos_atendimento, item.nome, setTiposAtendimento)} meta={formatMeta(item)} description={item.descricao || ''} kind="tipo" />;
+            return <VisitSelectionTile key={item.id} label={item.nome} selected={selected} onClick={() => toggle(data.tipos_atendimento, item.nome, setTiposAtendimento)} meta={formatMeta(item)} kind="tipo" />;
           })}
-          {tiposNatureza.length === 0 && <p className="col-span-3 text-sm text-muted-foreground">Nenhum tipo vinculado a esta natureza. Configure em Configurações.</p>}
+          {tiposNatureza.length === 0 && <p className="col-span-2 text-sm text-muted-foreground">Nenhum tipo vinculado a esta natureza. Configure em Configurações.</p>}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm"><Wrench className="h-4 w-4" />Ações realizadas</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-3 gap-2">
+        <CardContent className="grid grid-cols-2 gap-2">
           {acoesNatureza.map((item: any) => {
             const selected = data.acoes_especificas.includes(item.nome);
             return <VisitSelectionTile key={item.id} label={item.nome} selected={selected} onClick={() => toggle(data.acoes_especificas, item.nome, setAcoesEspecificas)} meta={formatMeta(item)} kind="acao" />;
           })}
-          {acoesNatureza.length === 0 && <p className="col-span-3 text-sm text-muted-foreground">Nenhuma ação vinculada a esta natureza. Configure em Configurações.</p>}
+          {acoesNatureza.length === 0 && <p className="col-span-2 text-sm text-muted-foreground">Nenhuma ação vinculada a esta natureza. Configure em Configurações.</p>}
         </CardContent>
       </Card>
 

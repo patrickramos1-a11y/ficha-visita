@@ -86,7 +86,7 @@ export default function TiposAtendimento() {
         ) : availableTipos.length === 0 && selectedTipos.length > 0 ? (
           <EmptyState icon={Check} title="Nenhum outro tipo encontrado" description="Ajuste a busca para ver outras opções" />
         ) : (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {availableTipos.map((tipoConfig: any) => (
               <VisitSelectionTile
                 key={tipoConfig.id}
@@ -94,7 +94,6 @@ export default function TiposAtendimento() {
                 selected={selectedTipos.includes(tipoConfig.nome)}
                 label={tipoConfig.nome}
                 meta={formatTopicoSubtopico(tipoConfig)}
-                description={tipoConfig.descricao || ''}
                 kind="tipo"
               />
             ))}
