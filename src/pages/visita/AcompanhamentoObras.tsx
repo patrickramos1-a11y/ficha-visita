@@ -259,9 +259,9 @@ export default function AcompanhamentoObras() {
                 {AVANCOS.map((avanco) => <Button key={avanco} type="button" variant={obra.percentual_avanco_faixa === avanco ? 'default' : 'outline'} className="h-10 px-1 text-[11px]" onClick={() => updateObra({ percentual_avanco_faixa: avanco, percentual_avanco: avanco === 'CONCLUIDA' ? 100 : Number(avanco.split('-')[0]) })}>{avanco === 'CONCLUIDA' ? 'Concl.' : avanco}</Button>)}
               </div>
             </div>
-            <Question label="Houve avanço desde a última visita?" value={obra.houve_avanco ? 'SIM' : 'NAO'} onChange={(value) => updateObra({ houve_avanco: value === 'SIM' })} />
-            <Question label="Está dentro do previsto?" value={obra.dentro_do_previsto ? 'SIM' : 'NAO'} onChange={(value) => updateObra({ dentro_do_previsto: value === 'SIM' })} />
-            <Question label="Pendências anteriores resolvidas?" value={obra.pendencias_resolvidas ? 'SIM' : 'NAO'} onChange={(value) => updateObra({ pendencias_resolvidas: value === 'SIM' })} />
+            <Question label="Houve avanço desde a última visita?" value={typeof obra.houve_avanco === 'boolean' ? (obra.houve_avanco ? 'SIM' : 'NAO') : obra.houve_avanco} onChange={(value) => updateObra({ houve_avanco: value })} />
+            <Question label="Está dentro do previsto?" value={typeof obra.dentro_do_previsto === 'boolean' ? (obra.dentro_do_previsto ? 'SIM' : 'NAO') : obra.dentro_do_previsto} onChange={(value) => updateObra({ dentro_do_previsto: value })} />
+            <Question label="Pendências anteriores resolvidas?" value={typeof obra.pendencias_resolvidas === 'boolean' ? (obra.pendencias_resolvidas ? 'SIM' : 'NAO') : obra.pendencias_resolvidas} onChange={(value) => updateObra({ pendencias_resolvidas: value })} />
           </Section>
         )}
 

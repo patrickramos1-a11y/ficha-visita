@@ -93,13 +93,13 @@ export interface AcompanhamentoObraData {
   obra_existente: boolean;
   status_geral: string;
   fase_atual: string;
-  houve_avanco: boolean;
-  dentro_do_previsto: boolean;
+  houve_avanco: SimNaoParcialNA;
+  dentro_do_previsto: SimNaoParcialNA;
   percentual_avanco: number;
   percentual_avanco_faixa?: AvancoObraFaixa;
   resumo_semana?: string;
   mudou_desde_visita_anterior?: string;
-  pendencias_resolvidas: boolean;
+  pendencias_resolvidas: SimNaoParcialNA;
   controle_ambiental: {
     controle_visivel: SimNaoParcialNA;
     area_delimitada: SimNaoParcialNA;
