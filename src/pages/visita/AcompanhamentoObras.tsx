@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { MobileFooter } from '@/components/mobile';
 import { StructuredAnswer } from '@/components/visita/StructuredAnswer';
+import { RegistroVisita } from '@/components/visita/RegistroVisita';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useClientes } from '@/hooks/useClientes';
 import { useResponsaveis } from '@/hooks/useResponsaveis';
@@ -22,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { AvancoObraFaixa, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
-const STEPS = ['Identificação', 'Situação', 'Ambiente', 'Segurança', 'Resíduos/água', 'Pendências', 'Fotos/revisão'];
+const STEPS = ['Identificação', 'Situação', 'Ambiente', 'Segurança', 'Resíduos/água', 'Pendências', 'Registro', 'Fotos/revisão'];
 const STATUS_OBRA = ['Em planejamento', 'Em execução', 'Paralisada', 'Atrasada', 'Concluída'];
 const FASES_OBRA = ['Mobilização', 'Terraplenagem', 'Fundação', 'Estrutura', 'Alvenaria', 'Instalações', 'Acabamento', 'Entrega'];
 const AVANCOS: AvancoObraFaixa[] = ['0-25%', '26-50%', '51-75%', '76-99%', 'CONCLUIDA'];
@@ -362,7 +363,9 @@ export default function AcompanhamentoObras() {
           </Section>
         )}
 
-        {step === 6 && (
+        {step === 6 && <RegistroVisita />}
+
+        {step === 7 && (
           <Section title="7. Fotos e revisão">
             <div className="grid grid-cols-2 gap-3">
               <Button type="button" variant="outline" className="h-16 flex-col gap-1" onClick={() => cameraInputRef.current?.click()}><Camera className="h-5 w-5" />Tirar foto</Button>

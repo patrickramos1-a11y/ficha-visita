@@ -41,7 +41,25 @@ export interface Demanda {
   status?: DemandaStatus;
 }
 
-export type VisitaModo = 'completa' | 'rapida' | 'obras' | 'ambiental';
+export type VisitaModo = 'completa' | 'rapida' | 'obras' | 'ambiental' | 'processos';
+export type NaturezaVisitaCodigo = 'ATENDIMENTO' | 'OBRAS' | 'AMBIENTAL' | 'PROCESSOS';
+
+export interface AnotacaoVisita {
+  id: string;
+  texto: string;
+  created_at: string;
+}
+
+export interface AcompanhamentoProcessosData {
+  cliente_id: string;
+  cliente_nome?: string;
+  obra_id?: string;
+  obra_nome?: string;
+  orgao_ids: string[];
+  processo_ids: string[];
+  situacao: string;
+  foto_itens: string[];
+}
 
 export type SimNaoParcialNA = 'SIM' | 'NAO' | 'PARCIALMENTE' | 'NAO_SE_APLICA';
 export type StatusItemObra = 'PENDENTE' | 'EM_ANDAMENTO' | 'CONCLUIDO';
@@ -211,11 +229,13 @@ export interface AcompanhamentoAmbientalData {
 export interface AtendimentoData {
   titulo?: string;
   modo?: VisitaModo;
+  natureza?: NaturezaVisitaCodigo;
   cliente_ids: string[];
   responsavel_id?: string;
   data_inicio: Date;
   data_fim?: Date;
   anotacoes: string;
+  anotacoes_itens: AnotacaoVisita[];
   checklist: ChecklistItem[];
   tipos_atendimento: AtendimentoTipo[];
   acoes_especificas: string[];
@@ -230,4 +250,5 @@ export interface AtendimentoData {
   possui_foto_final: boolean;
   acompanhamento_obra?: AcompanhamentoObraData;
   acompanhamento_ambiental?: AcompanhamentoAmbientalData;
+  acompanhamento_processos?: AcompanhamentoProcessosData;
 }

@@ -16,11 +16,12 @@ import { cn } from '@/lib/utils';
 export default function Anotacoes() {
   useVisitRoute('/visita/anotacoes');
   const navigate = useNavigate();
-  const { data, setAnotacoes, addChecklistItem, toggleChecklistItem, removeChecklistItem, addFotoFile } = useAtendimento();
+  const { data, addAnotacao, updateAnotacao, removeAnotacao, addChecklistItem, toggleChecklistItem, removeChecklistItem, addFotoFile } = useAtendimento();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   
   const [newCheckItem, setNewCheckItem] = useState('');
+  const [newNote, setNewNote] = useState('');
   const [activeTab, setActiveTab] = useState<'notas' | 'checklist' | 'fotos'>('notas');
 
   const handleAddCheckItem = () => {
@@ -94,14 +95,18 @@ export default function Anotacoes() {
       <div className="flex-1 overflow-auto scroll-smooth-y p-4">
         {activeTab === 'notas' && (
           <div className="space-y-4">
-            <Textarea
-              placeholder="Digite suas anotações aqui..."
-              value={data.anotacoes}
-              onChange={(e) => setAnotacoes(e.target.value)}
-              className="min-h-[250px] text-base resize-none"
-            />
+            <div className="flex gap-2">
+              <Textarea placeholder="Adicionar anotação para acompanhamento..." value={newNote} onChange={(e) => setNewNote(e.target.value)} className="min-h-20 text-base" />
+              <Button size="icon" className="h-12 w-12" disabled={!newNote.trim()} onClick={() => { addAnotacao(newNote); setNewNote(''); }}><Plus className="h-5 w-5" /></Button>
+            </div>
+            {(data.anotacoes_itens ?? []).map((note) => (
+              <div key={note.id} className="flex gap-2 rounded-lg border p-3">
+                <Textarea value={note.texto} onChange={(e) => updateAnotacao(note.id, e.target.value)} className="min-h-20" />
+                <Button size="icon" variant="ghost" className="text-destructive" onClick={() => removeAnotacao(note.id)}><X className="h-4 w-4" /></Button>
+              </div>
+            ))}
             <p className="text-xs text-muted-foreground">
-              💡 Use o Checklist para itens que virarão sugestões de demandas
+              Registre cada assunto separadamente para poder encaminhá-lo ao Radar Vital depois.
             </p>
           </div>
         )}

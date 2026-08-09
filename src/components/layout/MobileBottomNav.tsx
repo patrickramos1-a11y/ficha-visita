@@ -7,6 +7,7 @@ import {
   Users,
   UserCog,
   Settings,
+  ChartNoAxesCombined,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
@@ -23,6 +24,7 @@ const mainNavItems = [
 const moreNavItems = [
   { path: '/desktop/responsaveis', label: 'Responsáveis', icon: UserCog },
   { path: '/desktop/configuracoes', label: 'Configurações', icon: Settings },
+  { path: '/desktop/gestao', label: 'Gestão', icon: ChartNoAxesCombined },
 ];
 
 export function MobileBottomNav() {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo, AcompanhamentoObraData, AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra } from '@/types/atendimento';
+import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo, AcompanhamentoObraData, AcompanhamentoAmbientalData, AcompanhamentoProcessosData, AnotacaoVisita, NaoConformidadeObra, PendenciaObra } from '@/types/atendimento';
 import { getPlanoFromTipo, getPlanoFromAcao } from '@/types/tiposAtendimentoConfig';
 import { savePhotoBlob, deletePhoto, getPhotoObjectURL } from '@/lib/offlineDB';
 import { format } from 'date-fns';
@@ -21,6 +21,9 @@ interface AtendimentoContextType {
   setResponsavelId: (id: string) => void;
   setTitulo: (titulo: string) => void;
   setAnotacoes: (texto: string) => void;
+  addAnotacao: (texto: string) => void;
+  updateAnotacao: (id: string, texto: string) => void;
+  removeAnotacao: (id: string) => void;
   addChecklistItem: (texto: string) => void;
   toggleChecklistItem: (id: string) => void;
   removeChecklistItem: (id: string) => void;
@@ -31,6 +34,7 @@ interface AtendimentoContextType {
   setAcoesEspecificas: (acoes: string[]) => void;
   setAcompanhamentoObra: (updater: (prev: AcompanhamentoObraData) => AcompanhamentoObraData) => void;
   setAcompanhamentoAmbiental: (updater: (prev: AcompanhamentoAmbientalData) => AcompanhamentoAmbientalData) => void;
+  setAcompanhamentoProcessos: (updater: (prev: AcompanhamentoProcessosData) => AcompanhamentoProcessosData) => void;
   addNaoConformidade: (item: NaoConformidadeObra) => void;
   updateNaoConformidade: (index: number, item: NaoConformidadeObra) => void;
   removeNaoConformidade: (index: number) => void;
@@ -54,6 +58,7 @@ const initialData: AtendimentoData = {
   cliente_ids: [],
   data_inicio: new Date(),
   anotacoes: '',
+  anotacoes_itens: [],
   checklist: [],
   tipos_atendimento: [],
   acoes_especificas: [],
@@ -181,6 +186,15 @@ const initialAcompanhamentoAmbiental: AcompanhamentoAmbientalData = {
   foto_itens: [],
 };
 
+const initialAcompanhamentoProcessos: AcompanhamentoProcessosData = {
+  cliente_id: '',
+  cliente_nome: '',
+  orgao_ids: [],
+  processo_ids: [],
+  situacao: '',
+  foto_itens: [],
+};
+
 function loadFromStorage(): { data: AtendimentoData; ativo: boolean } | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -291,6 +305,21 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     setData(prev => ({ ...prev, anotacoes: texto }));
   };
 
+  const addAnotacao = (texto: string) => {
+    const trimmed = texto.trim();
+    if (!trimmed) return;
+    const item: AnotacaoVisita = { id: crypto.randomUUID(), texto: trimmed, created_at: new Date().toISOString() };
+    setData(prev => ({ ...prev, anotacoes_itens: [...(prev.anotacoes_itens ?? []), item] }));
+  };
+
+  const updateAnotacao = (id: string, texto: string) => {
+    setData(prev => ({ ...prev, anotacoes_itens: (prev.anotacoes_itens ?? []).map(item => item.id === id ? { ...item, texto } : item) }));
+  };
+
+  const removeAnotacao = (id: string) => {
+    setData(prev => ({ ...prev, anotacoes_itens: (prev.anotacoes_itens ?? []).filter(item => item.id !== id) }));
+  };
+
   const addChecklistItem = (texto: string) => {
     const newItem: ChecklistItem = {
       id: crypto.randomUUID(),
@@ -368,6 +397,13 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const setAcompanhamentoProcessos = (updater: (prev: AcompanhamentoProcessosData) => AcompanhamentoProcessosData) => {
+    setData(prev => {
+      const acompanhamento_processos = updater(prev.acompanhamento_processos ?? { ...initialAcompanhamentoProcessos });
+      return { ...prev, acompanhamento_processos, cliente_ids: acompanhamento_processos.cliente_id ? [...new Set([...prev.cliente_ids, acompanhamento_processos.cliente_id])] : prev.cliente_ids };
+    });
+  };
+
   const addNaoConformidade = (item: NaoConformidadeObra) => {
     setAcompanhamentoObra(prev => ({ ...prev, nao_conformidades: [...prev.nao_conformidades, item] }));
   };
@@ -405,7 +441,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
   };
 
   const addDemanda = (demanda: Demanda) => {
-    setData(prev => ({ ...prev, demandas: [...prev.demandas, demanda] }));
+    setData(prev => ({ ...prev, demandas: [...prev.demandas, { ...demanda, id: demanda.id ?? crypto.randomUUID() }] }));
   };
 
   const updateDemanda = (index: number, demanda: Demanda) => {
@@ -443,15 +479,20 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
       ? `Acompanhamento de Obras - ${dataTitulo}`
       : modo === 'ambiental'
         ? `Acompanhamento Ambiental - ${dataTitulo}`
+        : modo === 'processos'
+          ? `Acompanhamento de Processos - ${dataTitulo}`
         : undefined;
+    const natureza = modo === 'obras' ? 'OBRAS' : modo === 'ambiental' ? 'AMBIENTAL' : modo === 'processos' ? 'PROCESSOS' : 'ATENDIMENTO';
     clearStorage();
     setData({
       ...initialData,
       titulo,
       modo,
+      natureza,
       data_inicio: inicio,
       acompanhamento_obra: modo === 'obras' ? { ...initialAcompanhamentoObra } : undefined,
       acompanhamento_ambiental: modo === 'ambiental' ? { ...initialAcompanhamentoAmbiental } : undefined,
+      acompanhamento_processos: modo === 'processos' ? { ...initialAcompanhamentoProcessos } : undefined,
     });
     setAtivo(true);
   }, []);
@@ -501,6 +542,9 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         setResponsavelId,
         setTitulo,
         setAnotacoes,
+        addAnotacao,
+        updateAnotacao,
+        removeAnotacao,
         addChecklistItem,
         toggleChecklistItem,
         removeChecklistItem,
@@ -511,6 +555,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         setAcoesEspecificas,
         setAcompanhamentoObra,
         setAcompanhamentoAmbiental,
+        setAcompanhamentoProcessos,
         addNaoConformidade,
         updateNaoConformidade,
         removeNaoConformidade,

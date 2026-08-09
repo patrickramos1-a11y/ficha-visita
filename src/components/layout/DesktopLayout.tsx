@@ -8,7 +8,9 @@ import {
   Play, 
   ChevronLeft,
   ChevronRight,
-  Settings
+  Settings,
+  ChartNoAxesCombined,
+  LogOut,
 } from 'lucide-react';
 import logoHorizontal from '@/assets/logo-horizontal.png';
 import { Button } from '@/components/ui/button';
@@ -17,6 +19,7 @@ import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileBottomNav } from './MobileBottomNav';
 import { SyncStatusBadge } from '@/components/sync/SyncStatusBadge';
+import { useVisitAuth } from '@/contexts/AuthContext';
 
 interface DesktopLayoutProps {
   children: ReactNode;
@@ -27,6 +30,7 @@ const navItems = [
   { path: '/desktop/historico', label: 'Histórico', icon: History },
   { path: '/desktop/clientes', label: 'Clientes', icon: Users },
   { path: '/desktop/responsaveis', label: 'Responsáveis', icon: UserCog },
+  { path: '/desktop/gestao', label: 'Gestão', icon: ChartNoAxesCombined },
   { path: '/desktop/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
@@ -84,6 +88,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { resetAtendimento } = useAtendimento();
+  const { user, signOut } = useVisitAuth();
   const isMobile = useIsMobile();
 
   const handleStartVisit = () => {
@@ -166,7 +171,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
           <h1 className="text-xl font-semibold text-foreground">
             {getPageTitle()}
           </h1>
-          <SyncStatusBadge />
+          <div className="flex items-center gap-3"><span className="hidden text-xs text-muted-foreground md:inline">{user?.email}</span><SyncStatusBadge /><Button variant="ghost" size="icon" title="Sair" onClick={() => void signOut()}><LogOut className="h-4 w-4" /></Button></div>
         </header>
 
         <main className="flex-1 overflow-auto p-6">

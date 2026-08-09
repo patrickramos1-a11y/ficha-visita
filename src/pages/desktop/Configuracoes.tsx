@@ -5,8 +5,8 @@ import { SimpleEntityCrud } from '@/components/config/SimpleEntityCrud';
 import { DemandasEspecificasCrud } from '@/components/config/DemandasEspecificasCrud';
 import { TiposAtendimentoCrud } from '@/components/config/TiposAtendimentoCrud';
 import { AcoesEspecificasCrud } from '@/components/config/AcoesEspecificasCrud';
-import { ImportarTopicosSubtopicosCard } from '@/components/config/ImportarTopicosSubtopicosCard';
 import { UpdateCheckCard } from '@/components/pwa/UpdateCheckCard';
+import { NaturezasVisitaCrud } from '@/components/config/NaturezasVisitaCrud';
 import {
   usePlanos, useUpsertPlano, useDeletePlano,
   useTopicos, useUpsertTopico, useDeleteTopico,
@@ -217,9 +217,7 @@ export default function Configuracoes() {
     { value: 'responsaveis', label: 'Responsáveis' },
     { value: 'tipos', label: 'Tipos' },
     { value: 'acoes', label: 'Ações' },
-    { value: 'planos', label: 'Planos' },
-    { value: 'topicos', label: 'Tópicos' },
-    { value: 'subtopicos', label: 'Subtópicos' },
+    { value: 'naturezas', label: 'Naturezas' },
     { value: 'origens', label: 'Origens' },
     { value: 'status', label: 'Status' },
     { value: 'demandas', label: 'Demandas' },
@@ -256,32 +254,8 @@ export default function Configuracoes() {
                 <AcoesEspecificasCrud />
               </TabsContent>
 
-              <TabsContent value="planos" className="mt-0">
-                <SimpleEntityCrud
-                  title="Planos"
-                  entities={planos}
-                  isLoading={loadPlanos}
-                  onSave={async (e) => { await upsPlano.mutateAsync(e as any); }}
-                  onDelete={async (id) => { await delPlano.mutateAsync(id); }}
-                  showColor
-                  isSaving={upsPlano.isPending}
-                />
-              </TabsContent>
-
-              <TabsContent value="topicos" className="mt-0 space-y-4">
-                <ImportarTopicosSubtopicosCard />
-                <SimpleEntityCrud
-                  title="Tópicos"
-                  entities={topicos}
-                  isLoading={loadTopicos}
-                  onSave={async (e) => { await upsTopic.mutateAsync(e); }}
-                  onDelete={async (id) => { await delTopic.mutateAsync(id); }}
-                  isSaving={upsTopic.isPending}
-                />
-              </TabsContent>
-
-              <TabsContent value="subtopicos" className="mt-0">
-                <SubtopicosCrud />
+              <TabsContent value="naturezas" className="mt-0">
+                <NaturezasVisitaCrud />
               </TabsContent>
 
               <TabsContent value="origens" className="mt-0">

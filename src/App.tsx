@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AtendimentoProvider, useAtendimento } from "@/contexts/AtendimentoContext";
+import { VisitAuthProvider } from "@/contexts/AuthContext";
+import { RequireVisitAuth } from "@/components/auth/RequireVisitAuth";
 import { SyncProvider } from "@/contexts/SyncContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { InstallPromptBanner } from "@/components/pwa/InstallPromptBanner";
@@ -30,6 +32,8 @@ import ResponsavelRapida from "./pages/visita/rapida/ResponsavelRapida";
 import FotosRapida from "./pages/visita/rapida/FotosRapida";
 import AcompanhamentoObras from "./pages/visita/AcompanhamentoObras";
 import AcompanhamentoAmbiental from "./pages/visita/AcompanhamentoAmbiental";
+import AcompanhamentoProcessos from "./pages/visita/AcompanhamentoProcessos";
+import Login from "./pages/Login";
 
 // Desktop pages
 import Dashboard from "./pages/desktop/Dashboard";
@@ -41,6 +45,7 @@ import DesktopResponsaveis from "./pages/desktop/Responsaveis";
 
 // Config
 import Configuracoes from "./pages/desktop/Configuracoes";
+import Gestao from "./pages/desktop/Gestao";
 
 // Backlog feature removed
 
@@ -68,14 +73,8 @@ function RootRedirect() {
   return isMobile ? <Index /> : <Navigate to="/desktop/iniciar-visita" replace />;
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AtendimentoProvider>
-          <SyncProvider>
+function AuthenticatedApplication() {
+  return <RequireVisitAuth><AtendimentoProvider><SyncProvider>
           <ConfigCachePrefetcher />
           <InstallPromptBanner />
           <UpdatePrompt />
@@ -99,6 +98,7 @@ const App = () => (
             <Route path="/visita/rapida/fotos" element={<FotosRapida />} />
             <Route path="/visita/obras" element={<AcompanhamentoObras />} />
             <Route path="/visita/ambiental" element={<AcompanhamentoAmbiental />} />
+            <Route path="/visita/processos" element={<AcompanhamentoProcessos />} />
             <Route path="/visita/resumo" element={<ResumoAtendimento />} />
             <Route path="/sucesso" element={<Sucesso />} />
             <Route path="/historico" element={<Historico />} />
@@ -110,6 +110,7 @@ const App = () => (
             <Route path="/desktop/atendimento/:id" element={<AtendimentoDetalhe />} />
             <Route path="/desktop/clientes" element={<DesktopClientes />} />
             <Route path="/desktop/responsaveis" element={<DesktopResponsaveis />} />
+            <Route path="/desktop/gestao" element={<Gestao />} />
             
             {/* Config */}
             <Route path="/desktop/configuracoes" element={<Configuracoes />} />
@@ -119,8 +120,21 @@ const App = () => (
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          </SyncProvider>
-        </AtendimentoProvider>
+          </SyncProvider></AtendimentoProvider></RequireVisitAuth>;
+}
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <VisitAuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="*" element={<AuthenticatedApplication />} />
+          </Routes>
+        </VisitAuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

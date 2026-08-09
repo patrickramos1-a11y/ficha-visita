@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { MobileFooter } from '@/components/mobile';
 import { StructuredAnswer } from '@/components/visita/StructuredAnswer';
+import { RegistroVisita } from '@/components/visita/RegistroVisita';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useClientes } from '@/hooks/useClientes';
 import { useResponsaveis } from '@/hooks/useResponsaveis';
@@ -20,7 +21,7 @@ import { useSaveAtendimento } from '@/hooks/useSaveAtendimento';
 import { cn } from '@/lib/utils';
 import type { AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
-const STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Fotos/revisão'];
+const STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Registro', 'Fotos/revisão'];
 const FOTO_ITENS = ['Fachada/identificação', 'Área de produção', 'Armazenamento de resíduos', 'Lixeiras/segregação', 'ETE', 'Poço', 'Reservatório', 'Ponto de lançamento', 'Área externa', 'Não conformidade', 'Correção realizada'];
 
 const gestao: [keyof AcompanhamentoAmbientalData, string][] = [
@@ -268,7 +269,9 @@ export default function AcompanhamentoAmbiental() {
           </Section>
         )}
 
-        {step === 5 && (
+        {step === 5 && <RegistroVisita />}
+
+        {step === 6 && (
           <Section title="6. Fotos e revisão">
             <div className="grid grid-cols-2 gap-3">
               <Button type="button" variant="outline" className="h-16 flex-col gap-1" onClick={() => cameraInputRef.current?.click()}><Camera className="h-5 w-5" />Tirar foto</Button>

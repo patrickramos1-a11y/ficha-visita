@@ -1,17 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
 import { PageHeader, EmptyState, MobileFooter } from '@/components/mobile';
-import { PlanoTipo } from '@/types/atendimento';
-import { useTopicos, useSubtopicos } from '@/hooks/useConfigEntities';
 import { Plus, Trash2, ChevronRight, Lightbulb } from 'lucide-react';
 
 export default function SugestoesDemandas() {
@@ -19,17 +15,6 @@ export default function SugestoesDemandas() {
   const navigate = useNavigate();
   const { data, gerarSugestoesDemandas, addDemanda, updateDemanda, removeDemanda } = useAtendimento();
   const [initialized, setInitialized] = useState(false);
-  const { data: topicos } = useTopicos();
-  const { data: subtopicos } = useSubtopicos();
-
-  const topicoOptions = useMemo(
-    () => (topicos ?? []).map((t: any) => ({ value: t.id, label: t.nome })),
-    [topicos]
-  );
-  const subtopicoOptions = useMemo(
-    () => (subtopicos ?? []).map((s: any) => ({ value: s.id, label: s.nome })),
-    [subtopicos]
-  );
 
   useEffect(() => {
     if (!initialized && data.demandas.length === 0) {
@@ -44,7 +29,6 @@ export default function SugestoesDemandas() {
   const handleAddPersonalizada = () => {
     addDemanda({
       descricao: '',
-      plano: 'VIP',
       personalizada: true,
     });
   };
@@ -73,22 +57,9 @@ export default function SugestoesDemandas() {
             key={index}
             className="p-4 bg-card rounded-xl border border-border space-y-3 animate-in fade-in-0 slide-in-from-bottom-2"
           >
-            {/* Header with plan selector */}
+            {/* Demand classification is intentionally limited to its operational status. */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-1">
-                <Select
-                  value={demanda.plano || 'VIP'}
-                  onValueChange={(value) => handleUpdate(index, { plano: value as PlanoTipo })}
-                >
-                  <SelectTrigger className="w-[110px] h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="VIP">VIP</SelectItem>
-                    <SelectItem value="Premium">Premium</SelectItem>
-                    <SelectItem value="Master">Master</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Select
                   value={demanda.status || 'EM_EXECUCAO'}
                   onValueChange={(value) => handleUpdate(index, { status: value as 'EM_EXECUCAO' | 'CONCLUIDA' | 'NAO_FEITO' })}
@@ -112,28 +83,6 @@ export default function SugestoesDemandas() {
               >
                 <Trash2 className="w-5 h-5" />
               </button>
-            </div>
-
-            {/* Tópico / Subtópico */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Tópico</Label>
-                <SearchableSelect
-                  options={topicoOptions}
-                  value={demanda.topico_id ?? null}
-                  onChange={(v) => handleUpdate(index, { topico_id: v, subtopico_id: null })}
-                  placeholder="Selecionar tópico"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Subtópico</Label>
-                <SearchableSelect
-                  options={subtopicoOptions}
-                  value={demanda.subtopico_id ?? null}
-                  onChange={(v) => handleUpdate(index, { subtopico_id: v })}
-                  placeholder="Selecionar subtópico"
-                />
-              </div>
             </div>
 
             {/* Descrição editável */}

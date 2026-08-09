@@ -117,6 +117,7 @@ class SyncEngine {
 export const syncEngine = new SyncEngine();
 
 async function pushAtendimento(localId: string, data: AtendimentoData): Promise<string[]> {
+  const db = supabase as any;
   // Re-hydrate dates if needed
   const dataInicio = data.data_inicio instanceof Date
     ? data.data_inicio
@@ -135,35 +136,43 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
     obraId = obra.id;
   }
 
-  const dadosModalidade = data.modo === 'obras' ? data.acompanhamento_obra : data.modo === 'ambiental' ? data.acompanhamento_ambiental : null;
+  const dadosModalidade = data.modo === 'obras'
+    ? data.acompanhamento_obra
+    : data.modo === 'ambiental'
+      ? data.acompanhamento_ambiental
+      : data.modo === 'processos'
+        ? data.acompanhamento_processos
+        : null;
   const atendimentoPayload = {
       titulo: data.titulo || null,
       responsavel_id: data.responsavel_id || null,
       data_inicio: dataInicio.toISOString(),
       data_fim: dataFim.toISOString(),
       anotacoes: data.anotacoes || null,
+      anotacoes_itens: JSON.parse(JSON.stringify(data.anotacoes_itens ?? [])),
       checklist: JSON.parse(JSON.stringify(data.checklist)),
       tipos_atendimento: data.tipos_atendimento,
       acoes_especificas: data.acoes_especificas,
       topicos_reuniao: JSON.parse(JSON.stringify(data.topicos_reuniao)),
       possui_foto_final: data.possui_foto_final,
       modo: data.modo || 'completa',
+      natureza: data.natureza || 'ATENDIMENTO',
       obra_id: obraId,
       dados_modalidade: dadosModalidade ? JSON.parse(JSON.stringify(dadosModalidade)) : null,
       finalizado: true,
   };
 
-  let { data: atendimento, error: atendimentoError } = await supabase
+  let { data: atendimento, error: atendimentoError } = await db
     .from('atendimentos')
     .insert(atendimentoPayload)
     .select()
     .single();
 
-  if (atendimentoError && String(atendimentoError.message).toLowerCase().includes('titulo')) {
-    const { titulo: _titulo, ...payloadSemTitulo } = atendimentoPayload;
-    const retry = await supabase
+  if (atendimentoError && /(titulo|natureza|anotacoes_itens)/i.test(String(atendimentoError.message))) {
+    const { titulo: _titulo, natureza: _natureza, anotacoes_itens: _anotacoesItens, ...payloadSemCamposNovos } = atendimentoPayload;
+    const retry = await db
       .from('atendimentos')
-      .insert(payloadSemTitulo)
+      .insert(payloadSemCamposNovos)
       .select()
       .single();
     atendimento = retry.data;
@@ -179,6 +188,17 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
     }));
     const { error } = await supabase.from('atendimento_clientes').insert(inserts);
     if (error) throw error;
+  }
+
+  if (data.modo === 'processos' && data.acompanhamento_processos) {
+    const rows = [
+      ...data.acompanhamento_processos.orgao_ids.map(orgao_id => ({ atendimento_id: atendimento.id, orgao_id, processo_id: null })),
+      ...data.acompanhamento_processos.processo_ids.map(processo_id => ({ atendimento_id: atendimento.id, orgao_id: null, processo_id })),
+    ];
+    if (rows.length) {
+      const { error } = await db.from('atendimento_processos').insert(rows);
+      if (error) throw error;
+    }
   }
 
   // Upload photos: prefer IndexedDB blob (fotoId); fall back to legacy data: URL
@@ -241,6 +261,7 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
     const rows = data.demandas
       .filter((d) => d.descricao.trim())
       .map((d) => ({
+        id: d.id || crypto.randomUUID(),
         atendimento_id: atendimento.id,
         tipo_atendimento: d.tipo_atendimento || null,
         descricao: d.descricao,
