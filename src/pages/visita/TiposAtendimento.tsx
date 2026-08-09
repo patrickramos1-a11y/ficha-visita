@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
-import { SelectionCard, PageHeader, EmptyState, CountBadge, MobileFooter } from '@/components/mobile';
+import { PageHeader, EmptyState, CountBadge, MobileFooter } from '@/components/mobile';
 import { useTiposAtendimentoConfig } from '@/hooks/useConfigEntities';
 import { AtendimentoTipo } from '@/types/atendimento';
+import { VisitSelectionTile } from '@/components/visita/VisitSelectionTile';
 import { Check, ChevronRight, ClipboardList, Search, X, Loader2 } from 'lucide-react';
 
 export default function TiposAtendimento() {
@@ -33,9 +34,9 @@ export default function TiposAtendimento() {
   };
 
   const q = search.trim().toLowerCase();
-  const ativos = (tipos || []).filter((t: any) => t.ativo !== false);
+  const natureza = data.natureza ?? 'ATENDIMENTO';
+  const ativos = (tipos || []).filter((t: any) => t.ativo !== false && (t.naturezas ?? ['ATENDIMENTO']).includes(natureza));
   const availableTipos = ativos
-    .filter((t: any) => !selectedTipos.includes(t.nome))
     .filter((t: any) =>
       !q || t.nome.toLowerCase().includes(q) || (t.descricao || '').toLowerCase().includes(q)
     );
@@ -83,19 +84,19 @@ export default function TiposAtendimento() {
         {isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : availableTipos.length === 0 && selectedTipos.length > 0 ? (
-          <EmptyState icon={Check} title="Todos os tipos selecionados" description="Você selecionou todas as opções disponíveis" />
+          <EmptyState icon={Check} title="Nenhum outro tipo encontrado" description="Ajuste a busca para ver outras opções" />
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {availableTipos.map((tipoConfig: any) => (
-              <SelectionCard
+              <VisitSelectionTile
                 key={tipoConfig.id}
                 onClick={() => toggleTipo(tipoConfig.nome)}
+                selected={selectedTipos.includes(tipoConfig.nome)}
+                label={tipoConfig.nome}
                 meta={formatTopicoSubtopico(tipoConfig)}
                 description={tipoConfig.descricao || ''}
-                showCheckbox
-              >
-                {tipoConfig.nome}
-              </SelectionCard>
+                kind="tipo"
+              />
             ))}
           </div>
         )}

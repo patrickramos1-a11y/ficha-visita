@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Check, ClipboardList, MessageSquarePlus, Plus, Trash2, Wrench } from 'lucide-react';
+import { ClipboardList, MessageSquarePlus, Plus, Trash2, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useAcoesEspecificasConfig, useTiposAtendimentoConfig } from '@/hooks/useConfigEntities';
+import { VisitSelectionTile } from '@/components/visita/VisitSelectionTile';
 
 export function RegistroVisita() {
   const { data, setTiposAtendimento, setAcoesEspecificas, addAnotacao, updateAnotacao, removeAnotacao, addDemanda, updateDemanda, removeDemanda } = useAtendimento();
@@ -16,28 +17,31 @@ export function RegistroVisita() {
 
   const toggle = (items: string[], value: string, set: (next: string[]) => void) =>
     set(items.includes(value) ? items.filter(item => item !== value) : [...items, value]);
+  const tiposNatureza = tipos.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza));
+  const acoesNatureza = acoes.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza));
+  const formatMeta = (item: any) => [item.topicos?.nome, item.subtopicos?.nome].filter(Boolean).join(' › ');
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm"><ClipboardList className="h-4 w-4" />Tipos de atendimento</CardTitle></CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          {tipos.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza)).map((item: any) => {
+        <CardContent className="grid grid-cols-3 gap-2">
+          {tiposNatureza.map((item: any) => {
             const selected = data.tipos_atendimento.includes(item.nome);
-            return <Button key={item.id} type="button" size="sm" variant={selected ? 'default' : 'outline'} onClick={() => toggle(data.tipos_atendimento, item.nome, setTiposAtendimento)}>{selected && <Check className="mr-1 h-3.5 w-3.5" />}{item.nome}</Button>;
+            return <VisitSelectionTile key={item.id} label={item.nome} selected={selected} onClick={() => toggle(data.tipos_atendimento, item.nome, setTiposAtendimento)} meta={formatMeta(item)} description={item.descricao || ''} kind="tipo" />;
           })}
-          {tipos.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza)).length === 0 && <p className="text-sm text-muted-foreground">Nenhum tipo vinculado a esta natureza. Configure em Configurações.</p>}
+          {tiposNatureza.length === 0 && <p className="col-span-3 text-sm text-muted-foreground">Nenhum tipo vinculado a esta natureza. Configure em Configurações.</p>}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm"><Wrench className="h-4 w-4" />Ações realizadas</CardTitle></CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          {acoes.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza)).map((item: any) => {
+        <CardContent className="grid grid-cols-3 gap-2">
+          {acoesNatureza.map((item: any) => {
             const selected = data.acoes_especificas.includes(item.nome);
-            return <Button key={item.id} type="button" size="sm" variant={selected ? 'default' : 'outline'} onClick={() => toggle(data.acoes_especificas, item.nome, setAcoesEspecificas)}>{selected && <Check className="mr-1 h-3.5 w-3.5" />}{item.nome}</Button>;
+            return <VisitSelectionTile key={item.id} label={item.nome} selected={selected} onClick={() => toggle(data.acoes_especificas, item.nome, setAcoesEspecificas)} meta={formatMeta(item)} kind="acao" />;
           })}
-          {acoes.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza)).length === 0 && <p className="text-sm text-muted-foreground">Nenhuma ação vinculada a esta natureza. Configure em Configurações.</p>}
+          {acoesNatureza.length === 0 && <p className="col-span-3 text-sm text-muted-foreground">Nenhuma ação vinculada a esta natureza. Configure em Configurações.</p>}
         </CardContent>
       </Card>
 

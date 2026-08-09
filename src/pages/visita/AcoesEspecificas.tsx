@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
-import { SelectionChip, PageHeader, EmptyState, CountBadge, MobileFooter } from '@/components/mobile';
+import { PageHeader, EmptyState, CountBadge, MobileFooter } from '@/components/mobile';
 import { useAcoesEspecificasConfig } from '@/hooks/useConfigEntities';
+import { VisitSelectionTile } from '@/components/visita/VisitSelectionTile';
 import { Check, ChevronRight, Wrench, Loader2 } from 'lucide-react';
 
 export default function AcoesEspecificas() {
@@ -27,9 +28,8 @@ export default function AcoesEspecificas() {
     navigate('/visita/demandas');
   };
 
-  const ativas = (acoes || []).filter((a: any) => a.ativo !== false);
-  const availableAcoes = ativas.filter((a: any) => !selectedAcoes.includes(a.nome));
-  const acoesPorNome = new Map(ativas.map((a: any) => [a.nome, a]));
+  const natureza = data.natureza ?? 'ATENDIMENTO';
+  const availableAcoes = (acoes || []).filter((a: any) => a.ativo !== false && (a.naturezas ?? ['ATENDIMENTO']).includes(natureza));
   const formatTopicoSubtopico = (item: any) =>
     [item?.topicos?.nome, item?.subtopicos?.nome].filter(Boolean).join(' › ');
 
@@ -45,23 +45,12 @@ export default function AcoesEspecificas() {
       />
 
       <div className="flex-1 overflow-auto scroll-smooth-y px-4 pb-4">
-        {selectedAcoes.length > 0 && (
-          <div className="mb-4 pb-4 border-b border-border">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Selecionadas</p>
-            <div className="flex flex-wrap gap-2">
-              {selectedAcoes.map((acao) => (
-                <SelectionChip key={acao} selected onRemove={() => toggleAcao(acao)} meta={formatTopicoSubtopico(acoesPorNome.get(acao))}>{acao}</SelectionChip>
-              ))}
-            </div>
-          </div>
-        )}
-
         {isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : availableAcoes.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {availableAcoes.map((acao: any) => (
-              <SelectionChip key={acao.id} onClick={() => toggleAcao(acao.nome)} meta={formatTopicoSubtopico(acao)}>{acao.nome}</SelectionChip>
+              <VisitSelectionTile key={acao.id} label={acao.nome} selected={selectedAcoes.includes(acao.nome)} onClick={() => toggleAcao(acao.nome)} meta={formatTopicoSubtopico(acao)} kind="acao" />
             ))}
           </div>
         ) : selectedAcoes.length > 0 ? (
