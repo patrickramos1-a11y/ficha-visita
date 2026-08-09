@@ -85,22 +85,22 @@ alter table public.integracao_radar_itens enable row level security;
 
 do $$
 begin
-  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'naturezas_visita' and policyname = 'Authenticated users manage visit natures') then
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'naturezas_visita' and policyname = 'Internal users manage visit natures') then
     create policy "Internal users manage visit natures" on public.naturezas_visita for all to anon, authenticated using (true) with check (true);
   end if;
-  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'orgaos' and policyname = 'Authenticated users manage agencies') then
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'orgaos' and policyname = 'Internal users manage agencies') then
     create policy "Internal users manage agencies" on public.orgaos for all to anon, authenticated using (true) with check (true);
   end if;
-  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'processos_clientes' and policyname = 'Authenticated users manage client processes') then
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'processos_clientes' and policyname = 'Internal users manage client processes') then
     create policy "Internal users manage client processes" on public.processos_clientes for all to anon, authenticated using (true) with check (true);
   end if;
-  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'atendimento_processos' and policyname = 'Authenticated users manage visit processes') then
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'atendimento_processos' and policyname = 'Internal users manage visit processes') then
     create policy "Internal users manage visit processes" on public.atendimento_processos for all to anon, authenticated using (true) with check (true);
   end if;
-  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'mapeamentos_clientes_radar' and policyname = 'Authenticated users manage radar mappings') then
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'mapeamentos_clientes_radar' and policyname = 'Internal users manage radar mappings') then
     create policy "Internal users manage radar mappings" on public.mapeamentos_clientes_radar for all to anon, authenticated using (true) with check (true);
   end if;
-  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'integracao_radar_itens' and policyname = 'Authenticated users read radar export history') then
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'integracao_radar_itens' and policyname = 'Internal users read radar export history') then
     create policy "Internal users read radar export history" on public.integracao_radar_itens for select to anon, authenticated using (true);
   end if;
 end $$;
