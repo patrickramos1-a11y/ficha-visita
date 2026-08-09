@@ -4,8 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AtendimentoProvider, useAtendimento } from "@/contexts/AtendimentoContext";
-import { VisitAuthProvider } from "@/contexts/AuthContext";
-import { RequireVisitAuth } from "@/components/auth/RequireVisitAuth";
 import { SyncProvider } from "@/contexts/SyncContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { InstallPromptBanner } from "@/components/pwa/InstallPromptBanner";
@@ -33,7 +31,6 @@ import FotosRapida from "./pages/visita/rapida/FotosRapida";
 import AcompanhamentoObras from "./pages/visita/AcompanhamentoObras";
 import AcompanhamentoAmbiental from "./pages/visita/AcompanhamentoAmbiental";
 import AcompanhamentoProcessos from "./pages/visita/AcompanhamentoProcessos";
-import Login from "./pages/Login";
 
 // Desktop pages
 import Dashboard from "./pages/desktop/Dashboard";
@@ -73,8 +70,8 @@ function RootRedirect() {
   return isMobile ? <Index /> : <Navigate to="/desktop/iniciar-visita" replace />;
 }
 
-function AuthenticatedApplication() {
-  return <RequireVisitAuth><AtendimentoProvider><SyncProvider>
+function Application() {
+  return <AtendimentoProvider><SyncProvider>
           <ConfigCachePrefetcher />
           <InstallPromptBanner />
           <UpdatePrompt />
@@ -120,7 +117,7 @@ function AuthenticatedApplication() {
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          </SyncProvider></AtendimentoProvider></RequireVisitAuth>;
+          </SyncProvider></AtendimentoProvider>;
 }
 
 const App = () => (
@@ -128,14 +125,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <VisitAuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="*" element={<AuthenticatedApplication />} />
-          </Routes>
-        </VisitAuthProvider>
-      </BrowserRouter>
+      <BrowserRouter><Application /></BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

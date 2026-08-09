@@ -34,6 +34,7 @@ export default function Gestao() {
   const [selection, setSelection] = useState<Record<string, string[]>>({});
   const { data: visitas = [], isLoading } = useQuery({ queryKey: ['gestao-visitas'], queryFn: async () => { const { data, error } = await db.from('atendimentos').select('*, atendimento_clientes(cliente_id, clientes(id,nome))').eq('finalizado', true).order('data_inicio', { ascending: false }); if (error) throw error; return data ?? []; } });
   const { data: clientes = [] } = useQuery({ queryKey: ['gestao-clientes'], queryFn: async () => { const { data, error } = await db.from('clientes').select('*').order('nome'); if (error) throw error; return data ?? []; } });
+  const { data: responsaveis = [] } = useQuery({ queryKey: ['gestao-responsaveis'], queryFn: async () => { const { data, error } = await db.from('responsaveis').select('id,nome').order('nome'); return error ? [] : data ?? []; } });
   const { data: demandas = [] } = useQuery({ queryKey: ['gestao-demandas'], queryFn: async () => { const { data, error } = await db.from('demandas').select('*'); return error ? [] : data ?? []; } });
   const { data: naturezas = [] } = useOptionalTable('naturezas_visita', 'gestao-naturezas');
   const { data: orgaos = [] } = useOptionalTable('orgaos', 'gestao-orgaos');
@@ -52,6 +53,7 @@ export default function Gestao() {
   const saveProcesso = async () => { if (!newProcesso.trim() || !processoCliente) return; const { error } = await db.from('processos_clientes').insert({ nome: newProcesso.trim(), cliente_id: processoCliente, ativo: true }); if (error) return toast.error('Aplique primeiro o SQL da Gestão no Supabase'); setNewProcesso(''); queryClient.invalidateQueries({ queryKey: ['gestao-processos'] }); };
   const clientName = (visit: any) => visit.atendimento_clientes?.[0]?.clientes?.nome || clientes.find((client: any) => client.id === visit.cliente_id)?.nome || visit.dados_modalidade?.cliente_nome || 'Cliente não identificado';
   const clientId = (visit: any) => visit.atendimento_clientes?.[0]?.cliente_id || visit.cliente_id || visit.dados_modalidade?.cliente_id;
+  const responsavelName = (visit: any) => responsaveis.find((responsavel: any) => responsavel.id === visit.responsavel_id)?.nome || 'Ficha de Visita';
   const isSent = (visit: any) => exportados.some((item: any) => item.atendimento_id === visit.id && item.status === 'ENVIADO');
   const exportItems = (visit: any) => [
     ...(visit.demandas ?? []).filter((item: any) => item.descricao?.trim()).map((item: any) => ({ key: `D:${item.id}`, label: item.descricao, kind: 'DEMANDA' })),
@@ -66,8 +68,7 @@ export default function Gestao() {
     if (!demands.length && !notes.length) return toast.message('Esta visita não possui itens para enviar.');
     setSending(visit.id);
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const response = await fetch('/api/radar-import', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.session?.access_token ?? ''}` }, body: JSON.stringify({ visit: { id: visit.id, title: visit.titulo, date: visit.data_inicio ?? visit.created_at, clientName: clientName(visit), clientId: clientId(visit) }, demands, notes }) });
+      const response = await fetch('/api/radar-import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visit: { id: visit.id, title: visit.titulo, date: visit.data_inicio ?? visit.created_at, clientName: clientName(visit), clientId: clientId(visit), responsavelNome: responsavelName(visit) }, demands, notes }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Falha ao enviar ao Radar');
       toast.success(`${payload.created ?? 0} item(ns) enviados ao Radar Vital`);

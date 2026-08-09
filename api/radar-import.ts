@@ -5,8 +5,6 @@ const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u0
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
-  const token = String(req.headers.authorization ?? '').replace(/^Bearer\s+/i, '');
-  if (!token) return res.status(401).json({ error: 'Sessão obrigatória' });
   const fichaUrl = process.env.FICHA_SUPABASE_URL;
   const fichaKey = process.env.FICHA_SUPABASE_SERVICE_ROLE_KEY;
   const radarUrl = process.env.RADAR_VITAL_SUPABASE_URL;
@@ -14,8 +12,6 @@ export default async function handler(req: any, res: any) {
   if (!fichaUrl || !fichaKey || !radarUrl || !radarKey) return res.status(503).json({ error: 'Integração ainda não foi configurada no Vercel' });
   const ficha = createClient(fichaUrl, fichaKey);
   const radar = createClient(radarUrl, radarKey);
-  const { data: auth, error: authError } = await ficha.auth.getUser(token);
-  if (authError || !auth.user) return res.status(401).json({ error: 'Sessão inválida' });
   const { visit, demands = [], notes = [], radarClientId } = req.body ?? {};
   if (!visit?.id || !visit?.clientName) return res.status(400).json({ error: 'Visita e cliente são obrigatórios' });
   let clientId = radarClientId as string | undefined;
@@ -28,6 +24,10 @@ export default async function handler(req: any, res: any) {
     await ficha.from('mapeamentos_clientes_radar').upsert({ cliente_id: visit.clientId, radar_cliente_id: clientId, radar_cliente_nome: candidates[0].name, origem: 'AUTOMATICO' }, { onConflict: 'cliente_id' });
   }
   const visitDate = new Date(visit.date).toLocaleDateString('pt-BR');
+  const requestedAuthorName = String(visit.responsavelNome ?? '').trim() || 'Ficha de Visita';
+  const { data: collaborators } = await radar.from('collaborators').select('name').eq('is_active', true);
+  const matchedCollaborator = (collaborators ?? []).find((collaborator: any) => normalize(collaborator.name) === normalize(requestedAuthorName));
+  const authorName = matchedCollaborator?.name ?? requestedAuthorName;
   let created = 0;
   const records: any[] = [];
   for (const item of demands as ImportItem[]) {
@@ -41,7 +41,7 @@ export default async function handler(req: any, res: any) {
     if (!item.id || !item.texto?.trim()) continue;
     const sourceId = `${visit.id}:ANOTACAO:${item.id}`;
     const comment = `Levantado na visita: ${visit.title ?? 'Visita'} - ${visitDate}\n\n${item.texto.trim()}`;
-    const { data, error } = await radar.from('client_comments').upsert({ client_id: clientId, author_name: auth.user.email ?? 'Ficha de Visita', comment_text: comment, comment_type: 'relevante', external_source: 'FICHA_VISITA', external_source_item_id: sourceId, source_visit_id: visit.id, source_visit_title: visit.title ?? 'Visita', source_visit_date: visit.date }, { onConflict: 'external_source,external_source_item_id' }).select('id').single();
+    const { data, error } = await radar.from('client_comments').upsert({ client_id: clientId, author_name: authorName, comment_text: comment, comment_type: 'relevante', external_source: 'FICHA_VISITA', external_source_item_id: sourceId, source_visit_id: visit.id, source_visit_title: visit.title ?? 'Visita', source_visit_date: visit.date }, { onConflict: 'external_source,external_source_item_id' }).select('id').single();
     if (error) return res.status(502).json({ error: `Falha ao criar comentário: ${error.message}` });
     records.push({ atendimento_id: visit.id, tipo_origem: 'ANOTACAO', item_origem_id: item.id, radar_item_id: data.id, radar_cliente_id: clientId, status: 'ENVIADO', enviado_em: new Date().toISOString() }); created++;
   }
