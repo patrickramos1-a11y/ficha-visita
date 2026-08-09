@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { MobileFooter } from '@/components/mobile';
-import { StructuredAnswer } from '@/components/visita/StructuredAnswer';
+import { StructuredAnswer, type StructuredAnswerLabels } from '@/components/visita/StructuredAnswer';
 import { RegistroVisita } from '@/components/visita/RegistroVisita';
 import { AcompanhamentoStepper } from '@/components/visita/AcompanhamentoStepper';
 import { FinalizacaoVisita } from '@/components/visita/FinalizacaoVisita';
@@ -25,40 +25,48 @@ import type { AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra, S
 const MODULE_STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Registro', 'Final'];
 const STEPS = ['Foto', 'Técnico', ...MODULE_STEPS];
 const FOTO_ITENS = ['Fachada/identificação', 'Área de produção', 'Armazenamento de resíduos', 'Lixeiras/segregação', 'ETE', 'Poço', 'Reservatório', 'Ponto de lançamento', 'Área externa', 'Não conformidade', 'Correção realizada'];
+const ANSWER_LABELS = {
+  compliance: { SIM: 'Conforme', PARCIALMENTE: 'Parcial', NAO: 'Não conforme', NAO_SE_APLICA: 'N/A' },
+  adequacy: { SIM: 'Adequado', PARCIALMENTE: 'Parcial', NAO: 'Inadequado', NAO_SE_APLICA: 'N/A' },
+  occurrence: { SIM: 'Não observado', PARCIALMENTE: 'Pontual', NAO: 'Observado', NAO_SE_APLICA: 'N/A' },
+  yesNo: { SIM: 'Sim', PARCIALMENTE: 'Parcial', NAO: 'Não', NAO_SE_APLICA: 'N/A' },
+  performed: { SIM: 'Realizada', PARCIALMENTE: 'Parcial', NAO: 'Não realizada', NAO_SE_APLICA: 'N/A' },
+  needed: { SIM: 'Não necessário', PARCIALMENTE: 'Avaliar', NAO: 'Necessário', NAO_SE_APLICA: 'N/A' },
+} satisfies Record<string, StructuredAnswerLabels>;
 
-const gestao: [keyof AcompanhamentoAmbientalData, string][] = [
-  ['politica_ambiental', 'Política ambiental respeitada'],
-  ['coleta_residuos', 'Coleta de resíduos organizada'],
-  ['gerenciamento_residuos', 'Gerenciamento de resíduos correto'],
-  ['uso_lixeiras', 'Lixeiras utilizadas adequadamente'],
-  ['alteracao_funcionarios', 'Alteração no quadro de funcionários'],
-  ['alteracao_producao', 'Alteração na produção'],
+const gestao: [keyof AcompanhamentoAmbientalData, string, StructuredAnswerLabels][] = [
+  ['politica_ambiental', 'Política ambiental respeitada', ANSWER_LABELS.compliance],
+  ['coleta_residuos', 'Coleta de resíduos organizada', ANSWER_LABELS.compliance],
+  ['gerenciamento_residuos', 'Gerenciamento de resíduos correto', ANSWER_LABELS.compliance],
+  ['uso_lixeiras', 'Lixeiras utilizadas adequadamente', ANSWER_LABELS.adequacy],
+  ['alteracao_funcionarios', 'Alteração no quadro de funcionários', ANSWER_LABELS.occurrence],
+  ['alteracao_producao', 'Alteração na produção', ANSWER_LABELS.occurrence],
 ];
 
-const ete: [string, string][] = [
-  ['possui', 'Empresa possui ETE'],
-  ['problema_operacao', 'Problema na operação da ETE'],
-  ['novo_operador', 'Necessário treinar operador'],
-  ['coleta_efluente', 'Coleta de efluente realizada'],
-  ['odor', 'Odor aparente'],
-  ['extravasamento', 'Extravasamento aparente'],
-  ['manutencao', 'Manutenção/limpeza registrada'],
+const ete: [string, string, StructuredAnswerLabels][] = [
+  ['possui', 'Empresa possui ETE', ANSWER_LABELS.yesNo],
+  ['problema_operacao', 'Problema na operação da ETE', ANSWER_LABELS.occurrence],
+  ['novo_operador', 'Necessidade de treinar operador', ANSWER_LABELS.needed],
+  ['coleta_efluente', 'Coleta de efluente realizada', ANSWER_LABELS.performed],
+  ['odor', 'Odor aparente', ANSWER_LABELS.occurrence],
+  ['extravasamento', 'Extravasamento aparente', ANSWER_LABELS.occurrence],
+  ['manutencao', 'Manutenção/limpeza registrada', ANSWER_LABELS.yesNo],
 ];
 
-const agua: [string, string][] = [
-  ['leitura_hidrometro', 'Leitura diária do hidrômetro'],
-  ['coleta_poco', 'Coleta de água do poço'],
-  ['lancamento_regular', 'Lançamento regular'],
-  ['abastecimento_regular', 'Abastecimento regular'],
+const agua: [string, string, StructuredAnswerLabels][] = [
+  ['leitura_hidrometro', 'Leitura diária do hidrômetro', ANSWER_LABELS.performed],
+  ['coleta_poco', 'Coleta de água do poço', ANSWER_LABELS.performed],
+  ['lancamento_regular', 'Lançamento regular', ANSWER_LABELS.compliance],
+  ['abastecimento_regular', 'Abastecimento regular', ANSWER_LABELS.compliance],
 ];
 
-const operacao: [string, string][] = [
-  ['rotina_adequada', 'Rotina operacional adequada'],
-  ['equipe_presente', 'Equipe presente'],
-  ['responsavel_presente', 'Responsável presente'],
-  ['boas_praticas', 'Boas práticas observadas'],
-  ['risco_aparente', 'Risco aparente'],
-  ['orientacao_repassada', 'Orientação repassada em campo'],
+const operacao: [string, string, StructuredAnswerLabels][] = [
+  ['rotina_adequada', 'Rotina operacional adequada', ANSWER_LABELS.adequacy],
+  ['equipe_presente', 'Equipe presente', ANSWER_LABELS.yesNo],
+  ['responsavel_presente', 'Responsável presente', ANSWER_LABELS.yesNo],
+  ['boas_praticas', 'Boas práticas observadas', ANSWER_LABELS.compliance],
+  ['risco_aparente', 'Risco aparente', ANSWER_LABELS.occurrence],
+  ['orientacao_repassada', 'Orientação repassada em campo', ANSWER_LABELS.yesNo],
 ];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -72,11 +80,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Question({ label, value, onChange }: { label: string; value: SimNaoParcialNA; onChange: (value: SimNaoParcialNA) => void }) {
+function Question({ label, value, onChange, labels }: { label: string; value: SimNaoParcialNA; onChange: (value: SimNaoParcialNA) => void; labels?: StructuredAnswerLabels }) {
   return (
     <div className="space-y-2 rounded-md border p-3">
       <Label className="text-xs">{label}</Label>
-      <StructuredAnswer value={value} onChange={onChange} />
+      <StructuredAnswer value={value} onChange={onChange} labels={labels} />
     </div>
   );
 }
@@ -138,7 +146,7 @@ export default function AcompanhamentoAmbiental() {
       setStep(0);
       return;
     }
-    const finalData = { ...data, data_fim: new Date(), possui_foto_final: data.fotos.length > 0 };
+    const finalData = { ...data, data_fim: data.data_fim ?? new Date(), possui_foto_final: data.fotos.length > 0 };
     finalizarAtendimento();
     await saveAtendimento.mutateAsync(finalData);
     navigate('/sucesso');
@@ -178,14 +186,14 @@ export default function AcompanhamentoAmbiental() {
 
         {step === 1 && (
           <Section title="2. Gestão ambiental e resíduos">
-            {gestao.map(([key, label]) => <Question key={key} label={label} value={ambiental[key] as SimNaoParcialNA} onChange={(value) => update({ [key]: value } as Partial<AcompanhamentoAmbientalData>)} />)}
+            {gestao.map(([key, label, labels]) => <Question key={key} label={label} value={ambiental[key] as SimNaoParcialNA} onChange={(value) => update({ [key]: value } as Partial<AcompanhamentoAmbientalData>)} labels={labels} />)}
           </Section>
         )}
 
         {step === 2 && (
           <Section title="3. ETE, água e efluentes">
             <p className="text-xs font-medium text-muted-foreground">ETE</p>
-            {ete.map(([key, label]) => <Question key={key} label={label} value={ambiental.ete[key as keyof typeof ambiental.ete] as SimNaoParcialNA} onChange={(value) => updateNested('ete', { [key]: value })} />)}
+            {ete.map(([key, label, labels]) => <Question key={key} label={label} value={ambiental.ete[key as keyof typeof ambiental.ete] as SimNaoParcialNA} onChange={(value) => updateNested('ete', { [key]: value })} labels={labels} />)}
             <div className="space-y-2">
               <Label>Produtos utilizados na ETE</Label>
               <div className="flex flex-wrap gap-2">
@@ -195,13 +203,13 @@ export default function AcompanhamentoAmbiental() {
               </div>
             </div>
             <p className="pt-2 text-xs font-medium text-muted-foreground">Água e efluentes</p>
-            {agua.map(([key, label]) => <Question key={key} label={label} value={ambiental.agua[key as keyof typeof ambiental.agua] as SimNaoParcialNA} onChange={(value) => updateNested('agua', { [key]: value })} />)}
+            {agua.map(([key, label, labels]) => <Question key={key} label={label} value={ambiental.agua[key as keyof typeof ambiental.agua] as SimNaoParcialNA} onChange={(value) => updateNested('agua', { [key]: value })} labels={labels} />)}
           </Section>
         )}
 
         {step === 3 && (
           <Section title="4. Condições operacionais e equipe">
-            {operacao.map(([key, label]) => <Question key={key} label={label} value={ambiental.condicoes_operacionais[key as keyof typeof ambiental.condicoes_operacionais] as SimNaoParcialNA} onChange={(value) => updateNested('condicoes_operacionais', { [key]: value })} />)}
+            {operacao.map(([key, label, labels]) => <Question key={key} label={label} value={ambiental.condicoes_operacionais[key as keyof typeof ambiental.condicoes_operacionais] as SimNaoParcialNA} onChange={(value) => updateNested('condicoes_operacionais', { [key]: value })} labels={labels} />)}
           </Section>
         )}
 

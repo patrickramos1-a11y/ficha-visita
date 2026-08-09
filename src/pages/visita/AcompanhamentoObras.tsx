@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { MobileFooter } from '@/components/mobile';
-import { StructuredAnswer } from '@/components/visita/StructuredAnswer';
+import { StructuredAnswer, type StructuredAnswerLabels } from '@/components/visita/StructuredAnswer';
 import { RegistroVisita } from '@/components/visita/RegistroVisita';
 import { AcompanhamentoStepper } from '@/components/visita/AcompanhamentoStepper';
 import { FinalizacaoVisita } from '@/components/visita/FinalizacaoVisita';
@@ -30,61 +30,70 @@ const STATUS_OBRA = ['Em planejamento', 'Em execução', 'Paralisada', 'Atrasada
 const FASES_OBRA = ['Mobilização', 'Terraplenagem', 'Fundação', 'Estrutura', 'Alvenaria', 'Instalações', 'Acabamento', 'Entrega'];
 const AVANCOS: AvancoObraFaixa[] = ['0-25%', '26-50%', '51-75%', '76-99%', 'CONCLUIDA'];
 const FOTO_ITENS = ['Placa da obra', 'Vista geral da obra', 'Frente de serviço', 'Área construída atual', 'Escavação / terraplenagem', 'Estrutura / concretagem', 'Drenagem', 'Armazenamento de materiais', 'Resíduos da obra', 'Interferência ambiental', 'Vizinhança impactada', 'Acesso de máquinas e caminhões', 'Antes da intervenção', 'Depois da intervenção', 'Não conformidade', 'Correção realizada'];
+const ANSWER_LABELS = {
+  compliance: { SIM: 'Conforme', PARCIALMENTE: 'Parcial', NAO: 'Não conforme', NAO_SE_APLICA: 'N/A' },
+  adequacy: { SIM: 'Adequado', PARCIALMENTE: 'Parcial', NAO: 'Inadequado', NAO_SE_APLICA: 'N/A' },
+  occurrence: { SIM: 'Não observado', PARCIALMENTE: 'Pontual', NAO: 'Observado', NAO_SE_APLICA: 'N/A' },
+  yesNo: { SIM: 'Sim', PARCIALMENTE: 'Parcial', NAO: 'Não', NAO_SE_APLICA: 'N/A' },
+  progress: { SIM: 'Avançou', PARCIALMENTE: 'Parcial', NAO: 'Sem avanço', NAO_SE_APLICA: 'N/A' },
+  schedule: { SIM: 'Dentro', PARCIALMENTE: 'Parcial', NAO: 'Fora', NAO_SE_APLICA: 'N/A' },
+  resolved: { SIM: 'Resolvidas', PARCIALMENTE: 'Parcial', NAO: 'Pendentes', NAO_SE_APLICA: 'N/A' },
+} satisfies Record<string, StructuredAnswerLabels>;
 
-const controleAmbiental: [string, string][] = [
-  ['controle_visivel', 'Controle ambiental visível'],
-  ['area_delimitada', 'Área delimitada'],
-  ['interferencia_vegetacao', 'Interferência em vegetação'],
-  ['supressao_poda', 'Supressão ou poda recente'],
-  ['erosao', 'Sinais de erosão'],
-  ['carreamento_sedimentos', 'Carreamento de sedimentos'],
-  ['material_inadequado', 'Material em local inadequado'],
-  ['intervencao_area_sensivel', 'Intervenção em APP / área sensível'],
-  ['contaminacao_solo', 'Contaminação do solo'],
-  ['poeira', 'Poeira'],
-  ['ruido', 'Ruído'],
-  ['odor_emissao', 'Odor / emissão'],
+const controleAmbiental: [string, string, StructuredAnswerLabels][] = [
+  ['controle_visivel', 'Controle ambiental visível', ANSWER_LABELS.compliance],
+  ['area_delimitada', 'Área delimitada', ANSWER_LABELS.compliance],
+  ['interferencia_vegetacao', 'Interferência em vegetação', ANSWER_LABELS.occurrence],
+  ['supressao_poda', 'Supressão ou poda recente', ANSWER_LABELS.occurrence],
+  ['erosao', 'Sinais de erosão', ANSWER_LABELS.occurrence],
+  ['carreamento_sedimentos', 'Carreamento de sedimentos', ANSWER_LABELS.occurrence],
+  ['material_inadequado', 'Material em local inadequado', ANSWER_LABELS.occurrence],
+  ['intervencao_area_sensivel', 'Intervenção em APP / área sensível', ANSWER_LABELS.occurrence],
+  ['contaminacao_solo', 'Contaminação do solo', ANSWER_LABELS.occurrence],
+  ['poeira', 'Poeira', ANSWER_LABELS.occurrence],
+  ['ruido', 'Ruído', ANSWER_LABELS.occurrence],
+  ['odor_emissao', 'Odor / emissão', ANSWER_LABELS.occurrence],
 ];
 
-const organizacaoSeguranca: [string, string][] = [
-  ['obra_organizada', 'Obra organizada'],
-  ['materiais_armazenados', 'Materiais bem armazenados'],
-  ['acessos_livres', 'Acessos livres'],
-  ['sinalizacao_basica', 'Sinalização básica'],
-  ['area_materiais', 'Área para materiais'],
-  ['area_residuos', 'Área para resíduos'],
-  ['limpeza_geral', 'Limpeza geral'],
-  ['risco_aparente', 'Risco aparente'],
-  ['uso_epi', 'Uso de EPI'],
-  ['equipe_trabalhando', 'Equipe trabalhando'],
-  ['responsavel_presente', 'Responsável presente'],
-  ['condicao_insegura', 'Condição insegura'],
-  ['orientacao_repassada', 'Orientação repassada'],
+const organizacaoSeguranca: [string, string, StructuredAnswerLabels][] = [
+  ['obra_organizada', 'Obra organizada', ANSWER_LABELS.compliance],
+  ['materiais_armazenados', 'Materiais bem armazenados', ANSWER_LABELS.compliance],
+  ['acessos_livres', 'Acessos livres', ANSWER_LABELS.compliance],
+  ['sinalizacao_basica', 'Sinalização básica', ANSWER_LABELS.compliance],
+  ['area_materiais', 'Área para materiais', ANSWER_LABELS.compliance],
+  ['area_residuos', 'Área para resíduos', ANSWER_LABELS.compliance],
+  ['limpeza_geral', 'Limpeza geral', ANSWER_LABELS.compliance],
+  ['risco_aparente', 'Risco aparente', ANSWER_LABELS.occurrence],
+  ['uso_epi', 'Uso de EPI', ANSWER_LABELS.compliance],
+  ['equipe_trabalhando', 'Equipe trabalhando', ANSWER_LABELS.yesNo],
+  ['responsavel_presente', 'Responsável presente', ANSWER_LABELS.yesNo],
+  ['condicao_insegura', 'Condição insegura', ANSWER_LABELS.occurrence],
+  ['orientacao_repassada', 'Orientação repassada', ANSWER_LABELS.yesNo],
 ];
 
-const residuos: [string, string][] = [
-  ['ha_residuos', 'Há resíduos gerados'],
-  ['segregados', 'Resíduos segregados'],
-  ['acondicionados', 'Acondicionamento adequado'],
-  ['ha_cacamba', 'Caçamba ou local definido'],
-  ['mistura_residuos', 'Mistura de resíduos'],
-  ['residuos_espalhados', 'Resíduos espalhados'],
-  ['residuos_perigosos', 'Resíduos perigosos/contaminados'],
-  ['houve_coleta', 'Coleta desde a última visita'],
-  ['comprovante_destinacao', 'Comprovante de destinação'],
+const residuos: [string, string, StructuredAnswerLabels][] = [
+  ['ha_residuos', 'Há resíduos gerados', ANSWER_LABELS.yesNo],
+  ['segregados', 'Resíduos segregados', ANSWER_LABELS.compliance],
+  ['acondicionados', 'Acondicionamento adequado', ANSWER_LABELS.adequacy],
+  ['ha_cacamba', 'Caçamba ou local definido', ANSWER_LABELS.yesNo],
+  ['mistura_residuos', 'Mistura de resíduos', ANSWER_LABELS.occurrence],
+  ['residuos_espalhados', 'Resíduos espalhados', ANSWER_LABELS.occurrence],
+  ['residuos_perigosos', 'Resíduos perigosos/contaminados', ANSWER_LABELS.occurrence],
+  ['houve_coleta', 'Coleta desde a última visita', ANSWER_LABELS.yesNo],
+  ['comprovante_destinacao', 'Comprovante de destinação', ANSWER_LABELS.yesNo],
 ];
 
-const efluentes: [string, string][] = [
-  ['acumulo_agua', 'Acúmulo de água'],
-  ['drenagem_provisoria', 'Drenagem provisória'],
-  ['erosao_escoamento', 'Erosão por escoamento'],
-  ['lancamento_irregular', 'Lançamento irregular'],
-  ['lama_via_publica', 'Lama na via pública'],
-  ['protecao_bocas_lobo', 'Proteção de drenagem'],
-  ['banheiro_quimico', 'Estrutura sanitária'],
-  ['vazamento', 'Vazamento'],
-  ['odor_extravasamento', 'Odor/extravasamento'],
-  ['registro_coleta_manutencao', 'Registro de manutenção'],
+const efluentes: [string, string, StructuredAnswerLabels][] = [
+  ['acumulo_agua', 'Acúmulo de água', ANSWER_LABELS.occurrence],
+  ['drenagem_provisoria', 'Drenagem provisória', ANSWER_LABELS.compliance],
+  ['erosao_escoamento', 'Erosão por escoamento', ANSWER_LABELS.occurrence],
+  ['lancamento_irregular', 'Lançamento irregular', ANSWER_LABELS.occurrence],
+  ['lama_via_publica', 'Lama na via pública', ANSWER_LABELS.occurrence],
+  ['protecao_bocas_lobo', 'Proteção de drenagem', ANSWER_LABELS.compliance],
+  ['banheiro_quimico', 'Estrutura sanitária', ANSWER_LABELS.yesNo],
+  ['vazamento', 'Vazamento', ANSWER_LABELS.occurrence],
+  ['odor_extravasamento', 'Odor/extravasamento', ANSWER_LABELS.occurrence],
+  ['registro_coleta_manutencao', 'Registro de manutenção', ANSWER_LABELS.yesNo],
 ];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -98,11 +107,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Question({ label, value, onChange }: { label: string; value: SimNaoParcialNA; onChange: (value: SimNaoParcialNA) => void }) {
+function Question({ label, value, onChange, labels }: { label: string; value: SimNaoParcialNA; onChange: (value: SimNaoParcialNA) => void; labels?: StructuredAnswerLabels }) {
   return (
     <div className="space-y-2 rounded-md border p-3">
       <Label className="text-xs">{label}</Label>
-      <StructuredAnswer value={value} onChange={onChange} />
+      <StructuredAnswer value={value} onChange={onChange} labels={labels} />
     </div>
   );
 }
@@ -191,7 +200,7 @@ export default function AcompanhamentoObras() {
       setStep(0);
       return;
     }
-    const finalData = { ...data, data_fim: new Date(), possui_foto_final: data.fotos.length > 0 };
+    const finalData = { ...data, data_fim: data.data_fim ?? new Date(), possui_foto_final: data.fotos.length > 0 };
     finalizarAtendimento();
     await saveAtendimento.mutateAsync(finalData);
     navigate('/sucesso');
@@ -259,24 +268,24 @@ export default function AcompanhamentoObras() {
                 {AVANCOS.map((avanco) => <Button key={avanco} type="button" variant={obra.percentual_avanco_faixa === avanco ? 'default' : 'outline'} className="h-10 px-1 text-[11px]" onClick={() => updateObra({ percentual_avanco_faixa: avanco, percentual_avanco: avanco === 'CONCLUIDA' ? 100 : Number(avanco.split('-')[0]) })}>{avanco === 'CONCLUIDA' ? 'Concl.' : avanco}</Button>)}
               </div>
             </div>
-            <Question label="Houve avanço desde a última visita?" value={typeof obra.houve_avanco === 'boolean' ? (obra.houve_avanco ? 'SIM' : 'NAO') : obra.houve_avanco} onChange={(value) => updateObra({ houve_avanco: value })} />
-            <Question label="Está dentro do previsto?" value={typeof obra.dentro_do_previsto === 'boolean' ? (obra.dentro_do_previsto ? 'SIM' : 'NAO') : obra.dentro_do_previsto} onChange={(value) => updateObra({ dentro_do_previsto: value })} />
-            <Question label="Pendências anteriores resolvidas?" value={typeof obra.pendencias_resolvidas === 'boolean' ? (obra.pendencias_resolvidas ? 'SIM' : 'NAO') : obra.pendencias_resolvidas} onChange={(value) => updateObra({ pendencias_resolvidas: value })} />
+            <Question label="Houve avanço desde a última visita?" value={typeof obra.houve_avanco === 'boolean' ? (obra.houve_avanco ? 'SIM' : 'NAO') : obra.houve_avanco} onChange={(value) => updateObra({ houve_avanco: value })} labels={ANSWER_LABELS.progress} />
+            <Question label="Está dentro do previsto?" value={typeof obra.dentro_do_previsto === 'boolean' ? (obra.dentro_do_previsto ? 'SIM' : 'NAO') : obra.dentro_do_previsto} onChange={(value) => updateObra({ dentro_do_previsto: value })} labels={ANSWER_LABELS.schedule} />
+            <Question label="Pendências anteriores resolvidas?" value={typeof obra.pendencias_resolvidas === 'boolean' ? (obra.pendencias_resolvidas ? 'SIM' : 'NAO') : obra.pendencias_resolvidas} onChange={(value) => updateObra({ pendencias_resolvidas: value })} labels={ANSWER_LABELS.resolved} />
           </Section>
         )}
 
         {step === 2 && (
           <Section title="3. Controle ambiental">
-            {controleAmbiental.map(([key, label]) => (
-              <Question key={key} label={label} value={obra.controle_ambiental[key as keyof typeof obra.controle_ambiental] as SimNaoParcialNA} onChange={(value) => updateNested('controle_ambiental', { [key]: value })} />
+            {controleAmbiental.map(([key, label, labels]) => (
+              <Question key={key} label={label} value={obra.controle_ambiental[key as keyof typeof obra.controle_ambiental] as SimNaoParcialNA} onChange={(value) => updateNested('controle_ambiental', { [key]: value })} labels={labels} />
             ))}
           </Section>
         )}
 
         {step === 3 && (
           <Section title="4. Organização, segurança e boas práticas">
-            {organizacaoSeguranca.map(([key, label]) => (
-              <Question key={key} label={label} value={obra.organizacao_seguranca[key as keyof typeof obra.organizacao_seguranca] as SimNaoParcialNA} onChange={(value) => updateNested('organizacao_seguranca', { [key]: value })} />
+            {organizacaoSeguranca.map(([key, label, labels]) => (
+              <Question key={key} label={label} value={obra.organizacao_seguranca[key as keyof typeof obra.organizacao_seguranca] as SimNaoParcialNA} onChange={(value) => updateNested('organizacao_seguranca', { [key]: value })} labels={labels} />
             ))}
           </Section>
         )}
@@ -284,12 +293,12 @@ export default function AcompanhamentoObras() {
         {step === 4 && (
           <Section title="5. Resíduos, água e drenagem">
             <p className="text-xs font-medium text-muted-foreground">Resíduos</p>
-            {residuos.map(([key, label]) => (
-              <Question key={key} label={label} value={obra.residuos[key as keyof typeof obra.residuos] as SimNaoParcialNA} onChange={(value) => updateNested('residuos', { [key]: value })} />
+            {residuos.map(([key, label, labels]) => (
+              <Question key={key} label={label} value={obra.residuos[key as keyof typeof obra.residuos] as SimNaoParcialNA} onChange={(value) => updateNested('residuos', { [key]: value })} labels={labels} />
             ))}
             <p className="pt-2 text-xs font-medium text-muted-foreground">Água, efluentes e drenagem</p>
-            {efluentes.map(([key, label]) => (
-              <Question key={key} label={label} value={obra.efluentes[key as keyof typeof obra.efluentes] as SimNaoParcialNA} onChange={(value) => updateNested('efluentes', { [key]: value })} />
+            {efluentes.map(([key, label, labels]) => (
+              <Question key={key} label={label} value={obra.efluentes[key as keyof typeof obra.efluentes] as SimNaoParcialNA} onChange={(value) => updateNested('efluentes', { [key]: value })} labels={labels} />
             ))}
             <div className="grid gap-3 md:grid-cols-3">
               <div className="space-y-2"><Label>Uso de água</Label><Select value={obra.efluentes.uso_agua} onValueChange={(uso_agua) => updateNested('efluentes', { uso_agua })}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent><SelectItem value="Sem uso observado">Sem uso observado</SelectItem><SelectItem value="Uso pontual">Uso pontual</SelectItem><SelectItem value="Uso contínuo">Uso contínuo</SelectItem></SelectContent></Select></div>
