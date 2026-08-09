@@ -5,11 +5,23 @@ import { EmptyState } from '@/components/mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, User, Building2, FileText } from 'lucide-react';
+import { Calendar, User, Building2, FileText, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { isConformityVisitMode } from '@/lib/conformityReport';
+import { toast } from 'sonner';
 
 export default function Historico() {
   const navigate = useNavigate();
+
+  const copyReportLink = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/relatorio/visita/${id}`);
+      toast.success('Link do relatório copiado');
+    } catch {
+      toast.error('Não foi possível copiar o link');
+    }
+  };
 
   const { data: atendimentos, isLoading } = useQuery({
     queryKey: ['atendimentos'],
@@ -105,6 +117,12 @@ export default function Historico() {
                         +{atendimento.tipos_atendimento.length - 3}
                       </span>
                     )}
+                  </div>
+                )}
+                {isConformityVisitMode(atendimento.modo) && (
+                  <div className="flex gap-2 pt-1">
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/relatorio/visita/${atendimento.id}`)}><FileText className="h-3.5 w-3.5" />Ver relatório</Button>
+                    <Button variant="ghost" size="icon" onClick={() => copyReportLink(atendimento.id)} title="Copiar link"><Copy className="h-4 w-4" /></Button>
                   </div>
                 )}
               </div>

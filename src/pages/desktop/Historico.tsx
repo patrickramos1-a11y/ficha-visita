@@ -17,9 +17,11 @@ import {
 } from '@/components/ui/select';
 import { MobileFilterDrawer } from '@/components/layout/MobileFilterDrawer';
 import { 
-  Search, Eye, ChevronLeft, ChevronRight, X, Calendar, User
+  Search, Eye, ChevronLeft, ChevronRight, X, Calendar, User, Copy, FileText
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { isConformityVisitMode } from '@/lib/conformityReport';
+import { toast } from 'sonner';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -98,6 +100,15 @@ export default function DesktopHistorico() {
 
   const hasActiveFilters = search || statusFilter !== 'all' || clienteFilter !== 'all' || responsavelFilter !== 'all';
   const activeFiltersCount = [statusFilter !== 'all', clienteFilter !== 'all', responsavelFilter !== 'all'].filter(Boolean).length;
+
+  const copyReportLink = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/relatorio/visita/${id}`);
+      toast.success('Link do relatório copiado');
+    } catch {
+      toast.error('Não foi possível copiar o link');
+    }
+  };
 
   const FilterContent = () => (
     <div className="space-y-4">
@@ -242,6 +253,12 @@ export default function DesktopHistorico() {
                     </div>
                   )}
                   {a.modo && a.modo !== 'completa' && <Badge variant="outline" className="text-[10px] h-5 px-1.5 mt-2">{a.modo === 'obras' ? 'Obras' : a.modo === 'ambiental' ? 'Ambiental' : 'Rápida'}</Badge>}
+                  {isConformityVisitMode(a.modo) && (
+                    <div className="mt-3 flex gap-2" onClick={(event) => event.stopPropagation()}>
+                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => navigate(`/relatorio/visita/${a.id}`)}><FileText className="h-3.5 w-3.5" />Ver relatório</Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyReportLink(a.id)} title="Copiar link"><Copy className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -289,9 +306,13 @@ export default function DesktopHistorico() {
                       }
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => navigate(`/desktop/atendimento/${a.id}`)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        {isConformityVisitMode(a.modo) && <>
+                          <Button variant="ghost" size="icon" title="Ver relatório" onClick={() => navigate(`/relatorio/visita/${a.id}`)}><FileText className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Copiar link do relatório" onClick={() => copyReportLink(a.id)}><Copy className="h-4 w-4" /></Button>
+                        </>}
+                        <Button variant="ghost" size="icon" title="Ver detalhes" onClick={() => navigate(`/desktop/atendimento/${a.id}`)}><Eye className="h-4 w-4" /></Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

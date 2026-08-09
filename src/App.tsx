@@ -43,6 +43,7 @@ import DesktopResponsaveis from "./pages/desktop/Responsaveis";
 // Config
 import Configuracoes from "./pages/desktop/Configuracoes";
 import Gestao from "./pages/desktop/Gestao";
+import RelatorioVisita from "./pages/relatorio/RelatorioVisita";
 
 // Backlog feature removed
 
@@ -99,6 +100,7 @@ function Application() {
             <Route path="/visita/resumo" element={<ResumoAtendimento />} />
             <Route path="/sucesso" element={<Sucesso />} />
             <Route path="/historico" element={<Historico />} />
+            <Route path="/relatorio/visita/:id" element={<RelatorioVisita />} />
             
             {/* Desktop routes */}
             <Route path="/desktop" element={<Dashboard />} />
