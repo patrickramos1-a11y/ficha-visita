@@ -144,6 +144,7 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
         ? data.acompanhamento_processos
         : null;
   const atendimentoPayload = {
+      id: localId,
       titulo: data.titulo || null,
       responsavel_id: data.responsavel_id || null,
       data_inicio: dataInicio.toISOString(),
@@ -164,7 +165,7 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
 
   let { data: atendimento, error: atendimentoError } = await db
     .from('atendimentos')
-    .insert(atendimentoPayload)
+    .upsert(atendimentoPayload, { onConflict: 'id' })
     .select()
     .single();
 
@@ -172,7 +173,7 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
     const { titulo: _titulo, natureza: _natureza, anotacoes_itens: _anotacoesItens, ...payloadSemCamposNovos } = atendimentoPayload;
     const retry = await db
       .from('atendimentos')
-      .insert(payloadSemCamposNovos)
+      .upsert(payloadSemCamposNovos, { onConflict: 'id' })
       .select()
       .single();
     atendimento = retry.data;
@@ -186,11 +187,12 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       atendimento_id: atendimento.id,
       cliente_id,
     }));
-    const { error } = await supabase.from('atendimento_clientes').insert(inserts);
+    const { error } = await supabase.from('atendimento_clientes').upsert(inserts, { onConflict: 'atendimento_id,cliente_id' });
     if (error) throw error;
   }
 
   if (data.modo === 'processos' && data.acompanhamento_processos) {
+    await db.from('atendimento_processos').delete().eq('atendimento_id', atendimento.id);
     const rows = [
       ...data.acompanhamento_processos.orgao_ids.map(orgao_id => ({ atendimento_id: atendimento.id, orgao_id, processo_id: null })),
       ...data.acompanhamento_processos.processo_ids.map(processo_id => ({ atendimento_id: atendimento.id, orgao_id: null, processo_id })),
@@ -235,20 +237,25 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
 
     if (!blob) continue; // nothing to upload
 
-    const fileName = `${atendimento.id}/${foto.tipo}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const fileName = `${atendimento.id}/${foto.fotoId ?? `${foto.tipo}_${i}`}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from('atendimento-fotos')
-      .upload(fileName, blob, { contentType });
+      .upload(fileName, blob, { contentType, upsert: true });
     if (upErr) throw upErr;
     const { data: publicUrl } = supabase.storage
       .from('atendimento-fotos')
       .getPublicUrl(fileName);
+    await supabase
+      .from('atendimento_fotos')
+      .delete()
+      .eq('atendimento_id', atendimento.id)
+      .eq('foto_url', publicUrl.publicUrl);
     const { error: insErr } = await supabase.from('atendimento_fotos').insert({
       atendimento_id: atendimento.id,
       foto_url: publicUrl.publicUrl,
       tipo: foto.tipo,
     });
-    if (insErr) throw insErr;
+    if (insErr && !String(insErr.message).toLowerCase().includes('duplicate')) throw insErr;
 
     // Mark uploaded for idempotency on retries
     updatedFotos[i] = { ...foto, remoteUrl: publicUrl.publicUrl } as any;
@@ -272,7 +279,7 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
         status: d.status || 'EM_EXECUCAO',
       }));
     if (rows.length > 0) {
-      const { error } = await supabase.from('demandas').insert(rows);
+      const { error } = await supabase.from('demandas').upsert(rows, { onConflict: 'id' });
       if (error) throw error;
     }
   }

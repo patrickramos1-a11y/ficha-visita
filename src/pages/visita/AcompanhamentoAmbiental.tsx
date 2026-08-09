@@ -94,6 +94,7 @@ export default function AcompanhamentoAmbiental() {
   const navigate = useNavigate();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const finishingRef = useRef(false);
   const [step, setStep] = useState(0);
   const { data, setTitulo, setAcompanhamentoAmbiental, addFotoFile, removeFoto, finalizarAtendimento } = useAtendimento();
   const { data: clientes = [] } = useClientes();
@@ -141,15 +142,21 @@ export default function AcompanhamentoAmbiental() {
 
   const canFinish = Boolean(ambiental.cliente_id && data.responsavel_id);
   const handleFinalizar = async () => {
+    if (finishingRef.current) return;
     if (!canFinish) {
       toast.error('Informe cliente e responsável técnico');
       setStep(0);
       return;
     }
-    const finalData = { ...data, data_fim: data.data_fim ?? new Date(), possui_foto_final: data.fotos.length > 0 };
-    finalizarAtendimento();
-    await saveAtendimento.mutateAsync(finalData);
-    navigate('/sucesso');
+    finishingRef.current = true;
+    try {
+      const finalData = { ...data, data_fim: data.data_fim ?? new Date(), possui_foto_final: data.fotos.length > 0 };
+      finalizarAtendimento();
+      await saveAtendimento.mutateAsync(finalData);
+      navigate('/sucesso');
+    } finally {
+      finishingRef.current = false;
+    }
   };
 
   return (

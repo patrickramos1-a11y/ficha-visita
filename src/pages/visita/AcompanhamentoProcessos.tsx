@@ -30,6 +30,7 @@ export default function AcompanhamentoProcessos() {
   const save = useSaveAtendimento();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const finishingRef = useRef(false);
   const { data, setTitulo, setAcompanhamentoProcessos, addFotoFile, removeFoto, finalizarAtendimento } = useAtendimento();
   const { data: clientes = [] } = useClientes();
   const [step, setStep] = useState(0);
@@ -74,7 +75,7 @@ export default function AcompanhamentoProcessos() {
     await refetchProcessos();
   };
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => { const files = Array.from(event.target.files ?? []); event.target.value = ''; try { for (const file of files) await addFotoFile(file, 'final'); } catch { toast.error('Não foi possível salvar a foto'); } };
-  const finish = async () => { if (!processo.cliente_ids.length || !data.responsavel_id) { toast.error('Informe ao menos um cliente e o responsável técnico'); setStep(0); return; } const finalData = { ...data, data_fim: data.data_fim ?? new Date(), possui_foto_final: data.fotos.some((foto) => foto.tipo === 'final') }; finalizarAtendimento(); await save.mutateAsync(finalData); navigate('/sucesso'); };
+  const finish = async () => { if (finishingRef.current) return; if (!processo.cliente_ids.length || !data.responsavel_id) { toast.error('Informe ao menos um cliente e o responsável técnico'); setStep(0); return; } finishingRef.current = true; try { const finalData = { ...data, data_fim: data.data_fim ?? new Date(), possui_foto_final: data.fotos.some((foto) => foto.tipo === 'final') }; finalizarAtendimento(); await save.mutateAsync(finalData); navigate('/sucesso'); } finally { finishingRef.current = false; } };
 
   return <MobileLayout showCancelVisita showBack onBack={() => navigate('/desktop/iniciar-visita')} title="Acompanhamento de Processos">
     <AcompanhamentoStepper steps={STEPS} currentStep={step + 2} onStepChange={(index) => setStep(index - 2)} />

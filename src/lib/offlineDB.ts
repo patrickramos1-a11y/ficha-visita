@@ -124,11 +124,12 @@ export async function cleanupOrphanPhotos(activeFotoIds: string[] = []): Promise
 // ----- Pending atendimentos -----
 
 export async function enqueueAtendimento(data: AtendimentoData): Promise<string> {
-  const localId = crypto.randomUUID();
+  const localId = data.sync_id || crypto.randomUUID();
   const now = new Date().toISOString();
   // Serialize: dates → ISO; drop transient blob URLs but keep fotoId for sync
   const serialized: AtendimentoData = {
     ...data,
+    sync_id: localId,
     data_inicio: (data.data_inicio instanceof Date
       ? data.data_inicio.toISOString()
       : data.data_inicio) as unknown as Date,
@@ -147,7 +148,7 @@ export async function enqueueAtendimento(data: AtendimentoData): Promise<string>
     })) as any,
   };
 
-  await offlineDB.pendingAtendimentos.add({
+  await offlineDB.pendingAtendimentos.put({
     localId,
     data: serialized,
     status: 'pending',

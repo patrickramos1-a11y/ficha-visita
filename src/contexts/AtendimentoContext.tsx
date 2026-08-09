@@ -55,6 +55,7 @@ interface AtendimentoContextType {
 }
 
 const initialData: AtendimentoData = {
+  sync_id: crypto.randomUUID(),
   modo: 'completa',
   cliente_ids: [],
   data_inicio: new Date(),
@@ -276,6 +277,12 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     }
   }, [data, ativo]);
 
+  useEffect(() => {
+    if (ativo && !data.sync_id) {
+      setData(prev => ({ ...prev, sync_id: crypto.randomUUID() }));
+    }
+  }, [ativo, data.sync_id]);
+
   const setClienteIds = (ids: string[]) => {
     setData(prev => ({ ...prev, cliente_ids: ids }));
   };
@@ -491,6 +498,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     clearStorage();
     setData({
       ...initialData,
+      sync_id: crypto.randomUUID(),
       titulo,
       modo,
       natureza,

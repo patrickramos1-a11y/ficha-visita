@@ -225,6 +225,7 @@ export interface AcompanhamentoAmbientalData {
 }
 
 export interface AtendimentoData {
+  sync_id?: string;
   titulo?: string;
   modo?: VisitaModo;
   natureza?: NaturezaVisitaCodigo;

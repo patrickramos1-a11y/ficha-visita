@@ -121,6 +121,7 @@ export default function AcompanhamentoObras() {
   const navigate = useNavigate();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const finishingRef = useRef(false);
   const [step, setStep] = useState(0);
   const { data, setTitulo, setAcompanhamentoObra, addNaoConformidade, removeNaoConformidade, addPendenciaObra, removePendenciaObra, addFotoFile, removeFoto, finalizarAtendimento } = useAtendimento();
   const { data: clientes = [] } = useClientes();
@@ -195,15 +196,21 @@ export default function AcompanhamentoObras() {
 
   const canFinish = Boolean(obra.cliente_id && data.responsavel_id && obra.obra_nome.trim());
   const handleFinalizar = async () => {
+    if (finishingRef.current) return;
     if (!canFinish) {
       toast.error('Informe cliente, responsável técnico e obra');
       setStep(0);
       return;
     }
-    const finalData = { ...data, data_fim: data.data_fim ?? new Date(), possui_foto_final: data.fotos.length > 0 };
-    finalizarAtendimento();
-    await saveAtendimento.mutateAsync(finalData);
-    navigate('/sucesso');
+    finishingRef.current = true;
+    try {
+      const finalData = { ...data, data_fim: data.data_fim ?? new Date(), possui_foto_final: data.fotos.length > 0 };
+      finalizarAtendimento();
+      await saveAtendimento.mutateAsync(finalData);
+      navigate('/sucesso');
+    } finally {
+      finishingRef.current = false;
+    }
   };
 
   return (
