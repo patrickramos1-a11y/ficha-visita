@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo, AcompanhamentoObraData, AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra } from '@/types/atendimento';
 import { getPlanoFromTipo, getPlanoFromAcao } from '@/types/tiposAtendimentoConfig';
 import { savePhotoBlob, deletePhoto, getPhotoObjectURL } from '@/lib/offlineDB';
+import { format } from 'date-fns';
 
 const STORAGE_KEY = 'atendimento-em-andamento';
 const ROUTE_KEY = 'atendimento-rota-atual';
@@ -18,6 +19,7 @@ interface AtendimentoContextType {
   addClienteId: (id: string) => void;
   removeClienteId: (id: string) => void;
   setResponsavelId: (id: string) => void;
+  setTitulo: (titulo: string) => void;
   setAnotacoes: (texto: string) => void;
   addChecklistItem: (texto: string) => void;
   toggleChecklistItem: (id: string) => void;
@@ -71,6 +73,7 @@ const initialAcompanhamentoObra: AcompanhamentoObraData = {
   houve_avanco: true,
   dentro_do_previsto: true,
   percentual_avanco: 0,
+  percentual_avanco_faixa: '0-25%',
   resumo_semana: '',
   mudou_desde_visita_anterior: '',
   pendencias_resolvidas: true,
@@ -146,11 +149,36 @@ const initialAcompanhamentoAmbiental: AcompanhamentoAmbientalData = {
   politica_ambiental: 'NAO_SE_APLICA', coleta_residuos: 'NAO_SE_APLICA', dificuldade_coleta: '',
   gerenciamento_residuos: 'NAO_SE_APLICA', uso_lixeiras: 'NAO_SE_APLICA', necessidade_palestra: '',
   documentos_ambientais: [],
-  ete: { possui: 'NAO_SE_APLICA', produtos: [], problema_operacao: 'NAO_SE_APLICA', novo_operador: 'NAO_SE_APLICA', coleta_efluente: 'NAO_SE_APLICA' },
-  agua: { leitura_hidrometro: 'NAO_SE_APLICA', coleta_poco: 'NAO_SE_APLICA' },
+  ete: {
+    possui: 'NAO_SE_APLICA',
+    produtos: [],
+    problema_operacao: 'NAO_SE_APLICA',
+    novo_operador: 'NAO_SE_APLICA',
+    coleta_efluente: 'NAO_SE_APLICA',
+    odor: 'NAO_SE_APLICA',
+    extravasamento: 'NAO_SE_APLICA',
+    manutencao: 'NAO_SE_APLICA',
+  },
+  agua: {
+    leitura_hidrometro: 'NAO_SE_APLICA',
+    coleta_poco: 'NAO_SE_APLICA',
+    lancamento_regular: 'NAO_SE_APLICA',
+    abastecimento_regular: 'NAO_SE_APLICA',
+  },
   alteracao_funcionarios: 'NAO_SE_APLICA', alteracao_producao: 'NAO_SE_APLICA', documento_entregue: '', orientacao_pendencias: '',
   levantamentos: ['Fotos da empresa', 'Fotos da ETE', 'Fotos do poço', 'Fotos do reservatório', 'Cópias da documentação'].map(nome => ({ nome, status: 'NAO_SE_APLICA' })),
   colaborador_nome: '', colaborador_cargo: '', observacoes: '',
+  condicoes_operacionais: {
+    rotina_adequada: 'NAO_SE_APLICA',
+    equipe_presente: 'NAO_SE_APLICA',
+    responsavel_presente: 'NAO_SE_APLICA',
+    boas_praticas: 'NAO_SE_APLICA',
+    risco_aparente: 'NAO_SE_APLICA',
+    orientacao_repassada: 'NAO_SE_APLICA',
+  },
+  nao_conformidades: [],
+  pendencias: [],
+  foto_itens: [],
 };
 
 function loadFromStorage(): { data: AtendimentoData; ativo: boolean } | null {
@@ -253,6 +281,10 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
 
   const setResponsavelId = (id: string) => {
     setData(prev => ({ ...prev, responsavel_id: id }));
+  };
+
+  const setTitulo = (titulo: string) => {
+    setData(prev => ({ ...prev, titulo }));
   };
 
   const setAnotacoes = (texto: string) => {
@@ -405,11 +437,19 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const iniciarVisita = useCallback((modo: VisitaModo) => {
+    const inicio = new Date();
+    const dataTitulo = format(inicio, 'dd/MM/yyyy');
+    const titulo = modo === 'obras'
+      ? `Acompanhamento de Obras - ${dataTitulo}`
+      : modo === 'ambiental'
+        ? `Acompanhamento Ambiental - ${dataTitulo}`
+        : undefined;
     clearStorage();
     setData({
       ...initialData,
+      titulo,
       modo,
-      data_inicio: new Date(),
+      data_inicio: inicio,
       acompanhamento_obra: modo === 'obras' ? { ...initialAcompanhamentoObra } : undefined,
       acompanhamento_ambiental: modo === 'ambiental' ? { ...initialAcompanhamentoAmbiental } : undefined,
     });
@@ -459,6 +499,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         addClienteId,
         removeClienteId,
         setResponsavelId,
+        setTitulo,
         setAnotacoes,
         addChecklistItem,
         toggleChecklistItem,

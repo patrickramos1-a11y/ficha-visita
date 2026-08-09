@@ -1,70 +1,310 @@
-import { type ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Leaf } from 'lucide-react';
+import { toast } from 'sonner';
+import { ArrowLeft, ArrowRight, Camera, CheckCircle2, ImagePlus, Leaf, Plus, Trash2 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { MobileFooter } from '@/components/mobile';
+import { StructuredAnswer } from '@/components/visita/StructuredAnswer';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useClientes } from '@/hooks/useClientes';
+import { useResponsaveis } from '@/hooks/useResponsaveis';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { useSaveAtendimento } from '@/hooks/useSaveAtendimento';
-import type { AcompanhamentoAmbientalData, SimNaoParcialNA } from '@/types/atendimento';
+import { cn } from '@/lib/utils';
+import type { AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
-const ANSWERS: SimNaoParcialNA[] = ['SIM', 'NAO', 'PARCIALMENTE', 'NAO_SE_APLICA'];
-const DOCUMENTS = ['OUTORGA', 'PEA', 'CAR', 'PCA', 'RCA', 'PGRS', 'RIAA'];
-const ETE_PRODUCTS = ['Cal', 'Cloro em pó', 'Alcalinizante', 'Coagulante', 'Floculante', 'Reagente biológico'];
+const STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Fotos/revisão'];
+const FOTO_ITENS = ['Fachada/identificação', 'Área de produção', 'Armazenamento de resíduos', 'Lixeiras/segregação', 'ETE', 'Poço', 'Reservatório', 'Ponto de lançamento', 'Área externa', 'Não conformidade', 'Correção realizada'];
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return <Card className="border-border/70"><CardHeader className="pb-3"><CardTitle className="text-sm">{title}</CardTitle></CardHeader><CardContent className="space-y-4">{children}</CardContent></Card>;
+const gestao: [keyof AcompanhamentoAmbientalData, string][] = [
+  ['politica_ambiental', 'Política ambiental respeitada'],
+  ['coleta_residuos', 'Coleta de resíduos organizada'],
+  ['gerenciamento_residuos', 'Gerenciamento de resíduos correto'],
+  ['uso_lixeiras', 'Lixeiras utilizadas adequadamente'],
+  ['alteracao_funcionarios', 'Alteração no quadro de funcionários'],
+  ['alteracao_producao', 'Alteração na produção'],
+];
+
+const ete: [string, string][] = [
+  ['possui', 'Empresa possui ETE'],
+  ['problema_operacao', 'Problema na operação da ETE'],
+  ['novo_operador', 'Necessário treinar operador'],
+  ['coleta_efluente', 'Coleta de efluente realizada'],
+  ['odor', 'Odor aparente'],
+  ['extravasamento', 'Extravasamento aparente'],
+  ['manutencao', 'Manutenção/limpeza registrada'],
+];
+
+const agua: [string, string][] = [
+  ['leitura_hidrometro', 'Leitura diária do hidrômetro'],
+  ['coleta_poco', 'Coleta de água do poço'],
+  ['lancamento_regular', 'Lançamento regular'],
+  ['abastecimento_regular', 'Abastecimento regular'],
+];
+
+const operacao: [string, string][] = [
+  ['rotina_adequada', 'Rotina operacional adequada'],
+  ['equipe_presente', 'Equipe presente'],
+  ['responsavel_presente', 'Responsável presente'],
+  ['boas_praticas', 'Boas práticas observadas'],
+  ['risco_aparente', 'Risco aparente'],
+  ['orientacao_repassada', 'Orientação repassada em campo'],
+];
+
+function StepTabs({ step, setStep }: { step: number; setStep: (step: number) => void }) {
+  return (
+    <div className="flex gap-2 overflow-x-auto px-4 py-3">
+      {STEPS.map((label, index) => (
+        <button
+          key={label}
+          type="button"
+          onClick={() => setStep(index)}
+          className={cn(
+            'h-9 shrink-0 rounded-full border px-3 text-xs font-medium',
+            step === index ? 'border-primary bg-primary text-primary-foreground' : 'bg-background text-muted-foreground',
+          )}
+        >
+          {index + 1}. {label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
-function Answer({ value, onChange }: { value: SimNaoParcialNA; onChange: (value: SimNaoParcialNA) => void }) {
-  return <ToggleGroup type="single" value={value} onValueChange={(next) => next && onChange(next as SimNaoParcialNA)} className="flex flex-wrap justify-start gap-2">
-    {ANSWERS.map(answer => <ToggleGroupItem key={answer} value={answer} className="h-auto px-3 py-2 text-xs">{answer.replaceAll('_', ' ')}</ToggleGroupItem>)}
-  </ToggleGroup>;
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card className="border-border/70">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">{children}</CardContent>
+    </Card>
+  );
 }
 
 function Question({ label, value, onChange }: { label: string; value: SimNaoParcialNA; onChange: (value: SimNaoParcialNA) => void }) {
-  return <div className="space-y-2"><Label>{label}</Label><Answer value={value} onChange={onChange} /></div>;
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      <Label className="text-xs">{label}</Label>
+      <StructuredAnswer value={value} onChange={onChange} />
+    </div>
+  );
 }
 
 export default function AcompanhamentoAmbiental() {
   useVisitRoute('/visita/ambiental');
   const navigate = useNavigate();
-  const { data, setAcompanhamentoAmbiental, finalizarAtendimento } = useAtendimento();
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState(0);
+  const { data, setResponsavelId, setAcompanhamentoAmbiental, addFotoFile, removeFoto, finalizarAtendimento } = useAtendimento();
   const { data: clientes = [] } = useClientes();
+  const { data: responsaveis = [] } = useResponsaveis();
   const ambiental = data.acompanhamento_ambiental;
   const saveAtendimento = useSaveAtendimento();
+
+  const [novaNc, setNovaNc] = useState<NaoConformidadeObra>({ id: crypto.randomUUID(), tipo: '', descricao: '', gravidade: 'MEDIA', acao_imediata: false, foto_vinculada: false, responsavel: '', prazo: '', status: 'PENDENTE' });
+  const [novaPendencia, setNovaPendencia] = useState<PendenciaObra>({ id: crypto.randomUUID(), descricao: '', responsavel: '', prazo: '', prioridade: 'MEDIA', status: 'PENDENTE' });
+
   if (!ambiental) return null;
 
-  const update = (patch: Partial<AcompanhamentoAmbientalData>) => setAcompanhamentoAmbiental(prev => ({ ...prev, ...patch }));
-  const setDocument = (name: string) => update({ documentos_ambientais: ambiental.documentos_ambientais.includes(name) ? ambiental.documentos_ambientais.filter(item => item !== name) : [...ambiental.documentos_ambientais, name] });
-  const setProduct = (name: string) => update({ ete: { ...ambiental.ete, produtos: ambiental.ete.produtos.includes(name) ? ambiental.ete.produtos.filter(item => item !== name) : [...ambiental.ete.produtos, name] } });
-  const handleFinalizar = async () => { const finalData = { ...data, data_fim: new Date() }; finalizarAtendimento(); await saveAtendimento.mutateAsync(finalData); navigate('/sucesso'); };
+  const update = (patch: Partial<AcompanhamentoAmbientalData>) => setAcompanhamentoAmbiental((prev) => ({ ...prev, ...patch }));
+  const updateNested = (section: 'ete' | 'agua' | 'condicoes_operacionais', patch: Record<string, unknown>) =>
+    setAcompanhamentoAmbiental((prev) => ({ ...prev, [section]: { ...prev[section], ...patch } }));
 
-  return <MobileLayout showCancelVisita showBack onBack={() => navigate('/desktop/iniciar-visita')} title="Acompanhamento Ambiental">
-    <div className="flex-1 overflow-auto p-4 space-y-4 pb-32">
-      <Card className="border-lime-600/25 bg-lime-500/5"><CardContent className="p-4 space-y-3">
-        <div className="flex gap-3"><Leaf className="mt-0.5 h-5 w-5 text-lime-700" /><div><p className="text-sm font-semibold">Visita ambiental</p><p className="text-xs text-muted-foreground">Gestão ambiental, ETE, água, documentos e evidências do estabelecimento.</p></div></div>
-        <div className="grid gap-3 md:grid-cols-2"><div className="space-y-2"><Label>Cliente</Label><Select value={ambiental.cliente_id} onValueChange={cliente_id => update({ cliente_id, cliente_nome: clientes.find(cliente => cliente.id === cliente_id)?.nome })}><SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger><SelectContent>{clientes.map(cliente => <SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Atividade / setor acompanhado</Label><Input value={ambiental.atividade} onChange={event => update({ atividade: event.target.value })} /></div></div>
-        <div className="space-y-2"><Label>Motivo da visita</Label><Select value={ambiental.motivo_visita} onValueChange={motivo_visita => update({ motivo_visita: motivo_visita as AcompanhamentoAmbientalData['motivo_visita'] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="FISCALIZACAO">Fiscalização</SelectItem><SelectItem value="LEVANTAMENTO_PROJETOS">Levantamento de projetos</SelectItem><SelectItem value="VISITA_TECNICA">Visita técnica</SelectItem><SelectItem value="REUNIAO">Reunião</SelectItem></SelectContent></Select></div>
-      </CardContent></Card>
+  const selectedClient = clientes.find((cliente) => cliente.id === ambiental.cliente_id);
+  const selectedResponsavel = responsaveis.find((responsavel) => responsavel.id === data.responsavel_id);
+  const finalFotos = data.fotos.filter((foto) => foto.tipo === 'final');
 
-      <Section title="Gestão ambiental e resíduos"><Question label="A política ambiental é respeitada pelos colaboradores?" value={ambiental.politica_ambiental} onChange={politica_ambiental => update({ politica_ambiental })} /><Question label="Há coleta de resíduos recicláveis e não recicláveis?" value={ambiental.coleta_residuos} onChange={coleta_residuos => update({ coleta_residuos })} /><Question label="O gerenciamento de resíduos sólidos está correto?" value={ambiental.gerenciamento_residuos} onChange={gerenciamento_residuos => update({ gerenciamento_residuos })} /><Question label="As lixeiras são utilizadas adequadamente?" value={ambiental.uso_lixeiras} onChange={uso_lixeiras => update({ uso_lixeiras })} /><div className="space-y-2"><Label>Dificuldades na coleta ou destinação</Label><Textarea value={ambiental.dificuldade_coleta} onChange={event => update({ dificuldade_coleta: event.target.value })} /></div><div className="space-y-2"><Label>Necessidade de palestra ou educação ambiental</Label><Textarea value={ambiental.necessidade_palestra} onChange={event => update({ necessidade_palestra: event.target.value })} /></div></Section>
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (files.length === 0) return;
+    try {
+      for (const file of files) await addFotoFile(file, 'final');
+      toast.success(files.length === 1 ? 'Foto adicionada' : `${files.length} fotos adicionadas`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Erro ao salvar foto');
+    }
+  };
 
-      <Section title="ETE, água e operação"><Question label="A empresa possui ETE?" value={ambiental.ete.possui} onChange={possui => update({ ete: { ...ambiental.ete, possui } })} /><div className="space-y-2"><Label>Produtos utilizados na ETE</Label><div className="flex flex-wrap gap-2">{ETE_PRODUCTS.map(product => <Button key={product} type="button" variant={ambiental.ete.produtos.includes(product) ? 'default' : 'outline'} size="sm" onClick={() => setProduct(product)}>{product}</Button>)}</div></div><Question label="Há problema na operação da ETE?" value={ambiental.ete.problema_operacao} onChange={problema_operacao => update({ ete: { ...ambiental.ete, problema_operacao } })} /><Question label="É necessário treinar novo operador da ETE?" value={ambiental.ete.novo_operador} onChange={novo_operador => update({ ete: { ...ambiental.ete, novo_operador } })} /><Question label="Houve coleta de efluente na ETE nesta visita?" value={ambiental.ete.coleta_efluente} onChange={coleta_efluente => update({ ete: { ...ambiental.ete, coleta_efluente } })} /><Question label="Há leitura diária do hidrômetro?" value={ambiental.agua.leitura_hidrometro} onChange={leitura_hidrometro => update({ agua: { ...ambiental.agua, leitura_hidrometro } })} /><Question label="Houve coleta de água do poço nesta visita?" value={ambiental.agua.coleta_poco} onChange={coleta_poco => update({ agua: { ...ambiental.agua, coleta_poco } })} /></Section>
+  const addNc = () => {
+    if (!novaNc.descricao.trim()) return;
+    update({ nao_conformidades: [...ambiental.nao_conformidades, { ...novaNc, id: crypto.randomUUID() }] });
+    setNovaNc({ id: crypto.randomUUID(), tipo: '', descricao: '', gravidade: 'MEDIA', acao_imediata: false, foto_vinculada: false, responsavel: '', prazo: '', status: 'PENDENTE' });
+  };
 
-      <Section title="Documentos, equipe e orientações"><div className="space-y-2"><Label>Documentos ambientais contemplados</Label><div className="flex flex-wrap gap-2">{DOCUMENTS.map(document => <Button key={document} type="button" variant={ambiental.documentos_ambientais.includes(document) ? 'default' : 'outline'} size="sm" onClick={() => setDocument(document)}>{document}</Button>)}</div></div><Question label="Houve alteração no quadro de funcionários?" value={ambiental.alteracao_funcionarios} onChange={alteracao_funcionarios => update({ alteracao_funcionarios })} /><Question label="Houve alteração na produção?" value={ambiental.alteracao_producao} onChange={alteracao_producao => update({ alteracao_producao })} /><div className="space-y-2"><Label>Documento entregue nesta visita</Label><Input value={ambiental.documento_entregue} onChange={event => update({ documento_entregue: event.target.value })} /></div><div className="space-y-2"><Label>Orientações e pendências repassadas</Label><Textarea value={ambiental.orientacao_pendencias} onChange={event => update({ orientacao_pendencias: event.target.value })} /></div></Section>
+  const addPendencia = () => {
+    if (!novaPendencia.descricao.trim()) return;
+    update({ pendencias: [...ambiental.pendencias, { ...novaPendencia, id: crypto.randomUUID() }] });
+    setNovaPendencia({ id: crypto.randomUUID(), descricao: '', responsavel: '', prazo: '', prioridade: 'MEDIA', status: 'PENDENTE' });
+  };
 
-      <Section title="Levantamentos e evidências"><div className="space-y-3">{ambiental.levantamentos.map((item, index) => <div key={item.nome} className="space-y-2 rounded-md border p-3"><Label>{item.nome}</Label><Answer value={item.status} onChange={status => update({ levantamentos: ambiental.levantamentos.map((current, currentIndex) => currentIndex === index ? { ...current, status } : current) })} /></div>)}</div></Section>
+  const canFinish = Boolean(ambiental.cliente_id && data.responsavel_id);
+  const handleFinalizar = async () => {
+    if (!canFinish) {
+      toast.error('Informe cliente e responsável técnico');
+      setStep(0);
+      return;
+    }
+    const finalData = { ...data, data_fim: new Date(), possui_foto_final: data.fotos.length > 0 };
+    finalizarAtendimento();
+    await saveAtendimento.mutateAsync(finalData);
+    navigate('/sucesso');
+  };
 
-      <Section title="Acompanhamento e observações"><div className="grid gap-3 md:grid-cols-2"><div className="space-y-2"><Label>Nome do colaborador que acompanhou</Label><Input value={ambiental.colaborador_nome} onChange={event => update({ colaborador_nome: event.target.value })} /></div><div className="space-y-2"><Label>Cargo</Label><Input value={ambiental.colaborador_cargo} onChange={event => update({ colaborador_cargo: event.target.value })} /></div></div><div className="space-y-2"><Label>Observações importantes</Label><Textarea value={ambiental.observacoes} onChange={event => update({ observacoes: event.target.value })} /></div></Section>
-    </div>
-    <div className="sticky bottom-0 border-t bg-background/95 px-4 py-3"><Button className="h-14 w-full text-base" onClick={handleFinalizar} disabled={saveAtendimento.isPending}>Finalizar acompanhamento<ArrowRight className="ml-2 h-5 w-5" /></Button></div>
-  </MobileLayout>;
+  return (
+    <MobileLayout showCancelVisita showBack onBack={() => navigate('/desktop/iniciar-visita')} title="Acompanhamento Ambiental">
+      <StepTabs step={step} setStep={setStep} />
+
+      <div className="flex-1 overflow-auto p-4 space-y-4 pb-32">
+        {step === 0 && (
+          <Section title="1. Identificação">
+            <div className="flex gap-3 rounded-md bg-lime-500/10 p-3 text-sm">
+              <Leaf className="mt-0.5 h-5 w-5 text-lime-700" />
+              <div>
+                <p className="font-semibold">{data.titulo}</p>
+                <p className="text-xs text-muted-foreground">Título automático. O cliente aparece no relatório e no histórico.</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select value={ambiental.cliente_id} onValueChange={(cliente_id) => update({ cliente_id, cliente_nome: clientes.find((cliente) => cliente.id === cliente_id)?.nome })}>
+                <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                <SelectContent>{clientes.map((cliente) => <SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Responsável técnico</Label>
+              <Select value={data.responsavel_id} onValueChange={setResponsavelId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                <SelectContent>{responsaveis.map((responsavel) => <SelectItem key={responsavel.id} value={responsavel.id}>{responsavel.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Colaborador que acompanhou</Label>
+              <Input value={ambiental.colaborador_nome} onChange={(event) => update({ colaborador_nome: event.target.value })} placeholder="Nome do colaborador" />
+            </div>
+            <div className="space-y-2">
+              <Label>Motivo da visita</Label>
+              <Select value={ambiental.motivo_visita} onValueChange={(motivo_visita) => update({ motivo_visita: motivo_visita as AcompanhamentoAmbientalData['motivo_visita'] })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="FISCALIZACAO">Fiscalização</SelectItem><SelectItem value="LEVANTAMENTO_PROJETOS">Levantamento de projetos</SelectItem><SelectItem value="VISITA_TECNICA">Visita técnica</SelectItem><SelectItem value="REUNIAO">Reunião</SelectItem></SelectContent>
+              </Select>
+            </div>
+          </Section>
+        )}
+
+        {step === 1 && (
+          <Section title="2. Gestão ambiental e resíduos">
+            {gestao.map(([key, label]) => <Question key={key} label={label} value={ambiental[key] as SimNaoParcialNA} onChange={(value) => update({ [key]: value } as Partial<AcompanhamentoAmbientalData>)} />)}
+          </Section>
+        )}
+
+        {step === 2 && (
+          <Section title="3. ETE, água e efluentes">
+            <p className="text-xs font-medium text-muted-foreground">ETE</p>
+            {ete.map(([key, label]) => <Question key={key} label={label} value={ambiental.ete[key as keyof typeof ambiental.ete] as SimNaoParcialNA} onChange={(value) => updateNested('ete', { [key]: value })} />)}
+            <div className="space-y-2">
+              <Label>Produtos utilizados na ETE</Label>
+              <div className="flex flex-wrap gap-2">
+                {['Cal', 'Cloro em pó', 'Alcalinizante', 'Coagulante', 'Floculante', 'Reagente biológico'].map((produto) => (
+                  <Button key={produto} type="button" size="sm" variant={ambiental.ete.produtos.includes(produto) ? 'default' : 'outline'} onClick={() => update({ ete: { ...ambiental.ete, produtos: ambiental.ete.produtos.includes(produto) ? ambiental.ete.produtos.filter((item) => item !== produto) : [...ambiental.ete.produtos, produto] } })}>{produto}</Button>
+                ))}
+              </div>
+            </div>
+            <p className="pt-2 text-xs font-medium text-muted-foreground">Água e efluentes</p>
+            {agua.map(([key, label]) => <Question key={key} label={label} value={ambiental.agua[key as keyof typeof ambiental.agua] as SimNaoParcialNA} onChange={(value) => updateNested('agua', { [key]: value })} />)}
+          </Section>
+        )}
+
+        {step === 3 && (
+          <Section title="4. Condições operacionais e equipe">
+            {operacao.map(([key, label]) => <Question key={key} label={label} value={ambiental.condicoes_operacionais[key as keyof typeof ambiental.condicoes_operacionais] as SimNaoParcialNA} onChange={(value) => updateNested('condicoes_operacionais', { [key]: value })} />)}
+          </Section>
+        )}
+
+        {step === 4 && (
+          <Section title="5. Orientações, pendências e evidências">
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Não conformidade</p>
+              <div className="grid gap-2 md:grid-cols-2">
+                <Input placeholder="Tipo" value={novaNc.tipo} onChange={(event) => setNovaNc((prev) => ({ ...prev, tipo: event.target.value }))} />
+                <Input placeholder="Descrição" value={novaNc.descricao} onChange={(event) => setNovaNc((prev) => ({ ...prev, descricao: event.target.value }))} />
+                <Input placeholder="Responsável" value={novaNc.responsavel} onChange={(event) => setNovaNc((prev) => ({ ...prev, responsavel: event.target.value }))} />
+                <Input placeholder="Prazo" value={novaNc.prazo} onChange={(event) => setNovaNc((prev) => ({ ...prev, prazo: event.target.value }))} />
+                <Select value={novaNc.gravidade} onValueChange={(gravidade) => setNovaNc((prev) => ({ ...prev, gravidade: gravidade as NaoConformidadeObra['gravidade'] }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="BAIXA">Baixa</SelectItem><SelectItem value="MEDIA">Média</SelectItem><SelectItem value="ALTA">Alta</SelectItem></SelectContent></Select>
+                <Select value={novaNc.status} onValueChange={(status) => setNovaNc((prev) => ({ ...prev, status: status as NaoConformidadeObra['status'] }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PENDENTE">Pendente</SelectItem><SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem><SelectItem value="CONCLUIDO">Concluído</SelectItem></SelectContent></Select>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-sm"><Checkbox checked={novaNc.acao_imediata} onCheckedChange={(checked) => setNovaNc((prev) => ({ ...prev, acao_imediata: Boolean(checked) }))} />Ação imediata</label>
+                <label className="flex items-center gap-2 text-sm"><Checkbox checked={novaNc.foto_vinculada} onCheckedChange={(checked) => setNovaNc((prev) => ({ ...prev, foto_vinculada: Boolean(checked), foto_id: checked ? prev.foto_id : undefined }))} />Vincular foto</label>
+                {novaNc.foto_vinculada && <Select value={novaNc.foto_id} onValueChange={(foto_id) => setNovaNc((prev) => ({ ...prev, foto_id }))}><SelectTrigger className="w-44"><SelectValue placeholder="Foto" /></SelectTrigger><SelectContent>{data.fotos.map((foto, index) => <SelectItem key={foto.fotoId ?? foto.url} value={foto.fotoId ?? foto.url}>Foto {index + 1}</SelectItem>)}</SelectContent></Select>}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addNc}><Plus className="mr-2 h-4 w-4" />Adicionar NC</Button>
+              {ambiental.nao_conformidades.map((item, index) => <div key={item.id} className="flex items-start justify-between gap-3 rounded-md border p-3"><div><p className="text-sm font-medium">{item.tipo || 'Não conformidade'}</p><p className="text-xs text-muted-foreground">{item.descricao}</p></div><Button variant="ghost" size="icon" onClick={() => update({ nao_conformidades: ambiental.nao_conformidades.filter((_, currentIndex) => currentIndex !== index) })}><Trash2 className="h-4 w-4" /></Button></div>)}
+            </div>
+
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-sm font-medium">Pendência</p>
+              <div className="grid gap-2 md:grid-cols-2">
+                <Input placeholder="Descrição" value={novaPendencia.descricao} onChange={(event) => setNovaPendencia((prev) => ({ ...prev, descricao: event.target.value }))} />
+                <Input placeholder="Responsável" value={novaPendencia.responsavel} onChange={(event) => setNovaPendencia((prev) => ({ ...prev, responsavel: event.target.value }))} />
+                <Input placeholder="Prazo" value={novaPendencia.prazo} onChange={(event) => setNovaPendencia((prev) => ({ ...prev, prazo: event.target.value }))} />
+                <Select value={novaPendencia.prioridade} onValueChange={(prioridade) => setNovaPendencia((prev) => ({ ...prev, prioridade: prioridade as PendenciaObra['prioridade'] }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="BAIXA">Baixa</SelectItem><SelectItem value="MEDIA">Média</SelectItem><SelectItem value="ALTA">Alta</SelectItem></SelectContent></Select>
+                <Select value={novaPendencia.status} onValueChange={(status) => setNovaPendencia((prev) => ({ ...prev, status: status as PendenciaObra['status'] }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PENDENTE">Pendente</SelectItem><SelectItem value="EM_ANDAMENTO">Em andamento</SelectItem><SelectItem value="CONCLUIDO">Concluído</SelectItem></SelectContent></Select>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addPendencia}><Plus className="mr-2 h-4 w-4" />Adicionar pendência</Button>
+              {ambiental.pendencias.map((item, index) => <div key={item.id} className="flex items-start justify-between gap-3 rounded-md border p-3"><div><p className="text-sm font-medium">{item.descricao}</p><p className="text-xs text-muted-foreground">{item.responsavel || 'Sem responsável'} • {item.prazo || 'Sem prazo'}</p></div><Button variant="ghost" size="icon" onClick={() => update({ pendencias: ambiental.pendencias.filter((_, currentIndex) => currentIndex !== index) })}><Trash2 className="h-4 w-4" /></Button></div>)}
+            </div>
+          </Section>
+        )}
+
+        {step === 5 && (
+          <Section title="6. Fotos e revisão">
+            <div className="grid grid-cols-2 gap-3">
+              <Button type="button" variant="outline" className="h-16 flex-col gap-1" onClick={() => cameraInputRef.current?.click()}><Camera className="h-5 w-5" />Tirar foto</Button>
+              <Button type="button" variant="outline" className="h-16 flex-col gap-1" onClick={() => galleryInputRef.current?.click()}><ImagePlus className="h-5 w-5" />Galeria</Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {FOTO_ITENS.map((item) => <Badge key={item} variant={ambiental.foto_itens.includes(item) ? 'default' : 'secondary'} className="cursor-pointer" onClick={() => update({ foto_itens: ambiental.foto_itens.includes(item) ? ambiental.foto_itens.filter((fotoItem) => fotoItem !== item) : [...ambiental.foto_itens, item] })}>{item}</Badge>)}
+            </div>
+            {finalFotos.length > 0 && <div className="grid grid-cols-3 gap-2">{finalFotos.map((foto, index) => <div key={foto.fotoId ?? foto.url} className="relative aspect-square overflow-hidden rounded-md bg-muted"><img src={foto.url} alt={`Foto ${index + 1}`} className="h-full w-full object-cover" /><button type="button" onClick={() => removeFoto(foto.url)} className="absolute right-1 top-1 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button></div>)}</div>}
+            <div className="rounded-md border p-3 text-sm">
+              <p className="font-medium">{data.titulo}</p>
+              <p className="text-muted-foreground">{selectedClient?.nome || 'Cliente não selecionado'} • {selectedResponsavel?.nome || 'Responsável não selecionado'}</p>
+              {ambiental.colaborador_nome && <p className="text-muted-foreground">Acompanhado por {ambiental.colaborador_nome}</p>}
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="secondary">{ambiental.nao_conformidades.length} NC</Badge>
+                <Badge variant="secondary">{ambiental.pendencias.length} pendências</Badge>
+                <Badge variant="secondary">{data.fotos.length} fotos</Badge>
+              </div>
+            </div>
+          </Section>
+        )}
+      </div>
+
+      <MobileFooter>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0}><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Button>
+          {step < STEPS.length - 1 ? (
+            <Button onClick={() => setStep((current) => Math.min(STEPS.length - 1, current + 1))}>Continuar<ArrowRight className="ml-2 h-4 w-4" /></Button>
+          ) : (
+            <Button onClick={handleFinalizar} disabled={saveAtendimento.isPending || !canFinish}><CheckCircle2 className="mr-2 h-4 w-4" />Finalizar</Button>
+          )}
+        </div>
+      </MobileFooter>
+
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
+      <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
+    </MobileLayout>
+  );
 }

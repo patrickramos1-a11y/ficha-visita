@@ -14,9 +14,10 @@ import { Check, ChevronRight, ClipboardList, Search, X, Loader2 } from 'lucide-r
 export default function TiposRapida() {
   useVisitRoute('/visita/rapida/tipos');
   const navigate = useNavigate();
-  const { data, setTiposAtendimento } = useAtendimento();
+  const { data, setTiposAtendimento, setTitulo } = useAtendimento();
   const { data: tipos, isLoading } = useTiposAtendimentoConfig();
   const [selectedTipos, setSelectedTipos] = useState<AtendimentoTipo[]>(data.tipos_atendimento);
+  const [tituloVisita, setTituloVisita] = useState(data.titulo ?? '');
   const [search, setSearch] = useState('');
 
   const toggleTipo = (tipo: AtendimentoTipo) => {
@@ -26,6 +27,7 @@ export default function TiposRapida() {
   };
 
   const handleContinue = () => {
+    setTitulo(tituloVisita.trim());
     setTiposAtendimento(selectedTipos);
     navigate('/visita/rapida/clientes');
   };
@@ -52,6 +54,15 @@ export default function TiposRapida() {
       />
 
       <div className="px-4 pb-2">
+        <div className="mb-3 space-y-2">
+          <label className="text-sm font-medium">Título da visita</label>
+          <Input
+            value={tituloVisita}
+            onChange={(e) => setTituloVisita(e.target.value)}
+            placeholder="Ex.: Visita rápida - vistoria pontual"
+            className="h-11"
+          />
+        </div>
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <Input

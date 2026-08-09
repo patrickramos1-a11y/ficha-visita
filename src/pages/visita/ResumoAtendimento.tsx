@@ -56,8 +56,9 @@ export default function ResumoAtendimento() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const finalData = { ...data, data_fim: new Date() };
       finalizarAtendimento();
-      await saveAtendimento.mutateAsync(data);
+      await saveAtendimento.mutateAsync(finalData);
       resetAtendimento();
       navigate('/sucesso');
     } catch (error) {
@@ -99,6 +100,13 @@ export default function ResumoAtendimento() {
       <div className="flex-1 overflow-auto scroll-smooth-y p-4 space-y-3">
         {/* Header info */}
         <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 space-y-3">
+          <div className="flex items-center gap-3 text-sm">
+            <FileText className="w-5 h-5 text-primary flex-shrink-0" />
+            <div>
+              <span className="font-medium">Título: </span>
+              <span>{data.titulo || 'Não definido'}</span>
+            </div>
+          </div>
           <div className="flex items-center gap-3 text-sm">
             <Clock className="w-5 h-5 text-primary flex-shrink-0" />
             <div>

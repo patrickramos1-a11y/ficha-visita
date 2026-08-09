@@ -45,6 +45,7 @@ export type VisitaModo = 'completa' | 'rapida' | 'obras' | 'ambiental';
 
 export type SimNaoParcialNA = 'SIM' | 'NAO' | 'PARCIALMENTE' | 'NAO_SE_APLICA';
 export type StatusItemObra = 'PENDENTE' | 'EM_ANDAMENTO' | 'CONCLUIDO';
+export type AvancoObraFaixa = '0-25%' | '26-50%' | '51-75%' | '76-99%' | 'CONCLUIDA';
 
 export interface PendenciaObra {
   id: string;
@@ -79,8 +80,9 @@ export interface AcompanhamentoObraData {
   houve_avanco: boolean;
   dentro_do_previsto: boolean;
   percentual_avanco: number;
-  resumo_semana: string;
-  mudou_desde_visita_anterior: string;
+  percentual_avanco_faixa?: AvancoObraFaixa;
+  resumo_semana?: string;
+  mudou_desde_visita_anterior?: string;
   pendencias_resolvidas: boolean;
   controle_ambiental: {
     controle_visivel: SimNaoParcialNA;
@@ -95,7 +97,7 @@ export interface AcompanhamentoObraData {
     poeira: SimNaoParcialNA;
     ruido: SimNaoParcialNA;
     odor_emissao: SimNaoParcialNA;
-    observacoes: string;
+    observacoes?: string;
   };
   organizacao_seguranca: {
     obra_organizada: SimNaoParcialNA;
@@ -111,7 +113,7 @@ export interface AcompanhamentoObraData {
     responsavel_presente: SimNaoParcialNA;
     condicao_insegura: SimNaoParcialNA;
     orientacao_repassada: SimNaoParcialNA;
-    observacoes: string;
+    observacoes?: string;
   };
   residuos: {
     ha_residuos: SimNaoParcialNA;
@@ -123,10 +125,10 @@ export interface AcompanhamentoObraData {
     residuos_perigosos: SimNaoParcialNA;
     houve_coleta: SimNaoParcialNA;
     comprovante_destinacao: SimNaoParcialNA;
-    tipos_observados: string;
-    destinacao_observada: string;
-    responsavel_coleta: string;
-    observacoes: string;
+    tipos_observados?: string;
+    destinacao_observada?: string;
+    responsavel_coleta?: string;
+    observacoes?: string;
   };
   efluentes: {
     acumulo_agua: SimNaoParcialNA;
@@ -142,7 +144,7 @@ export interface AcompanhamentoObraData {
     vazamento: SimNaoParcialNA;
     odor_extravasamento: SimNaoParcialNA;
     registro_coleta_manutencao: SimNaoParcialNA;
-    observacoes: string;
+    observacoes?: string;
   };
   nao_conformidades: NaoConformidadeObra[];
   pendencias: PendenciaObra[];
@@ -160,37 +162,54 @@ export interface Obra {
 export interface AcompanhamentoAmbientalData {
   cliente_id: string;
   cliente_nome?: string;
-  atividade: string;
+  atividade?: string;
   motivo_visita: 'FISCALIZACAO' | 'LEVANTAMENTO_PROJETOS' | 'VISITA_TECNICA' | 'REUNIAO';
   politica_ambiental: SimNaoParcialNA;
   coleta_residuos: SimNaoParcialNA;
-  dificuldade_coleta: string;
+  dificuldade_coleta?: string;
   gerenciamento_residuos: SimNaoParcialNA;
   uso_lixeiras: SimNaoParcialNA;
-  necessidade_palestra: string;
-  documentos_ambientais: string[];
+  necessidade_palestra?: string;
+  documentos_ambientais?: string[];
   ete: {
     possui: SimNaoParcialNA;
     produtos: string[];
     problema_operacao: SimNaoParcialNA;
     novo_operador: SimNaoParcialNA;
     coleta_efluente: SimNaoParcialNA;
+    odor: SimNaoParcialNA;
+    extravasamento: SimNaoParcialNA;
+    manutencao: SimNaoParcialNA;
   };
   agua: {
     leitura_hidrometro: SimNaoParcialNA;
     coleta_poco: SimNaoParcialNA;
+    lancamento_regular: SimNaoParcialNA;
+    abastecimento_regular: SimNaoParcialNA;
   };
   alteracao_funcionarios: SimNaoParcialNA;
   alteracao_producao: SimNaoParcialNA;
-  documento_entregue: string;
-  orientacao_pendencias: string;
+  documento_entregue?: string;
+  orientacao_pendencias?: string;
   levantamentos: { nome: string; status: SimNaoParcialNA }[];
   colaborador_nome: string;
-  colaborador_cargo: string;
-  observacoes: string;
+  colaborador_cargo?: string;
+  observacoes?: string;
+  condicoes_operacionais: {
+    rotina_adequada: SimNaoParcialNA;
+    equipe_presente: SimNaoParcialNA;
+    responsavel_presente: SimNaoParcialNA;
+    boas_praticas: SimNaoParcialNA;
+    risco_aparente: SimNaoParcialNA;
+    orientacao_repassada: SimNaoParcialNA;
+  };
+  nao_conformidades: NaoConformidadeObra[];
+  pendencias: PendenciaObra[];
+  foto_itens: string[];
 }
 
 export interface AtendimentoData {
+  titulo?: string;
   modo?: VisitaModo;
   cliente_ids: string[];
   responsavel_id?: string;

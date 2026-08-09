@@ -66,10 +66,12 @@ export default function DesktopHistorico() {
   const filteredAtendimentos = atendimentos?.filter(a => {
     if (search) {
       const s = search.toLowerCase();
+      const m0 = a.titulo?.toLowerCase().includes(s);
       const m1 = a.cliente?.nome?.toLowerCase().includes(s);
       const m2 = a.responsavel?.nome?.toLowerCase().includes(s);
       const m3 = a.tipos_atendimento?.some((t: string) => t.toLowerCase().includes(s));
-      if (!m1 && !m2 && !m3) return false;
+      const m4 = (a.dados_modalidade as any)?.obra_nome?.toLowerCase?.().includes(s);
+      if (!m0 && !m1 && !m2 && !m3 && !m4) return false;
     }
     if (statusFilter !== 'all') {
       if (statusFilter === 'finalizado' && !a.finalizado) return false;
@@ -220,7 +222,9 @@ export default function DesktopHistorico() {
                       <Badge variant="outline" className="text-[10px] h-5 px-1.5">Pendente</Badge>
                     )}
                   </div>
-                  {a.cliente?.nome && <p className="font-medium text-sm truncate">{a.cliente.nome}</p>}
+                  <p className="font-medium text-sm truncate">{a.titulo || a.cliente?.nome || 'Atendimento'}</p>
+                  {a.cliente?.nome && <p className="text-xs text-muted-foreground truncate">{a.cliente.nome}</p>}
+                  {(a.dados_modalidade as any)?.obra_nome && <p className="text-xs text-muted-foreground truncate">{(a.dados_modalidade as any).obra_nome}</p>}
                   {a.responsavel?.nome && (
                     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-1">
                       <User className="h-3 w-3" />
@@ -248,6 +252,7 @@ export default function DesktopHistorico() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Data</TableHead>
+                  <TableHead>Título</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Responsável</TableHead>
                   <TableHead>Tipos</TableHead>
@@ -261,6 +266,10 @@ export default function DesktopHistorico() {
                     <TableCell>
                       <div className="font-medium">{format(new Date(a.created_at), 'dd/MM/yyyy')}</div>
                       <div className="text-xs text-muted-foreground">{format(new Date(a.created_at), 'HH:mm')}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{a.titulo || '—'}</div>
+                      {(a.dados_modalidade as any)?.obra_nome && <div className="text-xs text-muted-foreground">{(a.dados_modalidade as any).obra_nome}</div>}
                     </TableCell>
                     <TableCell>{a.cliente?.nome || '—'}</TableCell>
                     <TableCell>{a.responsavel?.nome || '—'}</TableCell>

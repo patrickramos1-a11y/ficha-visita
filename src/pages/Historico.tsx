@@ -65,10 +65,16 @@ export default function Historico() {
                 </div>
 
                 {/* Client */}
+                <div className="font-medium">{atendimento.titulo || 'Atendimento'}</div>
                 {atendimento.cliente && (
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium">{atendimento.cliente.nome}</span>
+                  </div>
+                )}
+                {(atendimento.dados_modalidade as any)?.obra_nome && (
+                  <div className="text-sm text-muted-foreground">
+                    Obra: {(atendimento.dados_modalidade as any).obra_nome}
                   </div>
                 )}
 

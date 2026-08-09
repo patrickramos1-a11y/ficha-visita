@@ -136,9 +136,8 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
   }
 
   const dadosModalidade = data.modo === 'obras' ? data.acompanhamento_obra : data.modo === 'ambiental' ? data.acompanhamento_ambiental : null;
-  const { data: atendimento, error: atendimentoError } = await supabase
-    .from('atendimentos')
-    .insert({
+  const atendimentoPayload = {
+      titulo: data.titulo || null,
       responsavel_id: data.responsavel_id || null,
       data_inicio: dataInicio.toISOString(),
       data_fim: dataFim.toISOString(),
@@ -152,9 +151,24 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       obra_id: obraId,
       dados_modalidade: dadosModalidade ? JSON.parse(JSON.stringify(dadosModalidade)) : null,
       finalizado: true,
-    })
+  };
+
+  let { data: atendimento, error: atendimentoError } = await supabase
+    .from('atendimentos')
+    .insert(atendimentoPayload)
     .select()
     .single();
+
+  if (atendimentoError && String(atendimentoError.message).toLowerCase().includes('titulo')) {
+    const { titulo: _titulo, ...payloadSemTitulo } = atendimentoPayload;
+    const retry = await supabase
+      .from('atendimentos')
+      .insert(payloadSemTitulo)
+      .select()
+      .single();
+    atendimento = retry.data;
+    atendimentoError = retry.error;
+  }
 
   if (atendimentoError) throw atendimentoError;
 

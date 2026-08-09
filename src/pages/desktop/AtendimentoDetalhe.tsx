@@ -92,6 +92,7 @@ export default function AtendimentoDetalhe() {
   const dadosModalidade = atendimento.dados_modalidade as any;
 
   const pdfData = {
+    titulo: atendimento.titulo || undefined,
     data_inicio: new Date(atendimento.created_at),
     data_fim: atendimento.data_fim ? new Date(atendimento.data_fim) : undefined,
     responsavel_id: atendimento.responsavel_id || undefined,
@@ -134,7 +135,7 @@ export default function AtendimentoDetalhe() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">Detalhes do Atendimento</h1>
+                <h1 className="text-2xl font-bold">{atendimento.titulo || 'Detalhes do Atendimento'}</h1>
                 <p className="text-muted-foreground">
                   {format(new Date(atendimento.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                 </p>
@@ -161,7 +162,7 @@ export default function AtendimentoDetalhe() {
         {/* Date on mobile */}
         {isMobile && (
           <p className="text-xs text-muted-foreground -mt-2">
-            {format(new Date(atendimento.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            {(atendimento.titulo ? `${atendimento.titulo} • ` : '') + format(new Date(atendimento.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
           </p>
         )}
 
@@ -191,6 +192,38 @@ export default function AtendimentoDetalhe() {
         {/* Clientes */}
         {atendimento.modo && atendimento.modo !== 'completa' && (
           <Card><CardContent className="p-3 md:p-4"><p className="text-[10px] md:text-xs text-muted-foreground mb-1">Modalidade</p><Badge variant="secondary">{atendimento.modo === 'obras' ? 'Acompanhamento de Obras' : atendimento.modo === 'ambiental' ? 'Acompanhamento Ambiental' : 'Visita Rápida'}</Badge></CardContent></Card>
+        )}
+        {atendimento.modo === 'obras' && dadosModalidade && (
+          <Card>
+            <CardHeader className="pb-2 px-3 md:px-6 pt-3 md:pt-6">
+              <CardTitle className="text-sm">Resumo da obra</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 md:px-6 pb-3 md:pb-6 space-y-2 text-sm">
+              <p><span className="font-medium">Obra:</span> {dadosModalidade.obra_nome || '—'}</p>
+              <p><span className="font-medium">Status:</span> {dadosModalidade.status_geral || '—'} • {dadosModalidade.fase_atual || '—'} • {dadosModalidade.percentual_avanco_faixa || `${dadosModalidade.percentual_avanco || 0}%`}</p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">{dadosModalidade.nao_conformidades?.length || 0} NC</Badge>
+                <Badge variant="secondary">{dadosModalidade.pendencias?.length || 0} pendências</Badge>
+                <Badge variant="outline">{dadosModalidade.foto_itens?.length || 0} itens fotográficos</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {atendimento.modo === 'ambiental' && dadosModalidade && (
+          <Card>
+            <CardHeader className="pb-2 px-3 md:px-6 pt-3 md:pt-6">
+              <CardTitle className="text-sm">Resumo ambiental</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 md:px-6 pb-3 md:pb-6 space-y-2 text-sm">
+              <p><span className="font-medium">Motivo:</span> {String(dadosModalidade.motivo_visita || '—').replaceAll('_', ' ')}</p>
+              {dadosModalidade.colaborador_nome && <p><span className="font-medium">Acompanhado por:</span> {dadosModalidade.colaborador_nome}</p>}
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary">{dadosModalidade.nao_conformidades?.length || 0} NC</Badge>
+                <Badge variant="secondary">{dadosModalidade.pendencias?.length || 0} pendências</Badge>
+                <Badge variant="outline">{dadosModalidade.foto_itens?.length || 0} itens fotográficos</Badge>
+              </div>
+            </CardContent>
+          </Card>
         )}
         {clientesNomes.length > 0 && (
           <Card>

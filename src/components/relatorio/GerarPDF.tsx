@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import logoHorizontal from '@/assets/logo-horizontal.png';
+import { structuredAnswerLabel } from '@/components/visita/StructuredAnswer';
 
 interface GerarPDFProps {
   data: AtendimentoData;
@@ -67,7 +68,7 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
       pdf.setFontSize(16);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(30, 150, 80);
-      pdf.text('RELATÓRIO DE ATENDIMENTO', pageWidth / 2, yPos, { align: 'center' });
+      pdf.text(data.titulo || 'RELATÓRIO DE ATENDIMENTO', pageWidth / 2, yPos, { align: 'center' });
       pdf.setTextColor(0, 0, 0);
       yPos += 10;
 
@@ -87,6 +88,12 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
       pdf.text('Data/Hora Fim:', margin, yPos);
       pdf.setFont('helvetica', 'normal');
       pdf.text(dataFim, margin + 35, yPos);
+      yPos += 5;
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Modalidade:', margin, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(data.modo === 'obras' ? 'Acompanhamento de Obras' : data.modo === 'ambiental' ? 'Acompanhamento Ambiental' : data.modo === 'rapida' ? 'Visita Rápida' : 'Visita Completa', margin + 35, yPos);
       yPos += 5;
 
       pdf.setFont('helvetica', 'bold');
@@ -123,11 +130,28 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
         pdf.setFont('helvetica', 'normal');
         const resumo = [
           `Obra: ${obra.obra_nome || 'Não informada'}`,
-          `Status: ${obra.status_geral || 'Não informado'} | Fase: ${obra.fase_atual || 'Não informada'} | Avanço: ${obra.percentual_avanco}%`,
-          `Resumo da semana: ${obra.resumo_semana || 'Não informado'}`,
-          `Mudanças desde a visita anterior: ${obra.mudou_desde_visita_anterior || 'Não informado'}`,
+          `Status: ${obra.status_geral || 'Não informado'} | Fase: ${obra.fase_atual || 'Não informada'} | Avanço: ${obra.percentual_avanco_faixa || `${obra.percentual_avanco}%`}`,
+          `Houve avanço: ${obra.houve_avanco ? 'Sim' : 'Não'} | Dentro do previsto: ${obra.dentro_do_previsto ? 'Sim' : 'Não'} | Pendências anteriores resolvidas: ${obra.pendencias_resolvidas ? 'Sim' : 'Não'}`,
         ];
         resumo.forEach(item => { const lines = pdf.splitTextToSize(item, contentWidth - 6); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 3, yPos); yPos += 5; }); });
+        const indicadores = [
+          ['Controle ambiental', obra.controle_ambiental],
+          ['Organização e segurança', obra.organizacao_seguranca],
+          ['Resíduos', obra.residuos],
+          ['Efluentes, água e drenagem', obra.efluentes],
+        ].filter(([, bloco]) => Boolean(bloco));
+        indicadores.forEach(([titulo, bloco]) => {
+          checkNewPage(8);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(String(titulo), margin + 3, yPos);
+          yPos += 5;
+          pdf.setFont('helvetica', 'normal');
+          Object.entries(bloco as Record<string, unknown>).filter(([, value]) => ['SIM', 'NAO', 'PARCIALMENTE', 'NAO_SE_APLICA'].includes(String(value))).forEach(([key, value]) => {
+            const label = `${key.replaceAll('_', ' ')}: ${structuredAnswerLabel(value as any)}`;
+            const lines = pdf.splitTextToSize(label, contentWidth - 8);
+            lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; });
+          });
+        });
         if (obra.nao_conformidades.length > 0) {
           checkNewPage(7); pdf.setFont('helvetica', 'bold'); pdf.text('Não conformidades:', margin + 3, yPos); yPos += 5; pdf.setFont('helvetica', 'normal');
           obra.nao_conformidades.forEach((item, index) => { const lines = pdf.splitTextToSize(`${index + 1}. ${item.tipo}: ${item.descricao} | ${item.gravidade} | ${item.status} | ${item.responsavel || 'Sem responsável'} | ${item.prazo || 'Sem prazo'}`, contentWidth - 8); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; }); });
@@ -135,6 +159,11 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
         if (obra.pendencias.length > 0) {
           checkNewPage(7); pdf.setFont('helvetica', 'bold'); pdf.text('Pendências:', margin + 3, yPos); yPos += 5; pdf.setFont('helvetica', 'normal');
           obra.pendencias.forEach((item, index) => { const lines = pdf.splitTextToSize(`${index + 1}. ${item.descricao} | ${item.prioridade} | ${item.status} | ${item.responsavel || 'Sem responsável'} | ${item.prazo || 'Sem prazo'}`, contentWidth - 8); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; }); });
+        }
+        if (obra.foto_itens?.length > 0) {
+          checkNewPage(7); pdf.setFont('helvetica', 'bold'); pdf.text('Checklist fotográfico:', margin + 3, yPos); yPos += 5; pdf.setFont('helvetica', 'normal');
+          const lines = pdf.splitTextToSize(obra.foto_itens.join(', '), contentWidth - 8);
+          lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; });
         }
         yPos += 3;
       }
@@ -145,14 +174,41 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'normal');
         const resumo = [
-          `Atividade: ${ambiental.atividade || 'Não informada'} | Motivo: ${ambiental.motivo_visita.replaceAll('_', ' ')}`,
+          `Motivo: ${ambiental.motivo_visita.replaceAll('_', ' ')} | Acompanhado por: ${ambiental.colaborador_nome || 'Não informado'}`,
           `Política ambiental: ${ambiental.politica_ambiental.replaceAll('_', ' ')} | Coleta de resíduos: ${ambiental.coleta_residuos.replaceAll('_', ' ')}`,
           `Gerenciamento de resíduos: ${ambiental.gerenciamento_residuos.replaceAll('_', ' ')} | ETE: ${ambiental.ete.possui.replaceAll('_', ' ')}`,
-          `Documentos: ${ambiental.documentos_ambientais.join(', ') || 'Nenhum informado'}`,
-          `Orientações e pendências: ${ambiental.orientacao_pendencias || 'Não informado'}`,
-          `Observações: ${ambiental.observacoes || 'Não informado'}`,
         ];
         resumo.forEach(item => { const lines = pdf.splitTextToSize(item, contentWidth - 6); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 3, yPos); yPos += 5; }); });
+        const indicadores = [
+          ['ETE', ambiental.ete],
+          ['Água e efluentes', ambiental.agua],
+          ['Condições operacionais', ambiental.condicoes_operacionais],
+        ].filter(([, bloco]) => Boolean(bloco));
+        indicadores.forEach(([titulo, bloco]) => {
+          checkNewPage(8);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(String(titulo), margin + 3, yPos);
+          yPos += 5;
+          pdf.setFont('helvetica', 'normal');
+          Object.entries(bloco as Record<string, unknown>).filter(([, value]) => ['SIM', 'NAO', 'PARCIALMENTE', 'NAO_SE_APLICA'].includes(String(value))).forEach(([key, value]) => {
+            const label = `${key.replaceAll('_', ' ')}: ${structuredAnswerLabel(value as any)}`;
+            const lines = pdf.splitTextToSize(label, contentWidth - 8);
+            lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; });
+          });
+        });
+        if (ambiental.nao_conformidades?.length > 0) {
+          checkNewPage(7); pdf.setFont('helvetica', 'bold'); pdf.text('Não conformidades:', margin + 3, yPos); yPos += 5; pdf.setFont('helvetica', 'normal');
+          ambiental.nao_conformidades.forEach((item, index) => { const lines = pdf.splitTextToSize(`${index + 1}. ${item.tipo}: ${item.descricao} | ${item.gravidade} | ${item.status} | ${item.responsavel || 'Sem responsável'} | ${item.prazo || 'Sem prazo'}`, contentWidth - 8); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; }); });
+        }
+        if (ambiental.pendencias?.length > 0) {
+          checkNewPage(7); pdf.setFont('helvetica', 'bold'); pdf.text('Pendências:', margin + 3, yPos); yPos += 5; pdf.setFont('helvetica', 'normal');
+          ambiental.pendencias.forEach((item, index) => { const lines = pdf.splitTextToSize(`${index + 1}. ${item.descricao} | ${item.prioridade} | ${item.status} | ${item.responsavel || 'Sem responsável'} | ${item.prazo || 'Sem prazo'}`, contentWidth - 8); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; }); });
+        }
+        if (ambiental.foto_itens?.length > 0) {
+          checkNewPage(7); pdf.setFont('helvetica', 'bold'); pdf.text('Checklist fotográfico:', margin + 3, yPos); yPos += 5; pdf.setFont('helvetica', 'normal');
+          const lines = pdf.splitTextToSize(ambiental.foto_itens.join(', '), contentWidth - 8);
+          lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 5, yPos); yPos += 5; });
+        }
         yPos += 3;
       }
 

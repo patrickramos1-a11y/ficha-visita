@@ -156,6 +156,7 @@ export type Database = {
           origem_id: string | null
           possui_foto_final: boolean | null
           responsavel_id: string | null
+          titulo: string | null
           tipos_atendimento: string[] | null
           topicos_reuniao: Json | null
           updated_at: string
@@ -178,6 +179,7 @@ export type Database = {
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
+          titulo?: string | null
           tipos_atendimento?: string[] | null
           topicos_reuniao?: Json | null
           updated_at?: string
@@ -200,6 +202,7 @@ export type Database = {
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
+          titulo?: string | null
           tipos_atendimento?: string[] | null
           topicos_reuniao?: Json | null
           updated_at?: string
