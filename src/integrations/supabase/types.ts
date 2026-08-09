@@ -19,6 +19,7 @@ export type Database = {
           ativo: boolean
           created_at: string
           id: string
+          naturezas: string[]
           nome: string
           plano_id: string | null
           subtopico_id: string | null
@@ -29,6 +30,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           id?: string
+          naturezas?: string[]
           nome: string
           plano_id?: string | null
           subtopico_id?: string | null
@@ -39,6 +41,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           id?: string
+          naturezas?: string[]
           nome?: string
           plano_id?: string | null
           subtopico_id?: string | null
@@ -137,10 +140,54 @@ export type Database = {
           },
         ]
       }
+      atendimento_processos: {
+        Row: {
+          atendimento_id: string
+          created_at: string
+          orgao_id: string | null
+          processo_id: string | null
+        }
+        Insert: {
+          atendimento_id: string
+          created_at?: string
+          orgao_id?: string | null
+          processo_id?: string | null
+        }
+        Update: {
+          atendimento_id?: string
+          created_at?: string
+          orgao_id?: string | null
+          processo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimento_processos_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimento_processos_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimento_processos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atendimentos: {
         Row: {
           acoes_especificas: string[] | null
           anotacoes: string | null
+          anotacoes_itens: Json
           checklist: Json | null
           cliente_id: string | null
           created_at: string
@@ -151,18 +198,21 @@ export type Database = {
           id: string
           link_publico: string | null
           modo: string
+          natureza: string
           notas: string | null
           obra_id: string | null
           origem_id: string | null
           possui_foto_final: boolean | null
           responsavel_id: string | null
           tipos_atendimento: string[] | null
+          titulo: string | null
           topicos_reuniao: Json | null
           updated_at: string
         }
         Insert: {
           acoes_especificas?: string[] | null
           anotacoes?: string | null
+          anotacoes_itens?: Json
           checklist?: Json | null
           cliente_id?: string | null
           created_at?: string
@@ -173,18 +223,21 @@ export type Database = {
           id?: string
           link_publico?: string | null
           modo?: string
+          natureza?: string
           notas?: string | null
           obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
           tipos_atendimento?: string[] | null
+          titulo?: string | null
           topicos_reuniao?: Json | null
           updated_at?: string
         }
         Update: {
           acoes_especificas?: string[] | null
           anotacoes?: string | null
+          anotacoes_itens?: Json
           checklist?: Json | null
           cliente_id?: string | null
           created_at?: string
@@ -195,12 +248,14 @@ export type Database = {
           id?: string
           link_publico?: string | null
           modo?: string
+          natureza?: string
           notas?: string | null
           obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
           responsavel_id?: string | null
           tipos_atendimento?: string[] | null
+          titulo?: string | null
           topicos_reuniao?: Json | null
           updated_at?: string
         }
@@ -364,6 +419,109 @@ export type Database = {
           },
         ]
       }
+      integracao_radar_itens: {
+        Row: {
+          atendimento_id: string
+          created_at: string
+          enviado_em: string | null
+          erro: string | null
+          id: string
+          item_origem_id: string
+          radar_cliente_id: string | null
+          radar_item_id: string | null
+          status: string
+          tipo_origem: string
+        }
+        Insert: {
+          atendimento_id: string
+          created_at?: string
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          item_origem_id: string
+          radar_cliente_id?: string | null
+          radar_item_id?: string | null
+          status?: string
+          tipo_origem: string
+        }
+        Update: {
+          atendimento_id?: string
+          created_at?: string
+          enviado_em?: string | null
+          erro?: string | null
+          id?: string
+          item_origem_id?: string
+          radar_cliente_id?: string | null
+          radar_item_id?: string | null
+          status?: string
+          tipo_origem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integracao_radar_itens_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mapeamentos_clientes_radar: {
+        Row: {
+          cliente_id: string
+          origem: string
+          radar_cliente_id: string
+          radar_cliente_nome: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          origem?: string
+          radar_cliente_id: string
+          radar_cliente_nome: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          origem?: string
+          radar_cliente_id?: string
+          radar_cliente_nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mapeamentos_clientes_radar_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: true
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      naturezas_visita: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
       obras: {
         Row: {
           ativo: boolean
@@ -398,6 +556,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      orgaos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
       }
       origens: {
         Row: {
@@ -443,6 +622,61 @@ export type Database = {
           nome?: string
         }
         Relationships: []
+      }
+      processos_clientes: {
+        Row: {
+          ativo: boolean
+          cliente_id: string
+          created_at: string
+          id: string
+          nome: string
+          obra_id: string | null
+          orgao_id: string | null
+          situacao_atual: string
+        }
+        Insert: {
+          ativo?: boolean
+          cliente_id: string
+          created_at?: string
+          id?: string
+          nome: string
+          obra_id?: string | null
+          orgao_id?: string | null
+          situacao_atual?: string
+        }
+        Update: {
+          ativo?: boolean
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          obra_id?: string | null
+          orgao_id?: string | null
+          situacao_atual?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processos_clientes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_clientes_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_clientes_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       responsaveis: {
         Row: {
@@ -524,6 +758,7 @@ export type Database = {
           created_at: string
           descricao: string | null
           id: string
+          naturezas: string[]
           nome: string
           plano_id: string | null
           subtopico_id: string | null
@@ -535,6 +770,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           id?: string
+          naturezas?: string[]
           nome: string
           plano_id?: string | null
           subtopico_id?: string | null
@@ -546,6 +782,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           id?: string
+          naturezas?: string[]
           nome?: string
           plano_id?: string | null
           subtopico_id?: string | null
