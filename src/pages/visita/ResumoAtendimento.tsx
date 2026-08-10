@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { useClientes } from '@/hooks/useClientes';
@@ -13,7 +14,7 @@ import { GerarPDF } from '@/components/relatorio/GerarPDF';
 import { MobileFooter } from '@/components/mobile';
 import { 
   Save, FileText, Users, User, Clock, Camera, CheckSquare, 
-  Lightbulb, Tag, ChevronDown, ChevronUp 
+  Lightbulb, Tag, ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,12 +23,14 @@ import { cn } from '@/lib/utils';
 export default function ResumoAtendimento() {
   useVisitRoute('/visita/resumo');
   const navigate = useNavigate();
-  const { data, resetAtendimento, finalizarAtendimento } = useAtendimento();
+  const { data, setTitulo, resetAtendimento, finalizarAtendimento } = useAtendimento();
   const { data: clientes } = useClientes();
   const { data: responsaveis } = useResponsaveis();
   const saveAtendimento = useSaveAtendimento();
   const [isSaving, setIsSaving] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['resumo']);
+  const [showTitleError, setShowTitleError] = useState(false);
+  const tituloVisita = data.titulo?.trim() ?? '';
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -54,9 +57,14 @@ export default function ResumoAtendimento() {
   });
 
   const handleSave = async () => {
+    if (!tituloVisita) {
+      setShowTitleError(true);
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const finalData = { ...data, data_fim: new Date() };
+      const finalData = { ...data, titulo: tituloVisita, data_fim: new Date() };
       finalizarAtendimento();
       await saveAtendimento.mutateAsync(finalData);
       resetAtendimento();
@@ -98,6 +106,33 @@ export default function ResumoAtendimento() {
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate(data.modo === 'rapida' ? '/visita/rapida/fotos' : '/visita/foto-final')} title="Resumo">
       <div className="flex-1 overflow-auto scroll-smooth-y p-4 space-y-3">
+        <div className={cn('rounded-xl border p-4 space-y-2', tituloVisita ? 'border-primary/20 bg-primary/5' : 'border-amber-300 bg-amber-50')}>
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor="titulo-final-visita" className="text-sm font-semibold">Título da visita</label>
+            <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-medium', tituloVisita ? 'bg-primary/10 text-primary' : 'bg-amber-100 text-amber-700')}>
+              Obrigatório
+            </span>
+          </div>
+          <Input
+            id="titulo-final-visita"
+            value={data.titulo ?? ''}
+            onChange={(event) => {
+              setTitulo(event.target.value);
+              if (event.target.value.trim()) setShowTitleError(false);
+            }}
+            placeholder={data.modo === 'rapida' ? 'Ex.: Visita rápida - vistoria pontual' : 'Ex.: Visita técnica - ajuste da ETE'}
+            className={cn('h-12 bg-background text-base', showTitleError && !tituloVisita && 'border-amber-500 focus-visible:ring-amber-500')}
+          />
+          {showTitleError && !tituloVisita ? (
+            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Preencha o título para concluir a visita.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">Esse título identifica o serviço no histórico, relatório e gestão.</p>
+          )}
+        </div>
+
         {/* Header info */}
         <div className="p-4 bg-primary/5 rounded-xl border border-primary/20 space-y-3">
           <div className="flex items-center gap-3 text-sm">
@@ -251,6 +286,11 @@ export default function ResumoAtendimento() {
             <>
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary-foreground border-t-transparent mr-2" />
               Salvando...
+            </>
+          ) : !tituloVisita ? (
+            <>
+              <AlertCircle className="w-5 h-5 mr-2" />
+              Preencha o título para salvar
             </>
           ) : (
             <>

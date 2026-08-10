@@ -15,10 +15,9 @@ import { Check, ChevronRight, ClipboardList, Search, X, Loader2 } from 'lucide-r
 export default function TiposAtendimento() {
   useVisitRoute('/visita/tipos');
   const navigate = useNavigate();
-  const { data, setTiposAtendimento, setTitulo } = useAtendimento();
+  const { data, setTiposAtendimento } = useAtendimento();
   const { data: tipos, isLoading } = useTiposAtendimentoConfig();
   const [selectedTipos, setSelectedTipos] = useState<AtendimentoTipo[]>(data.tipos_atendimento);
-  const [tituloVisita, setTituloVisita] = useState(data.titulo ?? '');
   const [search, setSearch] = useState('');
 
   const toggleTipo = (tipo: AtendimentoTipo) => {
@@ -28,7 +27,6 @@ export default function TiposAtendimento() {
   };
 
   const handleContinue = () => {
-    setTitulo(tituloVisita.trim());
     setTiposAtendimento(selectedTipos);
     navigate('/visita/acoes');
   };
@@ -55,15 +53,6 @@ export default function TiposAtendimento() {
       />
 
       <div className="px-4 pb-2">
-        <div className="mb-3 space-y-2">
-          <label className="text-sm font-medium">Título da visita</label>
-          <Input
-            value={tituloVisita}
-            onChange={(e) => setTituloVisita(e.target.value)}
-            placeholder="Ex.: Visita técnica - ajuste da ETE"
-            className="h-11"
-          />
-        </div>
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <Input
