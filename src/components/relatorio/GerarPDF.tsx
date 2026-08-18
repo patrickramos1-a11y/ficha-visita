@@ -301,7 +301,7 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
       // Demands
       const demandasValidas = data.demandas.filter(d => d.descricao.trim());
       if (demandasValidas.length > 0) {
-        drawSectionHeader('DEMANDAS EM EXECUÇÃO (SISRAMOS)');
+        drawSectionHeader('DEMANDAS PARA RADAR VITAL');
         pdf.setFontSize(10);
         demandasValidas.forEach((demanda, i) => {
           checkNewPage(10);

@@ -9,7 +9,7 @@ const ORIGEM_FIXA = 'FICHA';
 const STATUS_EXECUCAO = 'EM_EXECUCAO';
 const STATUS_CONCLUIDA = 'CONCLUIDA';
 const PLANO_FIXO = 'AVULSO';
-const TOPICO_FALLBACK = 'Sisramos';
+const TOPICO_FALLBACK = 'Radar';
 const SUBTOPICO_FALLBACK = 'Visita';
 
 // Catálogo lookup type (subset of demandas_especificas with joined topicos/subtopicos)
@@ -41,7 +41,7 @@ function resolverDemanda(d: Demanda, catalogo: DemandaCatalogoLookup[] = []) {
  * Resolve tópico/subtópico para uma demanda:
  * 1. Pelo tipo de atendimento da demanda (vínculo cadastrado em Configurações)
  * 2. Pela primeira ação específica da visita que tenha vínculo
- * 3. Fallback fixo "Sisramos" / "Visita"
+ * 3. Fallback fixo "Radar" / "Visita"
  */
 function resolverTopicoSubtopico(d: Demanda, acoes: string[] = []): { topico: string; subtopico: string } {
   if (d.tipo_atendimento) {
@@ -76,7 +76,7 @@ export async function gerarProgramacaoXlsx(input: ProgramacaoInput): Promise<Blo
   const { atendimento, clienteNomes, responsavelNome, catalogo = [], acoesEspecificas = [] } = input;
 
   const resp = await fetch(TEMPLATE_URL);
-  if (!resp.ok) throw new Error('Falha ao carregar template da Programação');
+  if (!resp.ok) throw new Error('Falha ao carregar template da planilha');
   const arrayBuffer = await resp.arrayBuffer();
 
   const workbook = new ExcelJS.Workbook();
@@ -173,5 +173,5 @@ export async function baixarProgramacaoXlsx(input: ProgramacaoInput) {
     .trim()
     .replace(/\s+/g, '_')
     .slice(0, 40);
-  saveAs(blob, `Programacao_${data}_${primeiro}.xlsx`);
+  saveAs(blob, `Itens_visita_${data}_${primeiro}.xlsx`);
 }

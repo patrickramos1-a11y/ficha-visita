@@ -47,8 +47,8 @@ export default function SugestoesDemandas() {
       
       <PageHeader
         icon={Lightbulb}
-        title="Sugestões para SISRAMOS"
-        description="Demandas 'em execução' baseadas no checklist"
+        title="Demandas para Radar Vital"
+        description="Itens levantados na visita para revisar e enviar ao Radar"
       />
 
       <div className="flex-1 overflow-auto scroll-smooth-y px-4 pb-4 space-y-4">

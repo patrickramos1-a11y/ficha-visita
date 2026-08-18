@@ -1,7 +1,6 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { ArrowLeft, ArrowRight, Camera, CheckCircle2, ImagePlus, Leaf, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,12 +13,10 @@ import { MobileFooter } from '@/components/mobile';
 import { StructuredAnswer, type StructuredAnswerLabels } from '@/components/visita/StructuredAnswer';
 import { RegistroVisita } from '@/components/visita/RegistroVisita';
 import { AcompanhamentoStepper } from '@/components/visita/AcompanhamentoStepper';
-import { FinalizacaoVisita } from '@/components/visita/FinalizacaoVisita';
+import { EncerramentoVisita } from '@/components/visita/EncerramentoVisita';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useClientes } from '@/hooks/useClientes';
-import { useResponsaveis } from '@/hooks/useResponsaveis';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
-import { useSaveAtendimento } from '@/hooks/useSaveAtendimento';
 import type { AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
 const MODULE_STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Registro', 'Final'];
@@ -92,15 +89,10 @@ function Question({ label, value, onChange, labels }: { label: string; value: Si
 export default function AcompanhamentoAmbiental() {
   useVisitRoute('/visita/ambiental');
   const navigate = useNavigate();
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const finishingRef = useRef(false);
   const [step, setStep] = useState(0);
-  const { data, setTitulo, setAcompanhamentoAmbiental, addFotoFile, removeFoto, finalizarAtendimento } = useAtendimento();
+  const { data, setAcompanhamentoAmbiental } = useAtendimento();
   const { data: clientes = [] } = useClientes();
-  const { data: responsaveis = [] } = useResponsaveis();
   const ambiental = data.acompanhamento_ambiental;
-  const saveAtendimento = useSaveAtendimento();
 
   const [novaNc, setNovaNc] = useState<NaoConformidadeObra>({ id: crypto.randomUUID(), tipo: '', descricao: '', gravidade: 'MEDIA', acao_imediata: false, foto_vinculada: false, responsavel: '', prazo: '', status: 'PENDENTE' });
   const [novaPendencia, setNovaPendencia] = useState<PendenciaObra>({ id: crypto.randomUUID(), descricao: '', responsavel: '', prazo: '', prioridade: 'MEDIA', status: 'PENDENTE' });
@@ -112,21 +104,6 @@ export default function AcompanhamentoAmbiental() {
     setAcompanhamentoAmbiental((prev) => ({ ...prev, [section]: { ...prev[section], ...patch } }));
 
   const selectedClient = clientes.find((cliente) => cliente.id === ambiental.cliente_id);
-  const selectedResponsavel = responsaveis.find((responsavel) => responsavel.id === data.responsavel_id);
-  const finalFotos = data.fotos.filter((foto) => foto.tipo === 'final');
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = '';
-    if (files.length === 0) return;
-    try {
-      for (const file of files) await addFotoFile(file, 'final');
-      toast.success(files.length === 1 ? 'Foto adicionada' : `${files.length} fotos adicionadas`);
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao salvar foto');
-    }
-  };
 
   const addNc = () => {
     if (!novaNc.descricao.trim()) return;
@@ -140,23 +117,9 @@ export default function AcompanhamentoAmbiental() {
     setNovaPendencia({ id: crypto.randomUUID(), descricao: '', responsavel: '', prazo: '', prioridade: 'MEDIA', status: 'PENDENTE' });
   };
 
-  const canFinish = Boolean(ambiental.cliente_id && data.responsavel_id);
-  const handleFinalizar = async () => {
-    if (finishingRef.current) return;
-    if (!canFinish) {
-      toast.error('Informe cliente e responsável técnico');
-      setStep(0);
-      return;
-    }
-    finishingRef.current = true;
-    try {
-      const finalData = { ...data, data_fim: data.data_fim ?? new Date(), possui_foto_final: data.fotos.length > 0 };
-      finalizarAtendimento();
-      await saveAtendimento.mutateAsync(finalData);
-      navigate('/sucesso');
-    } finally {
-      finishingRef.current = false;
-    }
+  const validateBeforeSave = () => {
+    if (!ambiental.cliente_id) return 'Informe o cliente';
+    return null;
   };
 
   return (
@@ -166,10 +129,6 @@ export default function AcompanhamentoAmbiental() {
       <div className="flex-1 overflow-auto p-4 space-y-4 pb-32">
         {step === 0 && (
           <Section title="1. Identificação">
-            <div className="flex gap-3 rounded-md bg-lime-500/10 p-3 text-sm">
-              <Leaf className="mt-0.5 h-5 w-5 text-lime-700" />
-              <div className="flex-1 space-y-2"><Label htmlFor="titulo-ambiental">Título da visita</Label><Input id="titulo-ambiental" value={data.titulo ?? ''} onChange={(event) => setTitulo(event.target.value)} /><p className="text-xs text-muted-foreground">Título sugerido automaticamente; pode ser ajustado quando necessário.</p></div>
-            </div>
             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select value={ambiental.cliente_id} onValueChange={(cliente_id) => update({ cliente_id, cliente_nome: clientes.find((cliente) => cliente.id === cliente_id)?.nome })}>
@@ -259,43 +218,31 @@ export default function AcompanhamentoAmbiental() {
         {step === 5 && <RegistroVisita />}
 
         {step === 6 && (
-          <Section title="6. Fotos e revisão">
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" className="h-16 flex-col gap-1" onClick={() => cameraInputRef.current?.click()}><Camera className="h-5 w-5" />Tirar foto</Button>
-              <Button type="button" variant="outline" className="h-16 flex-col gap-1" onClick={() => galleryInputRef.current?.click()}><ImagePlus className="h-5 w-5" />Galeria</Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {FOTO_ITENS.map((item) => <Badge key={item} variant={ambiental.foto_itens.includes(item) ? 'default' : 'secondary'} className="cursor-pointer" onClick={() => update({ foto_itens: ambiental.foto_itens.includes(item) ? ambiental.foto_itens.filter((fotoItem) => fotoItem !== item) : [...ambiental.foto_itens, item] })}>{item}</Badge>)}
-            </div>
-            {finalFotos.length > 0 && <div className="grid grid-cols-3 gap-2">{finalFotos.map((foto, index) => <div key={foto.fotoId ?? foto.url} className="relative aspect-square overflow-hidden rounded-md bg-muted"><img src={foto.url} alt={`Foto ${index + 1}`} className="h-full w-full object-cover" /><button type="button" onClick={() => removeFoto(foto.url)} className="absolute right-1 top-1 rounded-full bg-destructive p-1 text-destructive-foreground"><Trash2 className="h-3 w-3" /></button></div>)}</div>}
-            <div className="rounded-md border p-3 text-sm">
-              <p className="font-medium">{data.titulo}</p>
-              <p className="text-muted-foreground">{selectedClient?.nome || 'Cliente não selecionado'} • {selectedResponsavel?.nome || 'Responsável não selecionado'}</p>
-              {ambiental.colaborador_nome && <p className="text-muted-foreground">Acompanhado por {ambiental.colaborador_nome}</p>}
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Badge variant="secondary">{ambiental.nao_conformidades.length} NC</Badge>
-                <Badge variant="secondary">{ambiental.pendencias.length} pendências</Badge>
-                <Badge variant="secondary">{data.fotos.length} fotos</Badge>
+          <div className="space-y-4">
+            <Section title="6. Itens da ficha fotografica">
+              <div className="flex flex-wrap gap-2">
+                {FOTO_ITENS.map((item) => <Badge key={item} variant={ambiental.foto_itens.includes(item) ? 'default' : 'secondary'} className="cursor-pointer" onClick={() => update({ foto_itens: ambiental.foto_itens.includes(item) ? ambiental.foto_itens.filter((fotoItem) => fotoItem !== item) : [...ambiental.foto_itens, item] })}>{item}</Badge>)}
               </div>
-            </div>
-            <FinalizacaoVisita />
-          </Section>
+            </Section>
+            <EncerramentoVisita
+              validateBeforeSave={validateBeforeSave}
+              summaryItems={[
+                { label: 'Cliente principal', value: selectedClient?.nome ?? 'Nao informado' },
+                { label: 'Colaborador que acompanhou', value: ambiental.colaborador_nome || 'Nao informado' },
+                { label: 'Nao conformidades', value: ambiental.nao_conformidades.length },
+                { label: 'Pendencias', value: ambiental.pendencias.length },
+              ]}
+            />
+          </div>
         )}
       </div>
 
-      <MobileFooter>
+      {step < MODULE_STEPS.length - 1 && <MobileFooter>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={() => setStep((current) => Math.max(0, current - 1))} disabled={step === 0}><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Button>
-          {step < MODULE_STEPS.length - 1 ? (
-            <Button onClick={() => setStep((current) => Math.min(MODULE_STEPS.length - 1, current + 1))}>Continuar<ArrowRight className="ml-2 h-4 w-4" /></Button>
-          ) : (
-            <Button onClick={handleFinalizar} disabled={saveAtendimento.isPending || !canFinish}><CheckCircle2 className="mr-2 h-4 w-4" />Finalizar</Button>
-          )}
+          <Button onClick={() => setStep((current) => Math.min(MODULE_STEPS.length - 1, current + 1))}>Continuar<ArrowRight className="ml-2 h-4 w-4" /></Button>
         </div>
-      </MobileFooter>
-
-      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
-      <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="hidden" />
+      </MobileFooter>}
     </MobileLayout>
   );
 }

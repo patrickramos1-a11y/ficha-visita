@@ -1,27 +1,29 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Home, Plus } from 'lucide-react';
+import { CheckCircle, ClipboardList, ExternalLink, Home, Plus, Send } from 'lucide-react';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
-import { useClientes } from '@/hooks/useClientes';
-import { useResponsaveis } from '@/hooks/useResponsaveis';
-import { BaixarProgramacaoButton } from '@/components/relatorio/BaixarProgramacaoButton';
+
+type SuccessState = {
+  atendimentoId?: string;
+  titulo?: string;
+  modo?: string;
+  hasRadarItems?: boolean;
+  hasReport?: boolean;
+};
 
 export default function Sucesso() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data, resetAtendimento } = useAtendimento();
-  const { data: clientes = [] } = useClientes();
-  const { data: responsaveis = [] } = useResponsaveis();
-
-  const clienteNomes = data.cliente_ids
-    .map(id => clientes.find(c => c.id === id)?.nome)
-    .filter(Boolean) as string[];
-  const responsavelNome = responsaveis.find(r => r.id === data.responsavel_id)?.nome;
-  const temDemandas = (data.demandas?.length || 0) > 0;
+  const state = (location.state ?? {}) as SuccessState;
+  const atendimentoId = state.atendimentoId ?? data.sync_id;
+  const hasRadarItems = state.hasRadarItems ?? data.demandas.some((demanda) => demanda.descricao.trim()) ?? false;
+  const hasReport = state.hasReport ?? (data.modo === 'obras' || data.modo === 'ambiental');
 
   const handleNovaVisita = () => {
     resetAtendimento();
-    navigate('/visita/foto-inicial');
+    navigate('/desktop/iniciar-visita');
   };
 
   return (
@@ -55,19 +57,39 @@ export default function Sucesso() {
             Nova Visita
           </Button>
 
-          {temDemandas && (
-            <BaixarProgramacaoButton
-              atendimento={data}
-              clienteNomes={clienteNomes}
-              responsavelNome={responsavelNome}
-              acoesEspecificas={data.acoes_especificas}
-              fullWidth
-              className="h-12"
-            />
+          {hasReport && atendimentoId && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/relatorio/visita/${atendimentoId}`)}
+              className="w-full h-12 haptic-press"
+            >
+              <ExternalLink className="w-5 h-5 mr-2" />
+              Ver relatório
+            </Button>
+          )}
+
+          {hasRadarItems && (
+            <Button
+              variant="outline"
+              onClick={() => navigate('/desktop/gestao')}
+              className="w-full h-12 haptic-press"
+            >
+              <Send className="w-5 h-5 mr-2" />
+              Revisar envio ao Radar
+            </Button>
           )}
 
           <Button 
             variant="outline"
+            onClick={() => navigate('/desktop/historico')}
+            className="w-full h-12 haptic-press"
+          >
+            <ClipboardList className="w-5 h-5 mr-2" />
+            Ver histórico
+          </Button>
+
+          <Button 
+            variant="ghost"
             onClick={() => navigate('/')}
             className="w-full h-12 haptic-press"
           >

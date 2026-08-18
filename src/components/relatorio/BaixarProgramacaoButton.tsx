@@ -73,7 +73,7 @@ export function BaixarProgramacaoButton({
       ) : (
         <FileSpreadsheet className="w-4 h-4 mr-2" />
       )}
-      Baixar Programação (.xlsx)
+      Exportar itens (.xlsx)
     </Button>
   );
 }
