@@ -26,7 +26,7 @@ export default function SugestoesDemandas() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/acoes')} title="Radar Vital">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={5} />
+      <ProgressStepper steps={VISIT_STEPS} currentStep={4} />
 
       <PageHeader
         icon={Send}

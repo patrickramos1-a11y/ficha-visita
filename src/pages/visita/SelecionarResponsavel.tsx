@@ -15,7 +15,7 @@ export default function SelecionarResponsavel() {
 
   const handleSelect = (id: string) => {
     setResponsavelId(id);
-    navigate(data.modo === 'obras' ? '/visita/obras' : data.modo === 'ambiental' ? '/visita/ambiental' : data.modo === 'processos' ? '/visita/processos' : data.modo === 'rapida' ? '/visita/rapida/tipos' : '/visita/anotacoes');
+    navigate(data.modo === 'obras' ? '/visita/obras' : data.modo === 'ambiental' ? '/visita/ambiental' : data.modo === 'processos' ? '/visita/processos' : data.modo === 'rapida' ? '/visita/rapida/tipos' : '/visita/tipos');
   };
 
   return (

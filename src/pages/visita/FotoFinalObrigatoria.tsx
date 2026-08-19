@@ -78,7 +78,7 @@ export default function FotoFinalObrigatoria() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/clientes')} title="Foto Final">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={7} />
+      <ProgressStepper steps={VISIT_STEPS} currentStep={6} />
       
       {/* Status Banner */}
       <div className="px-4 py-4">

@@ -115,7 +115,6 @@ export function ProgressStepper({ steps, currentStep }: ProgressStepperProps) {
 export const VISIT_STEPS = [
   { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' },
   { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
-  { id: 'anotacoes', label: 'Notas', route: '/visita/anotacoes' },
   { id: 'tipos', label: 'Tipos', route: '/visita/tipos' },
   { id: 'acoes', label: 'Ações', route: '/visita/acoes' },
   { id: 'demandas', label: 'Radar', route: '/visita/demandas' },

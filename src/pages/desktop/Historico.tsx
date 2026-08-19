@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { DesktopLayout } from '@/components/layout/DesktopLayout';
@@ -20,10 +20,65 @@ import {
   Search, Eye, ChevronLeft, ChevronRight, X, Calendar, User, Copy, FileText
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { isConformityVisitMode } from '@/lib/conformityReport';
+import {
+  buildEnvironmentalConformityReport,
+  buildWorksConformityReport,
+  isConformityVisitMode,
+} from '@/lib/conformityReport';
 import { toast } from 'sonner';
 
 const ITEMS_PER_PAGE = 10;
+const PERIOD_FILTERS = [
+  { value: 'all', label: 'Todos' },
+  { value: '7d', label: 'Última semana' },
+  { value: '30d', label: 'Últimos 30 dias' },
+] as const;
+
+const MODE_FILTERS = [
+  { value: 'all', label: 'Todas' },
+  { value: 'completa', label: 'Atendimento' },
+  { value: 'rapida', label: 'Rápida' },
+  { value: 'obras', label: 'Obras' },
+  { value: 'ambiental', label: 'Ambiental' },
+  { value: 'processos', label: 'Processos' },
+] as const;
+
+function getVisitClients(atendimento: any) {
+  const related = (atendimento.atendimento_clientes ?? [])
+    .map((row: any) => row.clientes?.nome || row.cliente?.nome)
+    .filter(Boolean);
+  const names = [...new Set([
+    ...related,
+    atendimento.cliente?.nome,
+    atendimento.dados_modalidade?.cliente_nome,
+  ].filter(Boolean))];
+  return names;
+}
+
+function getVisitClientIds(atendimento: any) {
+  return [...new Set([
+    ...(atendimento.atendimento_clientes ?? []).map((row: any) => row.cliente_id).filter(Boolean),
+    atendimento.cliente?.id,
+    atendimento.cliente_id,
+    atendimento.dados_modalidade?.cliente_id,
+  ].filter(Boolean))];
+}
+
+function getModeLabel(modo?: string | null) {
+  if (modo === 'obras') return 'Obras';
+  if (modo === 'ambiental') return 'Ambiental';
+  if (modo === 'processos') return 'Processos';
+  if (modo === 'rapida') return 'Rápida';
+  return 'Atendimento';
+}
+
+function getConformityPercentage(atendimento: any) {
+  if (!isConformityVisitMode(atendimento.modo) || !atendimento.dados_modalidade) return null;
+  const summary = atendimento.modo === 'obras'
+    ? buildWorksConformityReport(atendimento.dados_modalidade)
+    : buildEnvironmentalConformityReport(atendimento.dados_modalidade);
+  return summary.percentage;
+}
 
 export default function DesktopHistorico() {
   const navigate = useNavigate();
@@ -32,6 +87,8 @@ export default function DesktopHistorico() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [clienteFilter, setClienteFilter] = useState<string>('all');
   const [responsavelFilter, setResponsavelFilter] = useState<string>('all');
+  const [periodFilter, setPeriodFilter] = useState<string>('all');
+  const [modeFilter, setModeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -40,7 +97,7 @@ export default function DesktopHistorico() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('atendimentos')
-        .select(`*, cliente:clientes(id, nome), responsavel:responsaveis(id, nome)`)
+        .select(`*, cliente:clientes(id, nome), responsavel:responsaveis(id, nome), atendimento_clientes(cliente_id, clientes(id, nome))`)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
@@ -65,24 +122,36 @@ export default function DesktopHistorico() {
     },
   });
 
-  const filteredAtendimentos = atendimentos?.filter(a => {
+  const filteredAtendimentos = useMemo(() => (atendimentos?.filter(a => {
     if (search) {
       const s = search.toLowerCase();
+      const clientNames = getVisitClients(a).join(' ').toLowerCase();
       const m0 = a.titulo?.toLowerCase().includes(s);
-      const m1 = a.cliente?.nome?.toLowerCase().includes(s);
+      const m1 = clientNames.includes(s);
       const m2 = a.responsavel?.nome?.toLowerCase().includes(s);
       const m3 = a.tipos_atendimento?.some((t: string) => t.toLowerCase().includes(s));
       const m4 = (a.dados_modalidade as any)?.obra_nome?.toLowerCase?.().includes(s);
       if (!m0 && !m1 && !m2 && !m3 && !m4) return false;
     }
+    if (periodFilter !== 'all') {
+      const visitDate = new Date(a.created_at);
+      const threshold = new Date();
+      threshold.setDate(threshold.getDate() - (periodFilter === '7d' ? 7 : 30));
+      if (visitDate < threshold) return false;
+    }
+    if (modeFilter !== 'all') {
+      const modo = a.modo || 'completa';
+      if (modeFilter === 'completa' && modo !== 'completa' && modo !== 'atendimento') return false;
+      if (modeFilter !== 'completa' && modo !== modeFilter) return false;
+    }
     if (statusFilter !== 'all') {
       if (statusFilter === 'finalizado' && !a.finalizado) return false;
       if (statusFilter === 'pendente' && a.finalizado) return false;
     }
-    if (clienteFilter !== 'all' && a.cliente?.id !== clienteFilter) return false;
+    if (clienteFilter !== 'all' && !getVisitClientIds(a).includes(clienteFilter)) return false;
     if (responsavelFilter !== 'all' && a.responsavel?.id !== responsavelFilter) return false;
     return true;
-  }) || [];
+  }) || []), [atendimentos, clienteFilter, modeFilter, periodFilter, responsavelFilter, search, statusFilter]);
 
   const totalPages = Math.ceil(filteredAtendimentos.length / ITEMS_PER_PAGE);
   const paginatedAtendimentos = filteredAtendimentos.slice(
@@ -95,11 +164,13 @@ export default function DesktopHistorico() {
     setStatusFilter('all');
     setClienteFilter('all');
     setResponsavelFilter('all');
+    setPeriodFilter('all');
+    setModeFilter('all');
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = search || statusFilter !== 'all' || clienteFilter !== 'all' || responsavelFilter !== 'all';
-  const activeFiltersCount = [statusFilter !== 'all', clienteFilter !== 'all', responsavelFilter !== 'all'].filter(Boolean).length;
+  const hasActiveFilters = search || statusFilter !== 'all' || clienteFilter !== 'all' || responsavelFilter !== 'all' || periodFilter !== 'all' || modeFilter !== 'all';
+  const activeFiltersCount = [statusFilter !== 'all', clienteFilter !== 'all', responsavelFilter !== 'all', periodFilter !== 'all', modeFilter !== 'all'].filter(Boolean).length;
 
   const copyReportLink = async (id: string) => {
     try {
@@ -110,8 +181,47 @@ export default function DesktopHistorico() {
     }
   };
 
+  const quickButtonClass = (active: boolean) =>
+    active
+      ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+      : 'bg-card hover:bg-muted';
+
   const FilterContent = () => (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Período</label>
+        <div className="flex flex-wrap gap-2">
+          {PERIOD_FILTERS.map((filter) => (
+            <Button
+              key={filter.value}
+              type="button"
+              variant="outline"
+              size="sm"
+              className={quickButtonClass(periodFilter === filter.value)}
+              onClick={() => { setPeriodFilter(filter.value); setCurrentPage(1); }}
+            >
+              {filter.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Tipo de levantamento</label>
+        <div className="flex flex-wrap gap-2">
+          {MODE_FILTERS.map((filter) => (
+            <Button
+              key={filter.value}
+              type="button"
+              variant="outline"
+              size="sm"
+              className={quickButtonClass(modeFilter === filter.value)}
+              onClick={() => { setModeFilter(filter.value); setCurrentPage(1); }}
+            >
+              {filter.label}
+            </Button>
+          ))}
+        </div>
+      </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Status</label>
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
@@ -142,6 +252,26 @@ export default function DesktopHistorico() {
             {responsaveis?.map(r => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
           </SelectContent>
         </Select>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Responsáveis rápidos</label>
+        <div className="flex flex-wrap gap-2">
+          {responsaveis?.map((responsavel) => (
+            <Button
+              key={responsavel.id}
+              type="button"
+              variant="outline"
+              size="sm"
+              className={quickButtonClass(responsavelFilter === responsavel.id)}
+              onClick={() => {
+                setResponsavelFilter(responsavelFilter === responsavel.id ? 'all' : responsavel.id);
+                setCurrentPage(1);
+              }}
+            >
+              {responsavel.nome}
+            </Button>
+          ))}
+        </div>
       </div>
       {hasActiveFilters && (
         <Button variant="outline" onClick={clearFilters} className="w-full gap-2">
@@ -201,6 +331,58 @@ export default function DesktopHistorico() {
           )}
         </div>
 
+        <div className="space-y-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
+            {PERIOD_FILTERS.map((filter) => (
+              <Button
+                key={filter.value}
+                variant="outline"
+                size="sm"
+                className={`h-8 shrink-0 text-xs ${quickButtonClass(periodFilter === filter.value)}`}
+                onClick={() => { setPeriodFilter(filter.value); setCurrentPage(1); }}
+              >
+                {filter.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
+            {MODE_FILTERS.map((filter) => (
+              <Button
+                key={filter.value}
+                variant="outline"
+                size="sm"
+                className={`h-8 shrink-0 text-xs ${quickButtonClass(modeFilter === filter.value)}`}
+                onClick={() => { setModeFilter(filter.value); setCurrentPage(1); }}
+              >
+                {filter.label}
+              </Button>
+            ))}
+          </div>
+          {!!responsaveis?.length && (
+            <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
+              <Button
+                variant="outline"
+                size="sm"
+                className={`h-8 shrink-0 text-xs ${quickButtonClass(responsavelFilter === 'all')}`}
+                onClick={() => { setResponsavelFilter('all'); setCurrentPage(1); }}
+              >
+                Todos responsáveis
+              </Button>
+              {responsaveis.map((responsavel) => (
+                <Button
+                  key={responsavel.id}
+                  variant="outline"
+                  size="sm"
+                  className={`h-8 shrink-0 text-xs ${quickButtonClass(responsavelFilter === responsavel.id)}`}
+                  onClick={() => { setResponsavelFilter(responsavel.id); setCurrentPage(1); }}
+                >
+                  {responsavel.nome}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Count */}
         <p className="text-xs text-muted-foreground">
           {filteredAtendimentos.length} resultado{filteredAtendimentos.length !== 1 ? 's' : ''}
@@ -215,7 +397,10 @@ export default function DesktopHistorico() {
           <div className="text-center py-12 text-muted-foreground text-sm">Nenhum atendimento encontrado</div>
         ) : isMobile ? (
           <div className="space-y-2">
-            {paginatedAtendimentos.map((a) => (
+            {paginatedAtendimentos.map((a) => {
+              const clientNames = getVisitClients(a);
+              const conformity = getConformityPercentage(a);
+              return (
               <Card 
                 key={a.id}
                 className="active:scale-[0.99] transition-transform cursor-pointer"
@@ -233,8 +418,12 @@ export default function DesktopHistorico() {
                       <Badge variant="outline" className="text-[10px] h-5 px-1.5">Pendente</Badge>
                     )}
                   </div>
-                  <p className="font-medium text-sm truncate">{a.titulo || a.cliente?.nome || 'Atendimento'}</p>
-                  {a.cliente?.nome && <p className="text-xs text-muted-foreground truncate">{a.cliente.nome}</p>}
+                  <p className="font-medium text-sm truncate">{a.titulo || clientNames[0] || 'Atendimento'}</p>
+                  {clientNames.length > 0 && (
+                    <p className="text-xs font-medium text-foreground/80 truncate">
+                      {clientNames.join(', ')}
+                    </p>
+                  )}
                   {(a.dados_modalidade as any)?.obra_nome && <p className="text-xs text-muted-foreground truncate">{(a.dados_modalidade as any).obra_nome}</p>}
                   {a.responsavel?.nome && (
                     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-1">
@@ -242,17 +431,14 @@ export default function DesktopHistorico() {
                       <span className="truncate">{a.responsavel.nome}</span>
                     </div>
                   )}
-                  {a.tipos_atendimento?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {a.tipos_atendimento.slice(0, 2).map((tipo: string, i: number) => (
-                        <Badge key={i} variant="secondary" className="text-[10px] h-5 px-1.5">{tipo}</Badge>
-                      ))}
-                      {a.tipos_atendimento.length > 2 && (
-                        <Badge variant="outline" className="text-[10px] h-5 px-1.5">+{a.tipos_atendimento.length - 2}</Badge>
-                      )}
-                    </div>
-                  )}
-                  {a.modo && a.modo !== 'completa' && <Badge variant="outline" className="text-[10px] h-5 px-1.5 mt-2">{a.modo === 'obras' ? 'Obras' : a.modo === 'ambiental' ? 'Ambiental' : 'Rápida'}</Badge>}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">{getModeLabel(a.modo)}</Badge>
+                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5">Tipos: {a.tipos_atendimento?.length ?? 0}</Badge>
+                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5">Ações: {a.acoes_especificas?.length ?? 0}</Badge>
+                    {conformity !== null && (
+                      <Badge className="bg-primary/10 text-primary text-[10px] h-5 px-1.5">Conformidade: {conformity}%</Badge>
+                    )}
+                  </div>
                   {isConformityVisitMode(a.modo) && (
                     <div className="mt-3 flex gap-2" onClick={(event) => event.stopPropagation()}>
                       <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => navigate(`/relatorio/visita/${a.id}`)}><FileText className="h-3.5 w-3.5" />Ver relatório</Button>
@@ -261,7 +447,8 @@ export default function DesktopHistorico() {
                   )}
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="bg-card border rounded-lg overflow-hidden">
@@ -288,15 +475,16 @@ export default function DesktopHistorico() {
                       <div className="font-medium">{a.titulo || '—'}</div>
                       {(a.dados_modalidade as any)?.obra_nome && <div className="text-xs text-muted-foreground">{(a.dados_modalidade as any).obra_nome}</div>}
                     </TableCell>
-                    <TableCell>{a.cliente?.nome || '—'}</TableCell>
+                    <TableCell>{getVisitClients(a).join(', ') || '—'}</TableCell>
                     <TableCell>{a.responsavel?.nome || '—'}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {a.modo && a.modo !== 'completa' && <Badge variant="outline" className="text-xs">{a.modo === 'obras' ? 'Obras' : a.modo === 'ambiental' ? 'Ambiental' : 'Rápida'}</Badge>}
-                        {a.tipos_atendimento?.slice(0, 2).map((tipo: string, i: number) => (
-                          <Badge key={i} variant="secondary" className="text-xs">{tipo}</Badge>
-                        ))}
-                        {a.tipos_atendimento?.length > 2 && <Badge variant="outline" className="text-xs">+{a.tipos_atendimento.length - 2}</Badge>}
+                        <Badge variant="outline" className="text-xs">{getModeLabel(a.modo)}</Badge>
+                        <Badge variant="secondary" className="text-xs">Tipos: {a.tipos_atendimento?.length ?? 0}</Badge>
+                        <Badge variant="secondary" className="text-xs">Ações: {a.acoes_especificas?.length ?? 0}</Badge>
+                        {getConformityPercentage(a) !== null && (
+                          <Badge className="bg-primary/10 text-primary text-xs">Conformidade: {getConformityPercentage(a)}%</Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

@@ -8,8 +8,39 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar, User, Building2, FileText, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { isConformityVisitMode } from '@/lib/conformityReport';
+import {
+  buildEnvironmentalConformityReport,
+  buildWorksConformityReport,
+  isConformityVisitMode,
+} from '@/lib/conformityReport';
 import { toast } from 'sonner';
+
+function getVisitClients(atendimento: any) {
+  const related = (atendimento.atendimento_clientes ?? [])
+    .map((row: any) => row.clientes?.nome || row.cliente?.nome)
+    .filter(Boolean);
+  return [...new Set([
+    ...related,
+    atendimento.cliente?.nome,
+    atendimento.dados_modalidade?.cliente_nome,
+  ].filter(Boolean))];
+}
+
+function getModeLabel(modo?: string | null) {
+  if (modo === 'obras') return 'Obras';
+  if (modo === 'ambiental') return 'Ambiental';
+  if (modo === 'processos') return 'Processos';
+  if (modo === 'rapida') return 'Rápida';
+  return 'Atendimento';
+}
+
+function getConformityPercentage(atendimento: any) {
+  if (!isConformityVisitMode(atendimento.modo) || !atendimento.dados_modalidade) return null;
+  const summary = atendimento.modo === 'obras'
+    ? buildWorksConformityReport(atendimento.dados_modalidade)
+    : buildEnvironmentalConformityReport(atendimento.dados_modalidade);
+  return summary.percentage;
+}
 
 export default function Historico() {
   const navigate = useNavigate();
@@ -31,7 +62,8 @@ export default function Historico() {
         .select(`
           *,
           cliente:clientes(nome),
-          responsavel:responsaveis(nome)
+          responsavel:responsaveis(nome),
+          atendimento_clientes(cliente_id, clientes(id, nome))
         `)
         .order('created_at', { ascending: false });
       
@@ -55,7 +87,10 @@ export default function Historico() {
           />
         ) : (
           <div className="space-y-3">
-            {atendimentos?.map((atendimento) => (
+            {atendimentos?.map((atendimento) => {
+              const clientNames = getVisitClients(atendimento);
+              const conformity = getConformityPercentage(atendimento);
+              return (
               <div
                 key={atendimento.id}
                 className={cn(
@@ -77,11 +112,11 @@ export default function Historico() {
                 </div>
 
                 {/* Client */}
-                <div className="font-medium">{atendimento.titulo || 'Atendimento'}</div>
-                {atendimento.cliente && (
+                <div className="font-medium">{atendimento.titulo || clientNames[0] || 'Atendimento'}</div>
+                {clientNames.length > 0 && (
                   <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">{atendimento.cliente.nome}</span>
+                    <span className="font-medium">{clientNames.join(', ')}</span>
                   </div>
                 )}
                 {(atendimento.dados_modalidade as any)?.obra_nome && (
@@ -99,26 +134,14 @@ export default function Historico() {
                 )}
 
                 {/* Types */}
-                {atendimento.modo && atendimento.modo !== 'completa' && (
-                  <span className="inline-flex w-fit px-2.5 py-1 bg-secondary text-secondary-foreground text-xs rounded-full">{atendimento.modo === 'obras' ? 'Acompanhamento de Obras' : atendimento.modo === 'ambiental' ? 'Acompanhamento Ambiental' : 'Visita Rápida'}</span>
-                )}
-                {atendimento.tipos_atendimento && atendimento.tipos_atendimento.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {atendimento.tipos_atendimento.slice(0, 3).map((tipo: string, i: number) => (
-                      <span 
-                        key={i}
-                        className="px-2.5 py-1 bg-secondary text-secondary-foreground text-xs rounded-full"
-                      >
-                        {tipo}
-                      </span>
-                    ))}
-                    {atendimento.tipos_atendimento.length > 3 && (
-                      <span className="px-2.5 py-1 bg-muted text-muted-foreground text-xs rounded-full">
-                        +{atendimento.tipos_atendimento.length - 3}
-                      </span>
-                    )}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="inline-flex w-fit px-2.5 py-1 bg-secondary text-secondary-foreground text-xs rounded-full">{getModeLabel(atendimento.modo)}</span>
+                  <span className="inline-flex w-fit px-2.5 py-1 bg-secondary text-secondary-foreground text-xs rounded-full">Tipos: {atendimento.tipos_atendimento?.length ?? 0}</span>
+                  <span className="inline-flex w-fit px-2.5 py-1 bg-secondary text-secondary-foreground text-xs rounded-full">Ações: {atendimento.acoes_especificas?.length ?? 0}</span>
+                  {conformity !== null && (
+                    <span className="inline-flex w-fit px-2.5 py-1 bg-primary/10 text-primary text-xs rounded-full">Conformidade: {conformity}%</span>
+                  )}
+                </div>
                 {isConformityVisitMode(atendimento.modo) && (
                   <div className="flex gap-2 pt-1">
                     <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/relatorio/visita/${atendimento.id}`)}><FileText className="h-3.5 w-3.5" />Ver relatório</Button>
@@ -126,7 +149,8 @@ export default function Historico() {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

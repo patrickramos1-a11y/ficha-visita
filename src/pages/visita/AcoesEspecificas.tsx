@@ -35,7 +35,7 @@ export default function AcoesEspecificas() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/tipos')} title="Ações Específicas">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={4} />
+      <ProgressStepper steps={VISIT_STEPS} currentStep={3} />
 
       <PageHeader
         icon={Wrench}
