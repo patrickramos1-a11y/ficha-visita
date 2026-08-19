@@ -41,7 +41,7 @@ export default function ClientesRapida() {
     else addClienteId(id);
   };
 
-  const handleContinue = () => navigate('/visita/rapida/responsavel');
+  const handleContinue = () => navigate('/visita/rapida/radar');
 
   const openCreateDialog = () => {
     setNovoNome(search.trim());
@@ -74,7 +74,7 @@ export default function ClientesRapida() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/rapida/tipos')} title="Cliente">
-      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={1} />
+      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={3} />
 
       <PageHeader
         icon={Users}

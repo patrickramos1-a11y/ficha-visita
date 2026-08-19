@@ -43,8 +43,8 @@ export default function FotosRapida() {
   };
 
   return (
-    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/rapida/responsavel')} title="Fotos">
-      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={3} />
+    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/rapida/radar')} title="Fotos">
+      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={5} />
 
       <div className="px-4 py-4">
         <div className={cn(

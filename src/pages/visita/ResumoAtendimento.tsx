@@ -17,7 +17,7 @@ export default function ResumoAtendimento() {
   };
 
   return (
-    <MobileLayout showCancelVisita showBack onBack={() => navigate(data.modo === 'rapida' ? '/visita/rapida/fotos' : '/visita/foto-final')} title="Finalizar visita">
+    <MobileLayout showCancelVisita showBack onBack={() => navigate(data.modo === 'rapida' ? '/visita/rapida/radar' : '/visita/foto-final')} title="Finalizar visita">
       <ProgressStepper steps={steps} currentStep={steps.length - 1} />
       <div className="flex-1 overflow-auto p-4 pb-10">
         <EncerramentoVisita

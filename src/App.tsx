@@ -28,6 +28,7 @@ import TiposRapida from "./pages/visita/rapida/TiposRapida";
 import ClientesRapida from "./pages/visita/rapida/ClientesRapida";
 import ResponsavelRapida from "./pages/visita/rapida/ResponsavelRapida";
 import FotosRapida from "./pages/visita/rapida/FotosRapida";
+import RadarRapida from "./pages/visita/rapida/RadarRapida";
 import AcompanhamentoObras from "./pages/visita/AcompanhamentoObras";
 import AcompanhamentoAmbiental from "./pages/visita/AcompanhamentoAmbiental";
 import AcompanhamentoProcessos from "./pages/visita/AcompanhamentoProcessos";
@@ -92,6 +93,7 @@ function Application() {
             <Route path="/visita/foto-final" element={<FotoFinalObrigatoria />} />
             <Route path="/visita/rapida/tipos" element={<TiposRapida />} />
             <Route path="/visita/rapida/clientes" element={<ClientesRapida />} />
+            <Route path="/visita/rapida/radar" element={<RadarRapida />} />
             <Route path="/visita/rapida/responsavel" element={<ResponsavelRapida />} />
             <Route path="/visita/rapida/fotos" element={<FotosRapida />} />
             <Route path="/visita/obras" element={<AcompanhamentoObras />} />

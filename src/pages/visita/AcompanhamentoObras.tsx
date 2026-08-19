@@ -15,13 +15,14 @@ import { StructuredAnswer, type StructuredAnswerLabels } from '@/components/visi
 import { RegistroVisita } from '@/components/visita/RegistroVisita';
 import { AcompanhamentoStepper } from '@/components/visita/AcompanhamentoStepper';
 import { EncerramentoVisita } from '@/components/visita/EncerramentoVisita';
+import { RadarVisita } from '@/components/visita/RadarVisita';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useClientes } from '@/hooks/useClientes';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { supabase } from '@/integrations/supabase/client';
 import type { AvancoObraFaixa, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
-const MODULE_STEPS = ['Identificação', 'Situação', 'Ambiente', 'Segurança', 'Resíduos/água', 'Pendências', 'Registro', 'Final'];
+const MODULE_STEPS = ['Identificação', 'Situação', 'Ambiente', 'Segurança', 'Resíduos/água', 'Pendências', 'Registro', 'Radar', 'Final'];
 const STEPS = ['Foto', 'Técnico', ...MODULE_STEPS];
 const STATUS_OBRA = ['Em planejamento', 'Em execução', 'Paralisada', 'Atrasada', 'Concluída'];
 const FASES_OBRA = ['Mobilização', 'Terraplenagem', 'Fundação', 'Estrutura', 'Alvenaria', 'Instalações', 'Acabamento', 'Entrega'];
@@ -314,9 +315,11 @@ export default function AcompanhamentoObras() {
 
         {step === 6 && <RegistroVisita />}
 
-        {step === 7 && (
+        {step === 7 && <RadarVisita />}
+
+        {step === 8 && (
           <div className="space-y-4">
-            <Section title="7. Itens da ficha fotografica">
+            <Section title="Itens da ficha fotografica">
               <div className="flex flex-wrap gap-2">
                 {FOTO_ITENS.map((item) => (
                   <Badge key={item} variant={obra.foto_itens.includes(item) ? 'default' : 'secondary'} className="cursor-pointer" onClick={() => updateObra({ foto_itens: obra.foto_itens.includes(item) ? obra.foto_itens.filter((fotoItem) => fotoItem !== item) : [...obra.foto_itens, item] })}>{item}</Badge>

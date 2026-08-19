@@ -43,7 +43,7 @@ export default function TiposRapida() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/')} title="Visita Rápida">
-      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={0} />
+      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={2} />
 
       <PageHeader
         icon={ClipboardList}

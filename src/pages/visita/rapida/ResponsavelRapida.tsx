@@ -15,12 +15,12 @@ export default function ResponsavelRapida() {
 
   const handleSelect = (id: string) => {
     setResponsavelId(id);
-    navigate('/visita/rapida/fotos');
+    navigate('/visita/rapida/tipos');
   };
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/rapida/clientes')} title="Técnico">
-      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={2} />
+      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={1} />
 
       <PageHeader
         icon={User}

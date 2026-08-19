@@ -14,12 +14,13 @@ import { StructuredAnswer, type StructuredAnswerLabels } from '@/components/visi
 import { RegistroVisita } from '@/components/visita/RegistroVisita';
 import { AcompanhamentoStepper } from '@/components/visita/AcompanhamentoStepper';
 import { EncerramentoVisita } from '@/components/visita/EncerramentoVisita';
+import { RadarVisita } from '@/components/visita/RadarVisita';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useClientes } from '@/hooks/useClientes';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import type { AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
-const MODULE_STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Registro', 'Final'];
+const MODULE_STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Registro', 'Radar', 'Final'];
 const STEPS = ['Foto', 'Técnico', ...MODULE_STEPS];
 const FOTO_ITENS = ['Fachada/identificação', 'Área de produção', 'Armazenamento de resíduos', 'Lixeiras/segregação', 'ETE', 'Poço', 'Reservatório', 'Ponto de lançamento', 'Área externa', 'Não conformidade', 'Correção realizada'];
 const ANSWER_LABELS = {
@@ -217,9 +218,11 @@ export default function AcompanhamentoAmbiental() {
 
         {step === 5 && <RegistroVisita />}
 
-        {step === 6 && (
+        {step === 6 && <RadarVisita />}
+
+        {step === 7 && (
           <div className="space-y-4">
-            <Section title="6. Itens da ficha fotografica">
+            <Section title="Itens da ficha fotografica">
               <div className="flex flex-wrap gap-2">
                 {FOTO_ITENS.map((item) => <Badge key={item} variant={ambiental.foto_itens.includes(item) ? 'default' : 'secondary'} className="cursor-pointer" onClick={() => update({ foto_itens: ambiental.foto_itens.includes(item) ? ambiental.foto_itens.filter((fotoItem) => fotoItem !== item) : [...ambiental.foto_itens, item] })}>{item}</Badge>)}
               </div>
