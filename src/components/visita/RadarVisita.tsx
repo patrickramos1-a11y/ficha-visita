@@ -4,9 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
-import type { Demanda, DemandaStatus } from '@/types/atendimento';
+import type { Demanda } from '@/types/atendimento';
 
 export function RadarVisita() {
   const { data, addDemanda, updateDemanda, removeDemanda, addAnotacao, updateAnotacao, removeAnotacao } = useAtendimento();
@@ -63,20 +62,7 @@ export function RadarVisita() {
           <div className="space-y-2">
             {demandasValidas.map(({ demanda, index }) => (
               <div key={demanda.id ?? index} className="space-y-2 rounded-md border p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <Select
-                    value={demanda.status || 'EM_EXECUCAO'}
-                    onValueChange={(value) => updateDemanda(index, { ...demanda, status: value as DemandaStatus })}
-                  >
-                    <SelectTrigger className="h-9 w-[145px] text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EM_EXECUCAO">Em execução</SelectItem>
-                      <SelectItem value="CONCLUIDA">Concluída</SelectItem>
-                      <SelectItem value="NAO_FEITO">Não feito</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center justify-end gap-2">
                   <Button type="button" variant="ghost" size="icon" onClick={() => removeDemanda(index)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
