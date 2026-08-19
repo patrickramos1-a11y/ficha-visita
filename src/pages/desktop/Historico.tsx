@@ -72,6 +72,31 @@ function getModeLabel(modo?: string | null) {
   return 'Atendimento';
 }
 
+function getModeBadgeClass(modo?: string | null) {
+  if (modo === 'obras') return 'border-orange-200 bg-orange-50 text-orange-700';
+  if (modo === 'ambiental') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (modo === 'processos') return 'border-violet-200 bg-violet-50 text-violet-700';
+  if (modo === 'rapida') return 'border-sky-200 bg-sky-50 text-sky-700';
+  return 'border-blue-200 bg-blue-50 text-blue-700';
+}
+
+function getDurationLabel(atendimento: any) {
+  const startValue = atendimento.data_inicio ?? atendimento.created_at;
+  const endValue = atendimento.data_fim;
+  if (!startValue || !endValue) return null;
+
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+
+  const minutes = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
+  if (minutes < 60) return `${minutes} min`;
+
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+  return remaining ? `${hours}h ${remaining}min` : `${hours}h`;
+}
+
 function getConformityPercentage(atendimento: any) {
   if (!isConformityVisitMode(atendimento.modo) || !atendimento.dados_modalidade) return null;
   const summary = atendimento.modo === 'obras'
@@ -400,6 +425,7 @@ export default function DesktopHistorico() {
             {paginatedAtendimentos.map((a) => {
               const clientNames = getVisitClients(a);
               const conformity = getConformityPercentage(a);
+              const durationLabel = getDurationLabel(a);
               return (
               <Card 
                 key={a.id}
@@ -420,21 +446,24 @@ export default function DesktopHistorico() {
                   </div>
                   <p className="font-medium text-sm truncate">{a.titulo || clientNames[0] || 'Atendimento'}</p>
                   {clientNames.length > 0 && (
-                    <p className="text-xs font-medium text-foreground/80 truncate">
+                    <p className="text-xs font-semibold text-emerald-700 truncate">
                       {clientNames.join(', ')}
                     </p>
                   )}
                   {(a.dados_modalidade as any)?.obra_nome && <p className="text-xs text-muted-foreground truncate">{(a.dados_modalidade as any).obra_nome}</p>}
                   {a.responsavel?.nome && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-1">
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-blue-700 mt-1">
                       <User className="h-3 w-3" />
                       <span className="truncate">{a.responsavel.nome}</span>
                     </div>
                   )}
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">{getModeLabel(a.modo)}</Badge>
+                    <Badge variant="outline" className={`text-[10px] h-5 px-1.5 ${getModeBadgeClass(a.modo)}`}>{getModeLabel(a.modo)}</Badge>
                     <Badge variant="secondary" className="text-[10px] h-5 px-1.5">Tipos: {a.tipos_atendimento?.length ?? 0}</Badge>
                     <Badge variant="secondary" className="text-[10px] h-5 px-1.5">Ações: {a.acoes_especificas?.length ?? 0}</Badge>
+                    {durationLabel && (
+                      <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-[10px] h-5 px-1.5">Duração: {durationLabel}</Badge>
+                    )}
                     {conformity !== null && (
                       <Badge className="bg-primary/10 text-primary text-[10px] h-5 px-1.5">Conformidade: {conformity}%</Badge>
                     )}
@@ -475,13 +504,16 @@ export default function DesktopHistorico() {
                       <div className="font-medium">{a.titulo || '—'}</div>
                       {(a.dados_modalidade as any)?.obra_nome && <div className="text-xs text-muted-foreground">{(a.dados_modalidade as any).obra_nome}</div>}
                     </TableCell>
-                    <TableCell>{getVisitClients(a).join(', ') || '—'}</TableCell>
-                    <TableCell>{a.responsavel?.nome || '—'}</TableCell>
+                    <TableCell><span className="font-medium text-emerald-700">{getVisitClients(a).join(', ') || '—'}</span></TableCell>
+                    <TableCell><span className="font-medium text-blue-700">{a.responsavel?.nome || '—'}</span></TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        <Badge variant="outline" className="text-xs">{getModeLabel(a.modo)}</Badge>
+                        <Badge variant="outline" className={`text-xs ${getModeBadgeClass(a.modo)}`}>{getModeLabel(a.modo)}</Badge>
                         <Badge variant="secondary" className="text-xs">Tipos: {a.tipos_atendimento?.length ?? 0}</Badge>
                         <Badge variant="secondary" className="text-xs">Ações: {a.acoes_especificas?.length ?? 0}</Badge>
+                        {getDurationLabel(a) && (
+                          <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-xs">Duração: {getDurationLabel(a)}</Badge>
+                        )}
                         {getConformityPercentage(a) !== null && (
                           <Badge className="bg-primary/10 text-primary text-xs">Conformidade: {getConformityPercentage(a)}%</Badge>
                         )}
