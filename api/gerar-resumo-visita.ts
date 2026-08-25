@@ -35,6 +35,20 @@ function compactVisit(payload: VisitSummaryPayload) {
   };
 }
 
+function friendlyOpenAIError(message?: string) {
+  const normalized = String(message ?? '').toLowerCase();
+
+  if (normalized.includes('quota') || normalized.includes('billing') || normalized.includes('plan')) {
+    return 'A chave da OpenAI foi reconhecida, mas a conta esta sem saldo, limite disponivel ou billing ativo. Verifique os creditos e o faturamento na plataforma da OpenAI.';
+  }
+
+  if (normalized.includes('invalid api key') || normalized.includes('incorrect api key') || normalized.includes('unauthorized')) {
+    return 'A chave da OpenAI configurada na Vercel nao foi aceita. Gere uma nova chave e atualize a variavel OPENAI_API_KEY.';
+  }
+
+  return message || 'Falha ao gerar o resumo tecnico.';
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Metodo nao permitido' });
 
@@ -87,7 +101,7 @@ export default async function handler(req: any, res: any) {
 
     const result = await response.json();
     if (!response.ok) {
-      return res.status(502).json({ error: result?.error?.message || 'Falha ao gerar o resumo tecnico.' });
+      return res.status(502).json({ error: friendlyOpenAIError(result?.error?.message) });
     }
 
     const text = result.output_text
@@ -99,4 +113,3 @@ export default async function handler(req: any, res: any) {
     return res.status(502).json({ error: error?.message || 'Falha ao conectar com a IA.' });
   }
 }
-
