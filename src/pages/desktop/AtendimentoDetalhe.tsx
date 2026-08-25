@@ -1,4 +1,4 @@
-import type { VisitaModo } from '@/types/atendimento';
+import type { VisitaModo, AnotacaoVisita } from '@/types/atendimento';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DesktopLayout } from '@/components/layout/DesktopLayout';
