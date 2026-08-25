@@ -21,6 +21,7 @@ interface AtendimentoContextType {
   setResponsavelId: (id: string) => void;
   setHorarioVisita: (inicio: Date, fim?: Date) => void;
   setTitulo: (titulo: string) => void;
+  setResumoRelatorio: (resumo: { comentario_base_relatorio?: string; resumo_relatorio?: string; resumo_relatorio_gerado_em?: string }) => void;
   setAnotacoes: (texto: string) => void;
   addAnotacao: (texto: string) => void;
   updateAnotacao: (id: string, texto: string) => void;
@@ -59,6 +60,9 @@ const initialData: AtendimentoData = {
   modo: 'completa',
   cliente_ids: [],
   data_inicio: new Date(),
+  comentario_base_relatorio: '',
+  resumo_relatorio: '',
+  relatorio_publico: true,
   anotacoes: '',
   anotacoes_itens: [],
   checklist: [],
@@ -313,6 +317,10 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     setData(prev => ({ ...prev, titulo }));
   };
 
+  const setResumoRelatorio = (resumo: { comentario_base_relatorio?: string; resumo_relatorio?: string; resumo_relatorio_gerado_em?: string }) => {
+    setData(prev => ({ ...prev, ...resumo }));
+  };
+
   const setAnotacoes = (texto: string) => {
     setData(prev => ({ ...prev, anotacoes: texto }));
   };
@@ -555,6 +563,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         setResponsavelId,
         setHorarioVisita,
         setTitulo,
+        setResumoRelatorio,
         setAnotacoes,
         addAnotacao,
         updateAnotacao,

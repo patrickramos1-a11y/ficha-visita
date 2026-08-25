@@ -233,6 +233,10 @@ export interface AtendimentoData {
   responsavel_id?: string;
   data_inicio: Date;
   data_fim?: Date;
+  comentario_base_relatorio?: string;
+  resumo_relatorio?: string;
+  resumo_relatorio_gerado_em?: string;
+  relatorio_publico?: boolean;
   anotacoes: string;
   anotacoes_itens: AnotacaoVisita[];
   checklist: ChecklistItem[];

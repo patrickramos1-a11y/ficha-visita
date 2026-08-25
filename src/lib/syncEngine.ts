@@ -149,6 +149,10 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       responsavel_id: data.responsavel_id || null,
       data_inicio: dataInicio.toISOString(),
       data_fim: dataFim.toISOString(),
+      comentario_base_relatorio: data.comentario_base_relatorio || null,
+      resumo_relatorio: data.resumo_relatorio || null,
+      resumo_relatorio_gerado_em: data.resumo_relatorio_gerado_em || null,
+      relatorio_publico: data.relatorio_publico ?? true,
       anotacoes: data.anotacoes || null,
       anotacoes_itens: JSON.parse(JSON.stringify(data.anotacoes_itens ?? [])),
       checklist: JSON.parse(JSON.stringify(data.checklist)),
@@ -169,8 +173,17 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
     .select()
     .single();
 
-  if (atendimentoError && /(titulo|natureza|anotacoes_itens)/i.test(String(atendimentoError.message))) {
-    const { titulo: _titulo, natureza: _natureza, anotacoes_itens: _anotacoesItens, ...payloadSemCamposNovos } = atendimentoPayload;
+  if (atendimentoError && /(titulo|natureza|anotacoes_itens|comentario_base_relatorio|resumo_relatorio|resumo_relatorio_gerado_em|relatorio_publico)/i.test(String(atendimentoError.message))) {
+    const {
+      titulo: _titulo,
+      natureza: _natureza,
+      anotacoes_itens: _anotacoesItens,
+      comentario_base_relatorio: _comentarioBaseRelatorio,
+      resumo_relatorio: _resumoRelatorio,
+      resumo_relatorio_gerado_em: _resumoRelatorioGeradoEm,
+      relatorio_publico: _relatorioPublico,
+      ...payloadSemCamposNovos
+    } = atendimentoPayload;
     const retry = await db
       .from('atendimentos')
       .upsert(payloadSemCamposNovos, { onConflict: 'id' })

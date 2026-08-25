@@ -19,7 +19,7 @@ export default function Sucesso() {
   const state = (location.state ?? {}) as SuccessState;
   const atendimentoId = state.atendimentoId ?? data.sync_id;
   const hasRadarItems = state.hasRadarItems ?? data.demandas.some((demanda) => demanda.descricao.trim()) ?? false;
-  const hasReport = state.hasReport ?? (data.modo === 'obras' || data.modo === 'ambiental');
+  const hasReport = state.hasReport ?? true;
 
   const handleNovaVisita = () => {
     resetAtendimento();

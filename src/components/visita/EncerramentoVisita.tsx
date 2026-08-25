@@ -15,6 +15,7 @@ import { useResponsaveis } from '@/hooks/useResponsaveis';
 import { useSaveAtendimento } from '@/hooks/useSaveAtendimento';
 import type { AtendimentoData } from '@/types/atendimento';
 import { cn } from '@/lib/utils';
+import { ResumoRelatorioEditor } from '@/components/relatorio/ResumoRelatorioEditor';
 
 type SummaryItem = {
   label: string;
@@ -65,6 +66,7 @@ export function EncerramentoVisita({ validateBeforeSave, summaryItems = [], requ
     setHorarioVisita,
     addFotoFile,
     removeFoto,
+    setResumoRelatorio,
     resetAtendimento,
   } = useAtendimento();
   const { data: clientes = [] } = useClientes();
@@ -133,7 +135,7 @@ export function EncerramentoVisita({ validateBeforeSave, summaryItems = [], requ
       titulo,
       modo: data.modo,
       hasRadarItems: hasRadarItems(finalData),
-      hasReport: data.modo === 'obras' || data.modo === 'ambiental',
+      hasReport: true,
     };
     resetAtendimento();
     navigate('/sucesso', { state: successState });
@@ -204,6 +206,18 @@ export function EncerramentoVisita({ validateBeforeSave, summaryItems = [], requ
           )}
         </CardContent>
       </Card>
+
+      <ResumoRelatorioEditor
+        visit={data as unknown as Record<string, any>}
+        clientes={clienteNomes}
+        responsavel={responsavel?.nome}
+        demandas={data.demandas}
+        comentarios={data.anotacoes_itens}
+        dadosModalidade={data.modo === 'obras' ? data.acompanhamento_obra : data.modo === 'ambiental' ? data.acompanhamento_ambiental : data.modo === 'processos' ? data.acompanhamento_processos : undefined}
+        initialComentario={data.comentario_base_relatorio}
+        initialResumo={data.resumo_relatorio}
+        onSave={(values) => setResumoRelatorio(values)}
+      />
 
       <Card className="border-border/70">
         <CardHeader className="pb-3">

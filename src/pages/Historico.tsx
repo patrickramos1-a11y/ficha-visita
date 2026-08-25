@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, User, Building2, FileText, Copy } from 'lucide-react';
+import { Calendar, User, Building2, FileText, Copy, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -171,12 +171,11 @@ export default function Historico() {
                     <span className="inline-flex w-fit px-2.5 py-1 bg-primary/10 text-primary text-xs rounded-full">Conformidade: {conformity}%</span>
                   )}
                 </div>
-                {isConformityVisitMode(atendimento.modo) && (
-                  <div className="flex gap-2 pt-1">
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/relatorio/visita/${atendimento.id}`)}><FileText className="h-3.5 w-3.5" />Ver relatório</Button>
-                    <Button variant="ghost" size="icon" onClick={() => copyReportLink(atendimento.id)} title="Copiar link"><Copy className="h-4 w-4" /></Button>
-                  </div>
-                )}
+                <div className="flex gap-2 pt-1">
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => navigate(`/relatorio/visita/${atendimento.id}`)}><FileText className="h-3.5 w-3.5" />Ver relatório</Button>
+                  <Button variant="ghost" size="icon" onClick={() => copyReportLink(atendimento.id)} title="Copiar link"><Copy className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => navigate(`/relatorio/visita/${atendimento.id}?editar=1`)} title="Editar resumo"><Sparkles className="h-4 w-4" /></Button>
+                </div>
               </div>
               );
             })}

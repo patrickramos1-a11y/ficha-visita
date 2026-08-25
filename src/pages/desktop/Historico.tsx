@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { MobileFilterDrawer } from '@/components/layout/MobileFilterDrawer';
 import { 
-  Search, Eye, ChevronLeft, ChevronRight, X, Calendar, User, Copy, FileText
+  Search, Eye, ChevronLeft, ChevronRight, X, Calendar, User, Copy, FileText, Sparkles
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -468,12 +468,11 @@ export default function DesktopHistorico() {
                       <Badge className="bg-primary/10 text-primary text-[10px] h-5 px-1.5">Conformidade: {conformity}%</Badge>
                     )}
                   </div>
-                  {isConformityVisitMode(a.modo) && (
-                    <div className="mt-3 flex gap-2" onClick={(event) => event.stopPropagation()}>
-                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => navigate(`/relatorio/visita/${a.id}`)}><FileText className="h-3.5 w-3.5" />Ver relatório</Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyReportLink(a.id)} title="Copiar link"><Copy className="h-3.5 w-3.5" /></Button>
-                    </div>
-                  )}
+                  <div className="mt-3 flex gap-2" onClick={(event) => event.stopPropagation()}>
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => navigate(`/relatorio/visita/${a.id}`)}><FileText className="h-3.5 w-3.5" />Ver relatório</Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyReportLink(a.id)} title="Copiar link"><Copy className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/relatorio/visita/${a.id}?editar=1`)} title="Editar resumo"><Sparkles className="h-3.5 w-3.5" /></Button>
+                  </div>
                 </CardContent>
               </Card>
               );
@@ -527,10 +526,9 @@ export default function DesktopHistorico() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {isConformityVisitMode(a.modo) && <>
-                          <Button variant="ghost" size="icon" title="Ver relatório" onClick={() => navigate(`/relatorio/visita/${a.id}`)}><FileText className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" title="Copiar link do relatório" onClick={() => copyReportLink(a.id)}><Copy className="h-4 w-4" /></Button>
-                        </>}
+                        <Button variant="ghost" size="icon" title="Ver relatório" onClick={() => navigate(`/relatorio/visita/${a.id}`)}><FileText className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" title="Copiar link do relatório" onClick={() => copyReportLink(a.id)}><Copy className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" title="Editar resumo com IA" onClick={() => navigate(`/relatorio/visita/${a.id}?editar=1`)}><Sparkles className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" title="Ver detalhes" onClick={() => navigate(`/desktop/atendimento/${a.id}`)}><Eye className="h-4 w-4" /></Button>
                       </div>
                     </TableCell>

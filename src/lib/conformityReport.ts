@@ -278,5 +278,9 @@ export function isConformityVisitMode(modo?: string | null) {
 }
 
 export function visitModeLabel(modo?: string | null) {
-  return modo === 'obras' ? 'Acompanhamento de Obras' : 'Acompanhamento Ambiental';
+  if (modo === 'obras') return 'Acompanhamento de Obras';
+  if (modo === 'ambiental') return 'Acompanhamento Ambiental';
+  if (modo === 'processos') return 'Acompanhamento de Processos';
+  if (modo === 'rapida') return 'Visita Rápida';
+  return 'Atendimento Técnico';
 }

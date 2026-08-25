@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   AlertTriangle,
   ArrowLeft,
+  BriefcaseBusiness,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -13,6 +14,8 @@ import {
   Copy,
   FileWarning,
   Image,
+  ListChecks,
+  MessageSquare,
   Share2,
   UserRound,
 } from 'lucide-react';
@@ -20,6 +23,7 @@ import logoHorizontal from '@/assets/logo-horizontal.png';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ResumoRelatorioEditor } from '@/components/relatorio/ResumoRelatorioEditor';
 import { supabase } from '@/integrations/supabase/client';
 import {
   buildEnvironmentalConformityReport,
@@ -114,14 +118,16 @@ function isOpen(status?: string) {
 export default function RelatorioVisita() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editMode = searchParams.get('editar') === '1';
 
-  const { data: atendimento, isLoading, isError } = useQuery({
+  const { data: atendimento, isLoading, isError, refetch } = useQuery({
     queryKey: ['relatorio-visita', id],
     enabled: Boolean(id),
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('atendimentos')
-        .select('*, responsavel:responsaveis(nome)')
+        .select('*, cliente:clientes(nome), responsavel:responsaveis(nome)')
         .eq('id', id)
         .single();
       if (error) throw error;
@@ -156,6 +162,48 @@ export default function RelatorioVisita() {
     },
   });
 
+  const { data: demandas = [] } = useQuery({
+    queryKey: ['relatorio-visita-demandas', id],
+    enabled: Boolean(id && atendimento),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('demandas')
+        .select('id, descricao, status, tipo_atendimento, plano')
+        .eq('atendimento_id', id);
+      if (error) throw error;
+      return (data ?? []) as Array<Record<string, any>>;
+    },
+  });
+
+  const processOrgaoIds = ((atendimento?.dados_modalidade as any)?.orgao_ids ?? []) as string[];
+  const processProcessoIds = ((atendimento?.dados_modalidade as any)?.processo_ids ?? []) as string[];
+
+  const { data: orgaosProcessos = [] } = useQuery({
+    queryKey: ['relatorio-visita-orgaos', processOrgaoIds],
+    enabled: Boolean(atendimento?.modo === 'processos' && processOrgaoIds.length),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('orgaos')
+        .select('id, nome')
+        .in('id', processOrgaoIds);
+      if (error) throw error;
+      return (data ?? []) as Array<Record<string, any>>;
+    },
+  });
+
+  const { data: processosDetalhes = [] } = useQuery({
+    queryKey: ['relatorio-visita-processos-detalhes', processProcessoIds],
+    enabled: Boolean(atendimento?.modo === 'processos' && processProcessoIds.length),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('processos_clientes')
+        .select('id, nome, situacao_atual, orgaos(nome), clientes(nome)')
+        .in('id', processProcessoIds);
+      if (error) throw error;
+      return (data ?? []) as Array<Record<string, any>>;
+    },
+  });
+
   const report = useMemo(() => {
     if (!atendimento || !isConformityVisitMode(atendimento.modo)) return null;
     const data = (atendimento.dados_modalidade ?? {}) as Record<string, unknown>;
@@ -181,19 +229,6 @@ export default function RelatorioVisita() {
     );
   }
 
-  if (!report) {
-    return (
-      <div className="min-h-screen bg-background grid place-items-center p-6">
-        <div className="max-w-sm text-center space-y-4">
-          <FileWarning className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h1 className="text-xl font-semibold">Relatório indisponível</h1>
-          <p className="text-sm text-muted-foreground">O relatório de conformidade está disponível para visitas de Obras e Ambiental.</p>
-          <Button variant="outline" onClick={() => navigate('/desktop/historico')}>Ir para o histórico</Button>
-        </div>
-      </div>
-    );
-  }
-
   const dados = (atendimento.dados_modalidade ?? {}) as AcompanhamentoObraData | AcompanhamentoAmbientalData;
   const clientNames = clientes.map((item) => item.cliente?.nome).filter(Boolean) as string[];
   const fallbackClient = (dados as any).cliente_nome || atendimento.cliente?.nome;
@@ -202,9 +237,11 @@ export default function RelatorioVisita() {
   const pendencias = ((dados as any).pendencias ?? []) as PendenciaObra[];
   const pendenciasAbertas = pendencias.filter((item) => isOpen(item.status));
   const highSeverity = naoConformidades.filter((item) => item.gravidade === 'ALTA');
+  const anotacoesItens = ((atendimento.anotacoes_itens ?? []) as any[]).filter((item) => item?.texto?.trim?.());
+  const processoData = atendimento.modo === 'processos' ? ((atendimento.dados_modalidade ?? {}) as Record<string, any>) : null;
   const start = atendimento.data_inicio ?? atendimento.created_at;
   const end = atendimento.data_fim;
-  const shareUrl = window.location.href;
+  const shareUrl = `${window.location.origin}/relatorio/visita/${atendimento.id}`;
 
   const copyLink = async () => {
     try {
@@ -225,6 +262,15 @@ export default function RelatorioVisita() {
       }
     }
     await copyLink();
+  };
+
+  const saveResumo = async (values: { comentario_base_relatorio: string; resumo_relatorio: string; resumo_relatorio_gerado_em?: string }) => {
+    const { error } = await (supabase as any)
+      .from('atendimentos')
+      .update(values)
+      .eq('id', atendimento.id);
+    if (error) throw error;
+    await refetch();
   };
 
   return (
@@ -250,7 +296,7 @@ export default function RelatorioVisita() {
               <Badge variant="secondary">{visitModeLabel(atendimento.modo)}</Badge>
               <div>
                 <h1 className="text-2xl font-semibold sm:text-3xl">{atendimento.titulo || visitModeLabel(atendimento.modo)}</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Relatório digital de conformidade</p>
+                <p className="mt-1 text-sm text-muted-foreground">Relatório digital de visita técnica</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <DetailRow icon={Building2} label="Cliente" value={allClientNames.join(', ') || 'Não informado'} />
@@ -259,60 +305,175 @@ export default function RelatorioVisita() {
                 <DetailRow icon={Clock3} label="Duração" value={formatDuration(start, end)} />
               </div>
             </div>
-            <div className="min-w-[178px] border-l-4 border-primary bg-primary/5 px-5 py-4 text-center">
-              <p className="text-xs font-medium uppercase text-muted-foreground">Conformidade geral</p>
-              <Percentage value={report.percentage} className="block pt-1 text-5xl text-primary" />
-              <p className="mt-1 text-xs text-muted-foreground">N/A não entra no cálculo</p>
-            </div>
+            {report ? (
+              <div className="min-w-[178px] border-l-4 border-primary bg-primary/5 px-5 py-4 text-center">
+                <p className="text-xs font-medium uppercase text-muted-foreground">Conformidade geral</p>
+                <Percentage value={report.percentage} className="block pt-1 text-5xl text-primary" />
+                <p className="mt-1 text-xs text-muted-foreground">N/A não entra no cálculo</p>
+              </div>
+            ) : (
+              <div className="min-w-[178px] border-l-4 border-primary bg-primary/5 px-5 py-4">
+                <p className="text-xs font-medium uppercase text-muted-foreground">Registro técnico</p>
+                <p className="pt-1 text-2xl font-semibold text-primary">{(atendimento.tipos_atendimento ?? []).length} tipos</p>
+                <p className="mt-1 text-xs text-muted-foreground">{(atendimento.acoes_especificas ?? []).length} ações registradas</p>
+              </div>
+            )}
           </div>
         </section>
 
-        <section className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">Conformidade por módulo</h2>
-            <span className="text-xs text-muted-foreground">{report.modules.length} módulos</span>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {report.modules.map((module) => <ModuleCard key={module.id} module={module} />)}
-          </div>
-        </section>
+        {editMode && (
+          <ResumoRelatorioEditor
+            visit={atendimento}
+            clientes={allClientNames}
+            responsavel={atendimento.responsavel?.nome}
+            demandas={demandas as any}
+            comentarios={anotacoesItens}
+            dadosModalidade={atendimento.dados_modalidade}
+            initialComentario={atendimento.comentario_base_relatorio}
+            initialResumo={atendimento.resumo_relatorio}
+            onSave={saveResumo}
+          />
+        )}
 
-        <section className="grid gap-4 lg:grid-cols-2">
+        <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <Card className="shadow-none">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-600" /><h2 className="font-semibold">Alertas da visita</h2></div>
-              {report.alerts.length === 0 && pendenciasAbertas.length === 0 && highSeverity.length === 0 ? (
-                <div className="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhum alerta de conformidade identificado nesta visita.</div>
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h2 className="font-semibold">Resumo técnico</h2></div>
+              {atendimento.resumo_relatorio ? (
+                <div className="whitespace-pre-line text-sm leading-6 text-foreground/90">{atendimento.resumo_relatorio}</div>
               ) : (
-                <div className="space-y-2">
-                  {report.alerts.map((alert) => <div key={`${alert.moduleTitle}-${alert.key}`} className={cn('rounded-md border-l-4 px-3 py-2 text-sm', alert.severity === 'critical' ? 'border-red-600 bg-red-50 text-red-900' : 'border-amber-500 bg-amber-50 text-amber-900')}><span className="font-medium">{alert.severity === 'critical' ? 'Crítico' : 'Atenção'}:</span> {alert.label}<span className="text-xs opacity-75"> • {alert.moduleTitle}</span></div>)}
-                  {pendenciasAbertas.map((item) => <div key={`pendencia-${item.id}`} className="rounded-md border-l-4 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-900"><span className="font-medium">Pendência aberta:</span> {item.descricao}</div>)}
-                  {highSeverity.map((item) => <div key={`nc-${item.id}`} className="rounded-md border-l-4 border-red-600 bg-red-50 px-3 py-2 text-sm text-red-900"><span className="font-medium">NC de gravidade alta:</span> {item.descricao}</div>)}
-                </div>
+                <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                  Nenhum resumo técnico foi salvo para esta visita.
+                </p>
               )}
             </CardContent>
           </Card>
-
           <Card className="shadow-none">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-2"><FileWarning className="h-5 w-5 text-red-600" /><h2 className="font-semibold">Não conformidades</h2></div>
-              {naoConformidades.length === 0 ? <div className="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhuma não conformidade cadastrada.</div> : <div className="space-y-2">{naoConformidades.map((item) => <div key={item.id} className="rounded-md border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium text-sm">{item.tipo || 'Não conformidade'}</p><Badge variant={item.gravidade === 'ALTA' ? 'destructive' : 'secondary'}>{item.gravidade}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{item.descricao}</p><p className="mt-2 text-xs text-muted-foreground">{item.responsavel || 'Sem responsável'} • {item.prazo || 'Sem prazo'} • {item.status.replace('_', ' ')}</p></div>)}</div>}
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center gap-2"><BriefcaseBusiness className="h-5 w-5 text-primary" /><h2 className="font-semibold">Atendimentos e ações</h2></div>
+              <div className="space-y-3">
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Tipos de atendimento</p>
+                  {(atendimento.tipos_atendimento ?? []).length ? (
+                    <div className="flex flex-wrap gap-1.5">{(atendimento.tipos_atendimento ?? []).map((item: string) => <Badge key={item} variant="secondary">{item}</Badge>)}</div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhum tipo de atendimento registrado.</p>
+                  )}
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Ações realizadas</p>
+                  {(atendimento.acoes_especificas ?? []).length ? (
+                    <div className="flex flex-wrap gap-1.5">{(atendimento.acoes_especificas ?? []).map((item: string) => <Badge key={item} variant="outline">{item}</Badge>)}</div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhuma ação registrada.</p>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </section>
 
+        {report && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Conformidade por módulo</h2>
+              <span className="text-xs text-muted-foreground">{report.modules.length} módulos</span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {report.modules.map((module) => <ModuleCard key={module.id} module={module} />)}
+            </div>
+          </section>
+        )}
+
+        {report && (
+          <>
+            <section className="grid gap-4 lg:grid-cols-2">
+              <Card className="shadow-none">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-600" /><h2 className="font-semibold">Alertas da visita</h2></div>
+                  {report.alerts.length === 0 && pendenciasAbertas.length === 0 && highSeverity.length === 0 ? (
+                    <div className="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhum alerta de conformidade identificado nesta visita.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {report.alerts.map((alert) => <div key={`${alert.moduleTitle}-${alert.key}`} className={cn('rounded-md border-l-4 px-3 py-2 text-sm', alert.severity === 'critical' ? 'border-red-600 bg-red-50 text-red-900' : 'border-amber-500 bg-amber-50 text-amber-900')}><span className="font-medium">{alert.severity === 'critical' ? 'Crítico' : 'Atenção'}:</span> {alert.label}<span className="text-xs opacity-75"> • {alert.moduleTitle}</span></div>)}
+                      {pendenciasAbertas.map((item) => <div key={`pendencia-${item.id}`} className="rounded-md border-l-4 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-900"><span className="font-medium">Pendência aberta:</span> {item.descricao}</div>)}
+                      {highSeverity.map((item) => <div key={`nc-${item.id}`} className="rounded-md border-l-4 border-red-600 bg-red-50 px-3 py-2 text-sm text-red-900"><span className="font-medium">NC de gravidade alta:</span> {item.descricao}</div>)}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-none">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2"><FileWarning className="h-5 w-5 text-red-600" /><h2 className="font-semibold">Não conformidades</h2></div>
+                  {naoConformidades.length === 0 ? <div className="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhuma não conformidade cadastrada.</div> : <div className="space-y-2">{naoConformidades.map((item) => <div key={item.id} className="rounded-md border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium text-sm">{item.tipo || 'Não conformidade'}</p><Badge variant={item.gravidade === 'ALTA' ? 'destructive' : 'secondary'}>{item.gravidade}</Badge></div><p className="mt-1 text-sm text-muted-foreground">{item.descricao}</p><p className="mt-2 text-xs text-muted-foreground">{item.responsavel || 'Sem responsável'} • {item.prazo || 'Sem prazo'} • {item.status.replace('_', ' ')}</p></div>)}</div>}
+                </CardContent>
+              </Card>
+            </section>
+
+            <section className="grid gap-4 lg:grid-cols-2">
+              <Card className="shadow-none">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-primary" /><h2 className="font-semibold">Pendências</h2></div>
+                  {pendencias.length === 0 ? <div className="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Tudo certo: não há pendências cadastradas.</div> : <div className="space-y-2">{pendencias.map((item) => <div key={item.id} className="rounded-md border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium text-sm">{item.descricao}</p><Badge variant={isOpen(item.status) ? 'secondary' : 'outline'}>{item.status.replace('_', ' ')}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{item.responsavel || 'Sem responsável'} • {item.prazo || 'Sem prazo'} • Prioridade {item.prioridade}</p></div>)}</div>}
+                </CardContent>
+              </Card>
+              <Card className="shadow-none">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-primary" /><h2 className="font-semibold">Resumo da avaliação</h2></div>
+                  <Counts counts={report.counts} />
+                  <p className="text-sm text-muted-foreground">A conformidade geral é a média dos itens avaliados: conforme vale 100, parcial vale 50 e não conforme vale 0. Itens N/A são excluídos do cálculo.</p>
+                </CardContent>
+              </Card>
+            </section>
+          </>
+        )}
+
+        {processoData && (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" /><h2 className="text-lg font-semibold">Processos acompanhados</h2></div>
+            <Card className="shadow-none">
+              <CardContent className="space-y-4 p-5">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-md bg-muted/50 p-3">
+                    <p className="text-xs text-muted-foreground">Clientes vinculados</p>
+                    <p className="text-2xl font-semibold">{(processoData.cliente_ids ?? []).length || allClientNames.length}</p>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-3">
+                    <p className="text-xs text-muted-foreground">Órgãos acompanhados</p>
+                    <p className="text-2xl font-semibold">{(processoData.orgao_ids ?? []).length}</p>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-3">
+                    <p className="text-xs text-muted-foreground">Processos acompanhados</p>
+                    <p className="text-2xl font-semibold">{(processoData.processo_ids ?? []).length}</p>
+                  </div>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">Órgãos</p>
+                    {orgaosProcessos.length ? <div className="flex flex-wrap gap-1.5">{orgaosProcessos.map((orgao) => <Badge key={orgao.id} variant="secondary">{orgao.nome}</Badge>)}</div> : <p className="text-sm text-muted-foreground">Nenhum órgão detalhado nesta visita.</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">Processos</p>
+                    {processosDetalhes.length ? <div className="space-y-2">{processosDetalhes.map((processo) => <div key={processo.id} className="rounded-md border p-3 text-sm"><p className="font-medium">{processo.nome}</p><p className="text-xs text-muted-foreground">{processo.clientes?.nome ?? 'Cliente não informado'} • {processo.orgaos?.nome ?? 'Sem órgão'} • {String(processo.situacao_atual ?? 'AGUARDANDO_ANALISE').replaceAll('_', ' ')}</p></div>)}</div> : <p className="text-sm text-muted-foreground">Nenhum processo detalhado nesta visita.</p>}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
         <section className="grid gap-4 lg:grid-cols-2">
           <Card className="shadow-none">
             <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-primary" /><h2 className="font-semibold">Pendências</h2></div>
-              {pendencias.length === 0 ? <div className="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Tudo certo: não há pendências cadastradas.</div> : <div className="space-y-2">{pendencias.map((item) => <div key={item.id} className="rounded-md border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium text-sm">{item.descricao}</p><Badge variant={isOpen(item.status) ? 'secondary' : 'outline'}>{item.status.replace('_', ' ')}</Badge></div><p className="mt-2 text-xs text-muted-foreground">{item.responsavel || 'Sem responsável'} • {item.prazo || 'Sem prazo'} • Prioridade {item.prioridade}</p></div>)}</div>}
+              <div className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" /><h2 className="font-semibold">Demandas para o Radar</h2></div>
+              {demandas.length ? <div className="space-y-2">{demandas.map((item: any) => <div key={item.id} className="rounded-md border p-3 text-sm">{item.descricao}</div>)}</div> : <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">Nenhuma demanda registrada para o Radar.</p>}
             </CardContent>
           </Card>
           <Card className="shadow-none">
             <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-primary" /><h2 className="font-semibold">Resumo da avaliação</h2></div>
-              <Counts counts={report.counts} />
-              <p className="text-sm text-muted-foreground">A conformidade geral é a média dos itens avaliados: conforme vale 100, parcial vale 50 e não conforme vale 0. Itens N/A são excluídos do cálculo.</p>
+              <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h2 className="font-semibold">Comentários para o Radar</h2></div>
+              {anotacoesItens.length ? <div className="space-y-2">{anotacoesItens.map((item: any) => <div key={item.id} className="rounded-md border p-3 text-sm">{item.texto}</div>)}</div> : <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">Nenhum comentário registrado para o Radar.</p>}
             </CardContent>
           </Card>
         </section>
