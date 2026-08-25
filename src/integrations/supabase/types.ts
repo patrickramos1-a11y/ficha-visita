@@ -190,6 +190,7 @@ export type Database = {
           anotacoes_itens: Json
           checklist: Json | null
           cliente_id: string | null
+          comentario_base_relatorio: string | null
           created_at: string
           dados_modalidade: Json | null
           data_fim: string | null
@@ -203,7 +204,10 @@ export type Database = {
           obra_id: string | null
           origem_id: string | null
           possui_foto_final: boolean | null
+          relatorio_publico: boolean | null
           responsavel_id: string | null
+          resumo_relatorio: string | null
+          resumo_relatorio_gerado_em: string | null
           tipos_atendimento: string[] | null
           titulo: string | null
           topicos_reuniao: Json | null
@@ -215,6 +219,7 @@ export type Database = {
           anotacoes_itens?: Json
           checklist?: Json | null
           cliente_id?: string | null
+          comentario_base_relatorio?: string | null
           created_at?: string
           dados_modalidade?: Json | null
           data_fim?: string | null
@@ -228,7 +233,10 @@ export type Database = {
           obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
+          relatorio_publico?: boolean | null
           responsavel_id?: string | null
+          resumo_relatorio?: string | null
+          resumo_relatorio_gerado_em?: string | null
           tipos_atendimento?: string[] | null
           titulo?: string | null
           topicos_reuniao?: Json | null
@@ -240,6 +248,7 @@ export type Database = {
           anotacoes_itens?: Json
           checklist?: Json | null
           cliente_id?: string | null
+          comentario_base_relatorio?: string | null
           created_at?: string
           dados_modalidade?: Json | null
           data_fim?: string | null
@@ -253,7 +262,10 @@ export type Database = {
           obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
+          relatorio_publico?: boolean | null
           responsavel_id?: string | null
+          resumo_relatorio?: string | null
+          resumo_relatorio_gerado_em?: string | null
           tipos_atendimento?: string[] | null
           titulo?: string | null
           topicos_reuniao?: Json | null
