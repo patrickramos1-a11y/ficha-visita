@@ -1,4 +1,4 @@
-import type { VisitaModo } from '@/types/atendimento';
+import type { VisitaModo, AnotacaoVisita } from '@/types/atendimento';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DesktopLayout } from '@/components/layout/DesktopLayout';
@@ -99,6 +99,7 @@ export default function AtendimentoDetalhe() {
     tipos_atendimento: atendimento.tipos_atendimento || [],
     acoes_especificas: atendimento.acoes_especificas || [],
     anotacoes: atendimento.anotacoes || '',
+    anotacoes_itens: ((atendimento.anotacoes_itens as unknown) as AnotacaoVisita[]) || [],
     checklist: [],
     demandas: demandas?.map(d => ({ descricao: d.descricao, plano: d.plano as 'VIP' | 'Premium' | 'Master', personalizada: d.personalizada })) || [],
     fotos: fotos?.map(f => ({ url: f.foto_url, tipo: f.tipo as 'inicial' | 'durante' | 'final' })) || [],

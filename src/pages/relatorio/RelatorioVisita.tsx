@@ -208,8 +208,8 @@ export default function RelatorioVisita() {
     if (!atendimento || !isConformityVisitMode(atendimento.modo)) return null;
     const data = (atendimento.dados_modalidade ?? {}) as Record<string, unknown>;
     return atendimento.modo === 'obras'
-      ? buildWorksConformityReport(data as AcompanhamentoObraData)
-      : buildEnvironmentalConformityReport(data as AcompanhamentoAmbientalData);
+      ? buildWorksConformityReport((data as unknown) as AcompanhamentoObraData)
+      : buildEnvironmentalConformityReport((data as unknown) as AcompanhamentoAmbientalData);
   }, [atendimento]);
 
   if (isLoading) {

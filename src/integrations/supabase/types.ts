@@ -190,9 +190,9 @@ export type Database = {
           anotacoes_itens: Json
           checklist: Json | null
           cliente_id: string | null
+          comentario_base_relatorio: string | null
           created_at: string
           dados_modalidade: Json | null
-          comentario_base_relatorio: string | null
           data_fim: string | null
           data_inicio: string
           finalizado: boolean
@@ -219,9 +219,9 @@ export type Database = {
           anotacoes_itens?: Json
           checklist?: Json | null
           cliente_id?: string | null
+          comentario_base_relatorio?: string | null
           created_at?: string
           dados_modalidade?: Json | null
-          comentario_base_relatorio?: string | null
           data_fim?: string | null
           data_inicio?: string
           finalizado?: boolean
@@ -248,9 +248,9 @@ export type Database = {
           anotacoes_itens?: Json
           checklist?: Json | null
           cliente_id?: string | null
+          comentario_base_relatorio?: string | null
           created_at?: string
           dados_modalidade?: Json | null
-          comentario_base_relatorio?: string | null
           data_fim?: string | null
           data_inicio?: string
           finalizado?: boolean
