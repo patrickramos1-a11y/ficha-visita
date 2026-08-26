@@ -7,6 +7,13 @@ type ImportItem = {
   prioridade?: string;
 };
 
+const DEFAULT_FICHA_SUPABASE_URL = "https://juvioiullggsexotuxyi.supabase.co";
+const DEFAULT_FICHA_SUPABASE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1dmlvaXVsbGdnc2V4b3R1eHlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NDY0MDQsImV4cCI6MjA5MzEyMjQwNH0.3D4S1MQI8Lbqe-EgWGshvPsaQtivPTCCiwRgwiEeQVc";
+const DEFAULT_RADAR_SUPABASE_URL = "https://ixiffabjunvpoizdhwtk.supabase.co";
+const DEFAULT_RADAR_SUPABASE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aWZmYWJqdW52cG9pemRod3RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNjUxNzEsImV4cCI6MjA4MzY0MTE3MX0.N62NYvzqsP1VTYj75v3faxAUvIK7Oeks2V5lqrr29To";
+
 const normalize = (value: string) =>
   value
     .normalize("NFD")
@@ -48,17 +55,24 @@ const initialsFromName = (name: string) =>
     .join("") || "CL";
 
 export default async function handler(req: any, res: any) {
-  const fichaUrl = process.env.FICHA_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const fichaUrl =
+    process.env.FICHA_SUPABASE_URL ||
+    process.env.VITE_SUPABASE_URL ||
+    DEFAULT_FICHA_SUPABASE_URL;
   const fichaKey =
     process.env.FICHA_SUPABASE_SERVICE_ROLE_KEY ||
     process.env.FICHA_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    DEFAULT_FICHA_SUPABASE_PUBLISHABLE_KEY;
   const radarUrl =
-    process.env.RADAR_VITAL_SUPABASE_URL || process.env.RADAR_VITAL_VITE_SUPABASE_URL;
+    process.env.RADAR_VITAL_SUPABASE_URL ||
+    process.env.RADAR_VITAL_VITE_SUPABASE_URL ||
+    DEFAULT_RADAR_SUPABASE_URL;
   const radarKey =
     process.env.RADAR_VITAL_SUPABASE_SERVICE_ROLE_KEY ||
     process.env.RADAR_VITAL_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.RADAR_VITAL_VITE_SUPABASE_PUBLISHABLE_KEY;
+    process.env.RADAR_VITAL_VITE_SUPABASE_PUBLISHABLE_KEY ||
+    DEFAULT_RADAR_SUPABASE_PUBLISHABLE_KEY;
   if (!fichaUrl || !fichaKey || !radarUrl || !radarKey) {
     return res
       .status(503)
@@ -67,6 +81,32 @@ export default async function handler(req: any, res: any) {
 
   const ficha = createClient(fichaUrl, fichaKey);
   const radar = createClient(radarUrl, radarKey);
+
+  const insertRadarItem = async (
+    table: "tasks" | "client_comments",
+    payload: Record<string, any>,
+    basePayload: Record<string, any>,
+  ) => {
+    const result = await radar
+      .from(table)
+      .upsert(payload, {
+        onConflict: "external_source,external_source_item_id",
+      })
+      .select("id")
+      .single();
+
+    const message = result.error?.message ?? "";
+    const shouldRetryWithoutExternalFields =
+      result.error &&
+      (["PGRST204", "42703", "42P10"].includes(result.error.code ?? "") ||
+        message.includes("external_source") ||
+        message.includes("external_source_item_id") ||
+        message.includes("unique or exclusion constraint"));
+
+    if (!shouldRetryWithoutExternalFields) return result;
+
+    return radar.from(table).insert(basePayload).select("id").single();
+  };
 
   if (req.method === "GET") {
     const q = String(req.query?.q ?? "");
@@ -188,23 +228,19 @@ export default async function handler(req: any, res: any) {
   for (const item of demands as ImportItem[]) {
     if (!item.id || !item.descricao?.trim()) continue;
     const sourceId = `${visit.id}:DEMANDA:${item.id}`;
-    const { data, error } = await radar
-      .from("tasks")
-      .upsert(
-        {
-          client_id: clientId,
-          title: `[Visita ${visitDate}] ${item.descricao.trim()}`,
-          priority: item.prioridade ?? "normal",
-          external_source: "FICHA_VISITA",
-          external_source_item_id: sourceId,
-          source_visit_id: visit.id,
-          source_visit_title: visit.title ?? "Visita",
-          source_visit_date: visit.date,
-        },
-        { onConflict: "external_source,external_source_item_id" },
-      )
-      .select("id")
-      .single();
+    const basePayload = {
+      client_id: clientId,
+      title: `[Visita ${visitDate}] ${item.descricao.trim()}`,
+      priority: item.prioridade ?? "normal",
+    };
+    const { data, error } = await insertRadarItem("tasks", {
+      ...basePayload,
+      external_source: "FICHA_VISITA",
+      external_source_item_id: sourceId,
+      source_visit_id: visit.id,
+      source_visit_title: visit.title ?? "Visita",
+      source_visit_date: visit.date,
+    }, basePayload);
     if (error) {
       records.push({
         atendimento_id: visit.id,
@@ -221,12 +257,12 @@ export default async function handler(req: any, res: any) {
       atendimento_id: visit.id,
       tipo_origem: "DEMANDA",
       item_origem_id: item.id,
-        radar_item_id: data.id,
-        radar_cliente_id: clientId,
-        status: "ENVIADO",
-        erro: null,
-        enviado_em: new Date().toISOString(),
-      });
+      radar_item_id: data.id,
+      radar_cliente_id: clientId,
+      status: "ENVIADO",
+      erro: null,
+      enviado_em: new Date().toISOString(),
+    });
     created++;
   }
 
@@ -234,24 +270,20 @@ export default async function handler(req: any, res: any) {
     if (!item.id || !item.texto?.trim()) continue;
     const sourceId = `${visit.id}:ANOTACAO:${item.id}`;
     const comment = `Levantado na visita: ${visit.title ?? "Visita"} - ${visitDate}\n\n${item.texto.trim()}`;
-    const { data, error } = await radar
-      .from("client_comments")
-      .upsert(
-        {
-          client_id: clientId,
-          author_name: authorName,
-          comment_text: comment,
-          comment_type: "relevante",
-          external_source: "FICHA_VISITA",
-          external_source_item_id: sourceId,
-          source_visit_id: visit.id,
-          source_visit_title: visit.title ?? "Visita",
-          source_visit_date: visit.date,
-        },
-        { onConflict: "external_source,external_source_item_id" },
-      )
-      .select("id")
-      .single();
+    const basePayload = {
+      client_id: clientId,
+      author_name: authorName,
+      comment_text: comment,
+      comment_type: "relevante",
+    };
+    const { data, error } = await insertRadarItem("client_comments", {
+      ...basePayload,
+      external_source: "FICHA_VISITA",
+      external_source_item_id: sourceId,
+      source_visit_id: visit.id,
+      source_visit_title: visit.title ?? "Visita",
+      source_visit_date: visit.date,
+    }, basePayload);
     if (error) {
       records.push({
         atendimento_id: visit.id,
@@ -268,12 +300,12 @@ export default async function handler(req: any, res: any) {
       atendimento_id: visit.id,
       tipo_origem: "ANOTACAO",
       item_origem_id: item.id,
-        radar_item_id: data.id,
-        radar_cliente_id: clientId,
-        status: "ENVIADO",
-        erro: null,
-        enviado_em: new Date().toISOString(),
-      });
+      radar_item_id: data.id,
+      radar_cliente_id: clientId,
+      status: "ENVIADO",
+      erro: null,
+      enviado_em: new Date().toISOString(),
+    });
     created++;
   }
 
