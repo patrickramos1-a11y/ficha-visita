@@ -103,6 +103,12 @@ export default function Gestao() {
   const [radarSearch, setRadarSearch] = useState("");
   const [newRadarClientName, setNewRadarClientName] = useState("");
   const [loadingRadarClients, setLoadingRadarClients] = useState(false);
+  const [batchVisits, setBatchVisits] = useState<any[]>([]);
+  const [batchRadarClients, setBatchRadarClients] = useState<Record<string, any[]>>({});
+  const [batchRadarClientIds, setBatchRadarClientIds] = useState<Record<string, string>>({});
+  const [batchRadarSearches, setBatchRadarSearches] = useState<Record<string, string>>({});
+  const [batchNewClientNames, setBatchNewClientNames] = useState<Record<string, string>>({});
+  const [batchLoadingClients, setBatchLoadingClients] = useState<Record<string, boolean>>({});
   const { data: visitas = [], isLoading } = useQuery({
     queryKey: ["gestao-visitas"],
     queryFn: async () => {
@@ -366,6 +372,19 @@ export default function Gestao() {
     selectedKeys(visit).filter((key) =>
       unsentItems(visit).some((item) => item.key === key),
     );
+  const selectedExportItems = (visit: any) =>
+    exportItems(visit).filter((item) =>
+      selectedUnsentKeys(visit).includes(item.key),
+    );
+  const batchTotals = (visits: any[]) => {
+    const items = visits.flatMap((visit: any) => selectedExportItems(visit));
+    return {
+      visits: visits.length,
+      demands: items.filter((item) => item.kind === "DEMANDA").length,
+      notes: items.filter((item) => item.kind === "ANOTACAO").length,
+      items: items.length,
+    };
+  };
   const isSent = (visit: any) =>
     exportItems(visit).length > 0 && unsentItems(visit).length === 0;
   const toggleExportItem = (visit: any, key: string) =>
@@ -483,21 +502,155 @@ export default function Gestao() {
       setSending(null);
     }
   };
+  const loadBatchRadarClients = async (visit: any, search = clientName(visit)) => {
+    setBatchLoadingClients((current) => ({ ...current, [visit.id]: true }));
+    try {
+      const response = await fetch(
+        `/api/radar-import?q=${encodeURIComponent(search)}`,
+      );
+      const payload = await response.json();
+      if (!response.ok)
+        throw new Error(payload.error || "Falha ao consultar clientes do Radar");
+      setBatchRadarClients((current) => ({
+        ...current,
+        [visit.id]: payload.clients ?? [],
+      }));
+      setBatchRadarSearches((current) => ({ ...current, [visit.id]: search }));
+    } catch (error: any) {
+      toast.error(error.message || "Nao foi possivel consultar clientes do Radar");
+    } finally {
+      setBatchLoadingClients((current) => ({ ...current, [visit.id]: false }));
+    }
+  };
+  const openBatchConfirm = (visitsToSend: any[]) => {
+    const initialClients: Record<string, any[]> = {};
+    const initialClientIds: Record<string, string> = {};
+    const initialSearches: Record<string, string> = {};
+    const initialNewNames: Record<string, string> = {};
+
+    visitsToSend.forEach((visit: any) => {
+      const mapped = suggestedMapping(visit);
+      initialSearches[visit.id] = clientName(visit);
+      initialNewNames[visit.id] = "";
+      if (mapped) {
+        initialClientIds[visit.id] = mapped.radar_cliente_id;
+        initialClients[visit.id] = [
+          {
+            id: mapped.radar_cliente_id,
+            name: mapped.radar_cliente_nome,
+            score: 100,
+          },
+        ];
+      } else {
+        initialClientIds[visit.id] = "";
+        initialClients[visit.id] = [];
+      }
+    });
+
+    setBatchVisits(visitsToSend);
+    setBatchRadarClients(initialClients);
+    setBatchRadarClientIds(initialClientIds);
+    setBatchRadarSearches(initialSearches);
+    setBatchNewClientNames(initialNewNames);
+    setBatchLoadingClients({});
+
+    visitsToSend
+      .filter((visit: any) => !suggestedMapping(visit))
+      .forEach((visit: any) => loadBatchRadarClients(visit));
+  };
+  const closeBatchConfirm = () => {
+    setBatchVisits([]);
+    setBatchRadarClients({});
+    setBatchRadarClientIds({});
+    setBatchRadarSearches({});
+    setBatchNewClientNames({});
+    setBatchLoadingClients({});
+  };
+  const batchReady =
+    batchVisits.length > 0 &&
+    batchVisits.every(
+      (visit: any) =>
+        batchRadarClientIds[visit.id] ||
+        batchNewClientNames[visit.id]?.trim(),
+    );
+  const confirmBatchSend = async () => {
+    if (!batchReady)
+      return toast.message("Confirme o cliente do Radar para todas as visitas.");
+
+    let totalCreated = 0;
+    let totalFailed = 0;
+    setSending("BATCH");
+    try {
+      for (const visit of batchVisits) {
+        const selectedClientId = batchRadarClientIds[visit.id];
+        const createName = batchNewClientNames[visit.id]?.trim();
+        const options = selectedClientId
+          ? { radarClientId: selectedClientId }
+          : { createRadarClientName: createName };
+
+        const selected = selectedKeys(visit);
+        const demands = (visit.demandas ?? []).filter(
+          (item: any) =>
+            item.descricao?.trim() &&
+            selected.includes(`D:${item.id}`) &&
+            !sentRecord(visit, { key: `D:${item.id}` }),
+        );
+        const notes = (visit.anotacoes_itens ?? []).filter(
+          (item: any) =>
+            item.texto?.trim() &&
+            selected.includes(`N:${item.id}`) &&
+            !sentRecord(visit, { key: `N:${item.id}` }),
+        );
+        if (!demands.length && !notes.length) continue;
+
+        setSending(visit.id);
+        const response = await fetch("/api/radar-import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            visit: {
+              id: visit.id,
+              title: visit.titulo,
+              date: visit.data_inicio ?? visit.created_at,
+              clientName: clientName(visit),
+              clientId: clientId(visit),
+              responsavelNome: responsavelName(visit),
+            },
+            demands,
+            notes,
+            ...options,
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok)
+          throw new Error(payload.error || "Falha ao enviar ao Radar");
+        totalCreated += payload.created ?? 0;
+        totalFailed += payload.failed ?? 0;
+      }
+
+      if (totalFailed) {
+        toast.warning(
+          `${totalCreated} item(ns) enviados e ${totalFailed} com falha.`,
+        );
+      } else {
+        toast.success(`${totalCreated} item(ns) enviados ao Radar Vital`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["gestao-exportados"] });
+      queryClient.invalidateQueries({ queryKey: ["gestao-mapeamentos-radar"] });
+      closeBatchConfirm();
+    } catch (error: any) {
+      toast.error(error.message || "Nao foi possivel enviar ao Radar");
+    } finally {
+      setSending(null);
+    }
+  };
   const sendAllSelected = async () => {
     const visitsToSend = pendingVisits.filter(
       (visit: any) => selectedUnsentKeys(visit).length > 0 && !isSent(visit),
     );
     if (!visitsToSend.length)
       return toast.message("Nenhum item pendente selecionado.");
-    for (const visit of visitsToSend) {
-      const mapped = suggestedMapping(visit);
-      if (!mapped) {
-        toast.message("Confirme o cliente no Radar antes de continuar o envio em lote.");
-        openConfirm(visit);
-        return;
-      }
-      await sendVisit(visit, { radarClientId: mapped.radar_cliente_id });
-    }
+    openBatchConfirm(visitsToSend);
   };
 
   return (
@@ -1022,6 +1175,205 @@ export default function Gestao() {
             )}
           </TabsContent>
         </Tabs>
+        <Dialog
+          open={batchVisits.length > 0}
+          onOpenChange={(open) => !open && closeBatchConfirm()}
+        >
+          <DialogContent className="max-h-[90vh] max-w-5xl overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>Confirmar envio em lote ao Radar Vital</DialogTitle>
+              <DialogDescription>
+                Revise todos os clientes antes de enviar demandas e anotações.
+              </DialogDescription>
+            </DialogHeader>
+            {batchVisits.length > 0 && (
+              <div className="space-y-4 overflow-hidden">
+                <div className="grid gap-2 rounded-md border bg-muted/30 p-3 text-sm sm:grid-cols-4">
+                  {(() => {
+                    const totals = batchTotals(batchVisits);
+                    return (
+                      <>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Visitas</p>
+                          <p className="font-semibold">{totals.visits}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Demandas</p>
+                          <p className="font-semibold">{totals.demands}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Anotações</p>
+                          <p className="font-semibold">{totals.notes}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Itens</p>
+                          <p className="font-semibold">{totals.items}</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+                <div className="max-h-[58vh] space-y-3 overflow-y-auto pr-1">
+                  {batchVisits.map((visit: any) => {
+                    const mapped = suggestedMapping(visit);
+                    const selectedItems = selectedExportItems(visit);
+                    const selectedClientId = batchRadarClientIds[visit.id] ?? "";
+                    const createName = batchNewClientNames[visit.id] ?? "";
+                    const needsDecision = !selectedClientId && !createName.trim();
+
+                    return (
+                      <div
+                        key={visit.id}
+                        className={
+                          "space-y-3 rounded-md border p-3 " +
+                          (needsDecision ? "border-amber-200 bg-amber-50/40" : "")
+                        }
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-medium">
+                                {visit.titulo || "Visita sem titulo"}
+                              </p>
+                              {mapped ? (
+                                <Badge variant="outline">Vínculo salvo</Badge>
+                              ) : needsDecision ? (
+                                <Badge variant="outline" className="border-amber-300">
+                                  Precisa confirmar
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline">Confirmado</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {clientName(visit)} -{" "}
+                              {new Date(
+                                visit.data_inicio ?? visit.created_at,
+                              ).toLocaleDateString("pt-BR")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {selectedItems.length} item(ns) selecionado(s)
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid gap-3 lg:grid-cols-[1fr,1fr]">
+                          <div className="space-y-2">
+                            <Label>Cliente no Radar Vital</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                value={batchRadarSearches[visit.id] ?? ""}
+                                onChange={(event) =>
+                                  setBatchRadarSearches((current) => ({
+                                    ...current,
+                                    [visit.id]: event.target.value,
+                                  }))
+                                }
+                                placeholder="Buscar cliente no Radar"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                  loadBatchRadarClients(
+                                    visit,
+                                    batchRadarSearches[visit.id] || clientName(visit),
+                                  )
+                                }
+                              >
+                                Buscar
+                              </Button>
+                            </div>
+                            {batchLoadingClients[visit.id] ? (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Buscando clientes...
+                              </div>
+                            ) : (
+                              <Select
+                                value={selectedClientId}
+                                onValueChange={(value) => {
+                                  setBatchRadarClientIds((current) => ({
+                                    ...current,
+                                    [visit.id]: value,
+                                  }));
+                                  setBatchNewClientNames((current) => ({
+                                    ...current,
+                                    [visit.id]: "",
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecionar cliente manualmente" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(batchRadarClients[visit.id] ?? []).map(
+                                    (client: any) => (
+                                      <SelectItem key={client.id} value={client.id}>
+                                        {client.name}
+                                        {client.score ? ` (${client.score}%)` : ""}
+                                      </SelectItem>
+                                    ),
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Criar novo cliente no Radar</Label>
+                            <Input
+                              value={createName}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setBatchNewClientNames((current) => ({
+                                  ...current,
+                                  [visit.id]: value,
+                                }));
+                                if (value.trim()) {
+                                  setBatchRadarClientIds((current) => ({
+                                    ...current,
+                                    [visit.id]: "",
+                                  }));
+                                }
+                              }}
+                              placeholder={clientName(visit)}
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-28 space-y-2 overflow-y-auto rounded-md border bg-background p-2">
+                          {selectedItems.map((item) => (
+                            <div key={item.key} className="text-sm">
+                              <span className="mr-2 text-xs text-muted-foreground">
+                                {item.kind === "DEMANDA" ? "Tarefa" : "Comentário"}
+                              </span>
+                              <span className="break-words">{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" onClick={closeBatchConfirm}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                disabled={!batchReady || !!sending}
+                onClick={confirmBatchSend}
+              >
+                {sending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                Confirmar envio em lote
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Dialog open={!!confirmVisit} onOpenChange={(open) => !open && closeConfirm()}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
