@@ -48,10 +48,17 @@ const initialsFromName = (name: string) =>
     .join("") || "CL";
 
 export default async function handler(req: any, res: any) {
-  const fichaUrl = process.env.FICHA_SUPABASE_URL;
-  const fichaKey = process.env.FICHA_SUPABASE_SERVICE_ROLE_KEY;
-  const radarUrl = process.env.RADAR_VITAL_SUPABASE_URL;
-  const radarKey = process.env.RADAR_VITAL_SUPABASE_SERVICE_ROLE_KEY;
+  const fichaUrl = process.env.FICHA_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const fichaKey =
+    process.env.FICHA_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.FICHA_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const radarUrl =
+    process.env.RADAR_VITAL_SUPABASE_URL || process.env.RADAR_VITAL_VITE_SUPABASE_URL;
+  const radarKey =
+    process.env.RADAR_VITAL_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.RADAR_VITAL_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.RADAR_VITAL_VITE_SUPABASE_PUBLISHABLE_KEY;
   if (!fichaUrl || !fichaKey || !radarUrl || !radarKey) {
     return res
       .status(503)
