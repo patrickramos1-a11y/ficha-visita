@@ -126,7 +126,7 @@ export default async function handler(req: any, res: any) {
       })
       .filter((client: any) => !q || client.score > 0)
       .sort((a: any, b: any) => b.score - a.score || a.name.localeCompare(b.name))
-      .slice(0, 30);
+      .slice(0, q ? 30 : undefined);
 
     return res.status(200).json({ clients: ranked });
   }

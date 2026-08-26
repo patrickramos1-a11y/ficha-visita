@@ -421,9 +421,22 @@ export default function Gestao() {
       const payload = await response.json();
       if (!response.ok)
         throw new Error(payload.error || "Falha ao consultar clientes do Radar");
+      let clients = payload.clients ?? [];
+      const foundSuggestion = clients.length > 0;
+      if (search.trim() && clients.length === 0) {
+        const fallbackResponse = await fetch("/api/radar-import?q=");
+        const fallbackPayload = await fallbackResponse.json();
+        if (!fallbackResponse.ok)
+          throw new Error(
+            fallbackPayload.error || "Falha ao consultar clientes do Radar",
+          );
+        clients = fallbackPayload.clients ?? [];
+      }
       const mapped = suggestedMapping(visit);
-      setRadarClients(payload.clients ?? []);
-      setRadarClientId(mapped?.radar_cliente_id || payload.clients?.[0]?.id || "");
+      setRadarClients(clients);
+      setRadarClientId(
+        mapped?.radar_cliente_id || (foundSuggestion ? clients?.[0]?.id : "") || "",
+      );
       setNewRadarClientName(clientName(visit));
       setRadarSearch(search);
     } catch (error: any) {
@@ -511,10 +524,31 @@ export default function Gestao() {
       const payload = await response.json();
       if (!response.ok)
         throw new Error(payload.error || "Falha ao consultar clientes do Radar");
+      let clients = payload.clients ?? [];
+      const foundSuggestion = clients.length > 0;
+      if (search.trim() && clients.length === 0) {
+        const fallbackResponse = await fetch("/api/radar-import?q=");
+        const fallbackPayload = await fallbackResponse.json();
+        if (!fallbackResponse.ok)
+          throw new Error(
+            fallbackPayload.error || "Falha ao consultar clientes do Radar",
+          );
+        clients = fallbackPayload.clients ?? [];
+      }
       setBatchRadarClients((current) => ({
         ...current,
-        [visit.id]: payload.clients ?? [],
+        [visit.id]: clients,
       }));
+      if (foundSuggestion) {
+        setBatchRadarClientIds((current) => ({
+          ...current,
+          [visit.id]: current[visit.id] || clients[0]?.id || "",
+        }));
+        setBatchNewClientNames((current) => ({
+          ...current,
+          [visit.id]: "",
+        }));
+      }
       setBatchRadarSearches((current) => ({ ...current, [visit.id]: search }));
     } catch (error: any) {
       toast.error(error.message || "Nao foi possivel consultar clientes do Radar");
