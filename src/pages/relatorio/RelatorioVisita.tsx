@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
 import type { AcompanhamentoAmbientalData, AcompanhamentoObraData, NaoConformidadeObra, PendenciaObra } from '@/types/atendimento';
 import { toast } from 'sonner';
 
-type SavedPhoto = { id: string; foto_url: string; tipo: 'inicial' | 'durante' | 'final' };
+type SavedPhoto = { id: string; foto_url: string; tipo: 'inicial' | 'durante' | 'final'; metadata_compressao?: Record<string, unknown> | null };
 
 function formatDate(value?: string | null) {
   return value ? format(new Date(value), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : 'Não informado';
@@ -154,9 +154,18 @@ export default function RelatorioVisita() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('atendimento_fotos')
-        .select('id, foto_url, tipo')
+        .select('id, foto_url, tipo, metadata_compressao')
         .eq('atendimento_id', id)
         .order('created_at');
+      if (error && /metadata_compressao/i.test(String(error.message))) {
+        const fallback = await (supabase as any)
+          .from('atendimento_fotos')
+          .select('id, foto_url, tipo')
+          .eq('atendimento_id', id)
+          .order('created_at');
+        if (fallback.error) throw fallback.error;
+        return (fallback.data ?? []) as SavedPhoto[];
+      }
       if (error) throw error;
       return (data ?? []) as SavedPhoto[];
     },
@@ -480,7 +489,7 @@ export default function RelatorioVisita() {
 
         <section className="space-y-3">
           <div className="flex items-center gap-2"><Image className="h-5 w-5 text-primary" /><h2 className="text-lg font-semibold">Galeria da visita</h2><span className="text-sm text-muted-foreground">({fotos.length})</span></div>
-          {fotos.length === 0 ? <div className="border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">Nenhuma foto foi vinculada a esta visita.</div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{fotos.map((foto, index) => <figure key={foto.id} className="overflow-hidden border bg-card"><img src={foto.foto_url} alt={`Foto ${index + 1} da visita`} className="aspect-square h-full w-full object-cover" loading="lazy" /><figcaption className="px-2 py-1.5 text-xs text-muted-foreground">{foto.tipo === 'inicial' ? 'Foto inicial' : foto.tipo === 'final' ? 'Foto final' : 'Registro da visita'}</figcaption></figure>)}</div>}
+          {fotos.length === 0 ? <div className="border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">Nenhuma foto foi vinculada a esta visita.</div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{fotos.map((foto, index) => <figure key={foto.id} className="overflow-hidden border bg-card"><img src={foto.foto_url} alt={`Foto ${index + 1} da visita`} className="aspect-square h-full w-full object-cover" loading="lazy" /><figcaption className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs text-muted-foreground"><span>{foto.tipo === 'inicial' ? 'Foto inicial' : foto.tipo === 'final' ? 'Foto final' : 'Registro da visita'}</span>{foto.metadata_compressao?.detalhe_tecnico ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Detalhe</span> : null}</figcaption></figure>)}</div>}
         </section>
       </main>
     </div>

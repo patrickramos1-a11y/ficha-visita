@@ -46,6 +46,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { PhotoStorageStatsCard } from "@/components/gestao/PhotoStorageStatsCard";
 
 const db = supabase as any;
 const natureLabels: Record<string, string> = {
@@ -759,6 +760,7 @@ export default function Gestao() {
                 </Card>
               ))}
             </div>
+            <PhotoStorageStatsCard />
           </TabsContent>
           <TabsContent value="visitas" className="space-y-4">
             <Card>

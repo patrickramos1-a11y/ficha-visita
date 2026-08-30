@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { getVisitStepsForMode, ProgressStepper } from '@/components/visita/ProgressStepper';
+import { PhotoDetailToggle } from '@/components/visita/PhotoDetailToggle';
 import { Camera, SkipForward, Check, X, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -18,6 +19,7 @@ export default function FotoInicialOpcional() {
   const [showChoice, setShowChoice] = useState(true);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
+  const [detalheTecnico, setDetalheTecnico] = useState(false);
 
   const fotoInicial = data.fotos.find(f => f.tipo === 'inicial');
 
@@ -45,7 +47,7 @@ export default function FotoInicialOpcional() {
 
     try {
       for (const file of files) {
-        await addFotoFile(file, 'inicial');
+        await addFotoFile(file, 'inicial', { detalheTecnico });
       }
       toast.success(`${files.length} fotos adicionadas!`);
       navigate(nextRoute);
@@ -58,7 +60,7 @@ export default function FotoInicialOpcional() {
   const handleConfirmPhoto = async () => {
     if (!capturedFile) return;
     try {
-      await addFotoFile(capturedFile, 'inicial');
+      await addFotoFile(capturedFile, 'inicial', { detalheTecnico });
       if (capturedPreview) URL.revokeObjectURL(capturedPreview);
       toast.success('Foto inicial registrada!');
       navigate(nextRoute);
@@ -102,6 +104,8 @@ export default function FotoInicialOpcional() {
             </div>
 
             <div className="w-full max-w-xs space-y-3">
+              <PhotoDetailToggle checked={detalheTecnico} onCheckedChange={setDetalheTecnico} />
+
               <Button 
                 onClick={handleTirarFoto}
                 className="w-full h-14 text-base haptic-press"
@@ -159,6 +163,7 @@ export default function FotoInicialOpcional() {
                 Confirmar
               </Button>
             </div>
+            <PhotoDetailToggle checked={detalheTecnico} onCheckedChange={setDetalheTecnico} />
           </div>
         )}
       </div>

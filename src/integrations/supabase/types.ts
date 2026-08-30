@@ -114,6 +114,7 @@ export type Database = {
           created_at: string
           foto_url: string
           id: string
+          metadata_compressao: Json
           tipo: string
         }
         Insert: {
@@ -121,6 +122,7 @@ export type Database = {
           created_at?: string
           foto_url: string
           id?: string
+          metadata_compressao?: Json
           tipo?: string
         }
         Update: {
@@ -128,6 +130,7 @@ export type Database = {
           created_at?: string
           foto_url?: string
           id?: string
+          metadata_compressao?: Json
           tipo?: string
         }
         Relationships: [

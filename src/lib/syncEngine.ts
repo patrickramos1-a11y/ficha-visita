@@ -233,6 +233,8 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       if (row) {
         blob = row.blob;
         contentType = row.mimeType || contentType;
+        foto.metadata_compressao = foto.metadata_compressao ?? row.metadataCompressao;
+        foto.detalhe_tecnico = foto.detalhe_tecnico ?? row.metadataCompressao?.detalhe_tecnico;
         if (contentType.includes('png')) ext = 'png';
         else if (contentType.includes('webp')) ext = 'webp';
       }
@@ -263,11 +265,18 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       .delete()
       .eq('atendimento_id', atendimento.id)
       .eq('foto_url', publicUrl.publicUrl);
-    const { error: insErr } = await supabase.from('atendimento_fotos').insert({
+    const fotoPayload = {
       atendimento_id: atendimento.id,
       foto_url: publicUrl.publicUrl,
       tipo: foto.tipo,
-    });
+      metadata_compressao: foto.metadata_compressao ?? {},
+    };
+    let { error: insErr } = await supabase.from('atendimento_fotos').insert(fotoPayload as any);
+    if (insErr && /metadata_compressao/i.test(String(insErr.message))) {
+      const { metadata_compressao: _metadataCompressao, ...payloadSemMetadata } = fotoPayload;
+      const retry = await supabase.from('atendimento_fotos').insert(payloadSemMetadata);
+      insErr = retry.error;
+    }
     if (insErr && !String(insErr.message).toLowerCase().includes('duplicate')) throw insErr;
 
     // Mark uploaded for idempotency on retries

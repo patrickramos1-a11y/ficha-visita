@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
 import { MobileFooter } from '@/components/mobile';
+import { PhotoDetailToggle } from '@/components/visita/PhotoDetailToggle';
 import { Camera, AlertCircle, Check, ImagePlus, X, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,7 @@ export default function FotoFinalObrigatoria() {
   const { data, addFotoFile, removeFoto } = useAtendimento();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [detalheTecnico, setDetalheTecnico] = useState(false);
 
   const finalFotos = data.fotos.filter(f => f.tipo === 'final');
   const temFotoInicial = data.fotos.some(f => f.tipo === 'inicial');
@@ -38,7 +40,7 @@ export default function FotoFinalObrigatoria() {
     if (files.length === 0) return;
     try {
       for (const file of files) {
-        await addFotoFile(file, 'final');
+        await addFotoFile(file, 'final', { detalheTecnico });
       }
       toast.success(
         files.length === 1 ? 'Foto final adicionada!' : `${files.length} fotos adicionadas!`,
@@ -122,6 +124,7 @@ export default function FotoFinalObrigatoria() {
             <span className="text-sm">Da Galeria</span>
           </Button>
         </div>
+        <PhotoDetailToggle checked={detalheTecnico} onCheckedChange={setDetalheTecnico} />
 
         {/* Photos grid */}
         {finalFotos.length > 0 && (

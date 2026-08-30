@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { ProgressStepper, VISIT_STEPS_RAPIDA } from '@/components/visita/ProgressStepper';
 import { MobileFooter } from '@/components/mobile';
+import { PhotoDetailToggle } from '@/components/visita/PhotoDetailToggle';
 import { Camera, AlertCircle, Check, ImagePlus, X, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,7 @@ export default function FotosRapida() {
   const { data, addFotoFile, removeFoto } = useAtendimento();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [detalheTecnico, setDetalheTecnico] = useState(false);
 
   // For visita rápida, treat all photos as 'final' so possui_foto_final fica true
   const fotos = data.fotos;
@@ -26,7 +28,7 @@ export default function FotosRapida() {
     e.target.value = '';
     if (files.length === 0) return;
     try {
-      for (const file of files) await addFotoFile(file, 'final');
+      for (const file of files) await addFotoFile(file, 'final', { detalheTecnico });
       toast.success(files.length === 1 ? 'Foto adicionada!' : `${files.length} fotos adicionadas!`);
     } catch (err) {
       console.error(err);
@@ -72,6 +74,7 @@ export default function FotosRapida() {
             <span className="text-sm">Da Galeria</span>
           </Button>
         </div>
+        <PhotoDetailToggle checked={detalheTecnico} onCheckedChange={setDetalheTecnico} />
 
         {fotos.length > 0 ? (
           <div>

@@ -30,7 +30,7 @@ interface AtendimentoContextType {
   toggleChecklistItem: (id: string) => void;
   removeChecklistItem: (id: string) => void;
   addFoto: (url: string, tipo: 'inicial' | 'durante' | 'final') => void;
-  addFotoFile: (file: File | Blob, tipo: 'inicial' | 'durante' | 'final') => Promise<void>;
+  addFotoFile: (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options?: { detalheTecnico?: boolean }) => Promise<void>;
   removeFoto: (url: string) => void;
   setTiposAtendimento: (tipos: AtendimentoTipo[]) => void;
   setAcoesEspecificas: (acoes: string[]) => void;
@@ -373,10 +373,16 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const addFotoFile = async (file: File | Blob, tipo: 'inicial' | 'durante' | 'final') => {
-    const { fotoId, objectUrl } = await savePhotoBlob(file, tipo);
+  const addFotoFile = async (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options: { detalheTecnico?: boolean } = {}) => {
+    const { fotoId, objectUrl, metadataCompressao } = await savePhotoBlob(file, tipo, options);
     setData(prev => {
-      const newFotos = [...prev.fotos, { fotoId, url: objectUrl, tipo }];
+      const newFotos = [...prev.fotos, {
+        fotoId,
+        url: objectUrl,
+        tipo,
+        detalhe_tecnico: Boolean(options.detalheTecnico),
+        metadata_compressao: metadataCompressao as unknown as Record<string, unknown>,
+      }];
       const possuiFotoFinal = newFotos.some(f => f.tipo === 'final');
       return { ...prev, fotos: newFotos, possui_foto_final: possuiFotoFinal };
     });

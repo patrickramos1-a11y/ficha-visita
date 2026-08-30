@@ -248,6 +248,8 @@ export interface AtendimentoData {
     url: string;
     remoteUrl?: string;
     tipo: 'inicial' | 'durante' | 'final';
+    detalhe_tecnico?: boolean;
+    metadata_compressao?: Record<string, unknown>;
   }[];
   demandas: Demanda[];
   possui_foto_final: boolean;

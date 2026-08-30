@@ -1,6 +1,6 @@
 import Dexie, { Table } from 'dexie';
 import { AtendimentoData } from '@/types/atendimento';
-import { compressVisitPhoto } from '@/lib/imageCompression';
+import { compressVisitPhoto, type CompressVisitPhotoOptions, type PhotoCompressionMetadata } from '@/lib/imageCompression';
 
 export type PendingStatus = 'pending' | 'syncing' | 'failed';
 
@@ -34,6 +34,7 @@ export interface PhotoBlob {
   blob: Blob;
   mimeType: string;
   tipo: 'inicial' | 'durante' | 'final';
+  metadataCompressao?: PhotoCompressionMetadata;
   createdAt: string;
 }
 
@@ -56,6 +57,12 @@ class OfflineDB extends Dexie {
       masterCache: 'key',
       photos: 'fotoId, tipo, createdAt',
     });
+    this.version(3).stores({
+      pendingAtendimentos: 'localId, status, createdAt',
+      pendingClientes: 'localId, status, createdAt',
+      masterCache: 'key',
+      photos: 'fotoId, tipo, createdAt',
+    });
   }
 }
 
@@ -66,19 +73,21 @@ export const offlineDB = new OfflineDB();
 export async function savePhotoBlob(
   source: Blob | File,
   tipo: 'inicial' | 'durante' | 'final',
-): Promise<{ fotoId: string; objectUrl: string }> {
+  options: CompressVisitPhotoOptions = {},
+): Promise<{ fotoId: string; objectUrl: string; metadataCompressao: PhotoCompressionMetadata }> {
   const fotoId = crypto.randomUUID();
-  const blob = await compressVisitPhoto(source);
+  const { blob, metadata } = await compressVisitPhoto(source, options);
   const mimeType = blob.type || 'image/jpeg';
   await offlineDB.photos.add({
     fotoId,
     blob,
     mimeType,
     tipo,
+    metadataCompressao: metadata,
     createdAt: new Date().toISOString(),
   });
   const objectUrl = URL.createObjectURL(blob);
-  return { fotoId, objectUrl };
+  return { fotoId, objectUrl, metadataCompressao: metadata };
 }
 
 export async function getPhotoBlob(fotoId: string): Promise<PhotoBlob | undefined> {
@@ -145,6 +154,8 @@ export async function enqueueAtendimento(data: AtendimentoData): Promise<string>
           ? f.url
           : undefined,
       remoteUrl: f.remoteUrl,
+      detalhe_tecnico: f.detalhe_tecnico,
+      metadata_compressao: f.metadata_compressao,
     })) as any,
   };
 

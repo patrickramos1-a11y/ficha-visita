@@ -16,6 +16,7 @@ import { useSaveAtendimento } from '@/hooks/useSaveAtendimento';
 import type { AtendimentoData } from '@/types/atendimento';
 import { cn } from '@/lib/utils';
 import { ResumoRelatorioEditor } from '@/components/relatorio/ResumoRelatorioEditor';
+import { PhotoDetailToggle } from '@/components/visita/PhotoDetailToggle';
 
 type SummaryItem = {
   label: string;
@@ -73,6 +74,7 @@ export function EncerramentoVisita({ validateBeforeSave, summaryItems = [], requ
   const { data: responsaveis = [] } = useResponsaveis();
   const saveAtendimento = useSaveAtendimento();
   const [showTitleError, setShowTitleError] = useState(false);
+  const [detalheTecnico, setDetalheTecnico] = useState(false);
 
   const titulo = data.titulo?.trim() ?? '';
   const finalFotos = data.fotos.filter((foto) => foto.tipo === 'final');
@@ -89,7 +91,7 @@ export function EncerramentoVisita({ validateBeforeSave, summaryItems = [], requ
     event.target.value = '';
     if (!files.length) return;
     try {
-      for (const file of files) await addFotoFile(file, 'final');
+      for (const file of files) await addFotoFile(file, 'final', { detalheTecnico });
       toast.success(files.length === 1 ? 'Foto adicionada' : `${files.length} fotos adicionadas`);
     } catch (error) {
       console.error(error);
@@ -192,6 +194,7 @@ export function EncerramentoVisita({ validateBeforeSave, summaryItems = [], requ
             <Button type="button" variant="outline" className="h-14 gap-2" onClick={() => cameraInputRef.current?.click()}><Camera className="h-5 w-5" />Tirar foto</Button>
             <Button type="button" variant="outline" className="h-14 gap-2" onClick={() => galleryInputRef.current?.click()}><ImagePlus className="h-5 w-5" />Galeria</Button>
           </div>
+          <PhotoDetailToggle checked={detalheTecnico} onCheckedChange={setDetalheTecnico} />
           {finalFotos.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
               {finalFotos.map((foto, index) => (
