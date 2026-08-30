@@ -117,7 +117,6 @@ export type Database = {
           foto_url: string
           id: string
           legenda: string | null
-          metadata_compressao: Json
           tipo: string
         }
         Insert: {
@@ -128,7 +127,6 @@ export type Database = {
           foto_url: string
           id?: string
           legenda?: string | null
-          metadata_compressao?: Json
           tipo?: string
         }
         Update: {
@@ -139,7 +137,6 @@ export type Database = {
           foto_url?: string
           id?: string
           legenda?: string | null
-          metadata_compressao?: Json
           tipo?: string
         }
         Relationships: [
@@ -168,8 +165,8 @@ export type Database = {
       }
       atendimento_personalizado_acoes: {
         Row: {
-          ativo: boolean
           atendimento_personalizado_id: string
+          ativo: boolean
           cor: string | null
           icone: string | null
           id: string
@@ -177,8 +174,8 @@ export type Database = {
           ordem: number
         }
         Insert: {
-          ativo?: boolean
           atendimento_personalizado_id: string
+          ativo?: boolean
           cor?: string | null
           icone?: string | null
           id?: string
@@ -186,8 +183,8 @@ export type Database = {
           ordem?: number
         }
         Update: {
-          ativo?: boolean
           atendimento_personalizado_id?: string
+          ativo?: boolean
           cor?: string | null
           icone?: string | null
           id?: string
@@ -196,7 +193,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "atendimento_personalizado_acoes_atendimento_personalizado_id_fkey"
+            foreignKeyName: "atendimento_personalizado_aco_atendimento_personalizado_id_fkey"
             columns: ["atendimento_personalizado_id"]
             isOneToOne: false
             referencedRelation: "atendimentos_personalizados"
@@ -250,8 +247,8 @@ export type Database = {
       }
       atendimento_personalizado_modulos: {
         Row: {
-          ativo: boolean
           atendimento_personalizado_id: string
+          ativo: boolean
           descricao: string | null
           entra_conformidade: boolean
           id: string
@@ -259,8 +256,8 @@ export type Database = {
           titulo: string
         }
         Insert: {
-          ativo?: boolean
           atendimento_personalizado_id: string
+          ativo?: boolean
           descricao?: string | null
           entra_conformidade?: boolean
           id?: string
@@ -268,8 +265,8 @@ export type Database = {
           titulo: string
         }
         Update: {
-          ativo?: boolean
           atendimento_personalizado_id?: string
+          ativo?: boolean
           descricao?: string | null
           entra_conformidade?: boolean
           id?: string
@@ -278,7 +275,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "atendimento_personalizado_modulos_atendimento_personalizado_id_fkey"
+            foreignKeyName: "atendimento_personalizado_mod_atendimento_personalizado_id_fkey"
             columns: ["atendimento_personalizado_id"]
             isOneToOne: false
             referencedRelation: "atendimentos_personalizados"
@@ -333,8 +330,8 @@ export type Database = {
       }
       atendimento_personalizado_tipos: {
         Row: {
-          ativo: boolean
           atendimento_personalizado_id: string
+          ativo: boolean
           cor: string | null
           icone: string | null
           id: string
@@ -342,8 +339,8 @@ export type Database = {
           ordem: number
         }
         Insert: {
-          ativo?: boolean
           atendimento_personalizado_id: string
+          ativo?: boolean
           cor?: string | null
           icone?: string | null
           id?: string
@@ -351,8 +348,8 @@ export type Database = {
           ordem?: number
         }
         Update: {
-          ativo?: boolean
           atendimento_personalizado_id?: string
+          ativo?: boolean
           cor?: string | null
           icone?: string | null
           id?: string
@@ -361,7 +358,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "atendimento_personalizado_tipos_atendimento_personalizado_id_fkey"
+            foreignKeyName: "atendimento_personalizado_tip_atendimento_personalizado_id_fkey"
             columns: ["atendimento_personalizado_id"]
             isOneToOne: false
             referencedRelation: "atendimentos_personalizados"
@@ -421,6 +418,7 @@ export type Database = {
           checklist: Json | null
           cliente_id: string | null
           comentario_base_relatorio: string | null
+          conformidade_por_modulo: Json
           created_at: string
           dados_modalidade: Json | null
           data_fim: string | null
@@ -433,9 +431,8 @@ export type Database = {
           notas: string | null
           obra_id: string | null
           origem_id: string | null
-          possui_foto_final: boolean | null
-          conformidade_por_modulo: Json
           percentual_conformidade: number | null
+          possui_foto_final: boolean | null
           relatorio_publico: boolean | null
           responsavel_id: string | null
           resumo_relatorio: string | null
@@ -453,6 +450,7 @@ export type Database = {
           checklist?: Json | null
           cliente_id?: string | null
           comentario_base_relatorio?: string | null
+          conformidade_por_modulo?: Json
           created_at?: string
           dados_modalidade?: Json | null
           data_fim?: string | null
@@ -465,9 +463,8 @@ export type Database = {
           notas?: string | null
           obra_id?: string | null
           origem_id?: string | null
-          possui_foto_final?: boolean | null
-          conformidade_por_modulo?: Json
           percentual_conformidade?: number | null
+          possui_foto_final?: boolean | null
           relatorio_publico?: boolean | null
           responsavel_id?: string | null
           resumo_relatorio?: string | null
@@ -485,6 +482,7 @@ export type Database = {
           checklist?: Json | null
           cliente_id?: string | null
           comentario_base_relatorio?: string | null
+          conformidade_por_modulo?: Json
           created_at?: string
           dados_modalidade?: Json | null
           data_fim?: string | null
@@ -497,9 +495,8 @@ export type Database = {
           notas?: string | null
           obra_id?: string | null
           origem_id?: string | null
-          possui_foto_final?: boolean | null
-          conformidade_por_modulo?: Json
           percentual_conformidade?: number | null
+          possui_foto_final?: boolean | null
           relatorio_publico?: boolean | null
           responsavel_id?: string | null
           resumo_relatorio?: string | null
@@ -510,6 +507,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "atendimentos_atendimento_personalizado_id_fkey"
+            columns: ["atendimento_personalizado_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos_personalizados"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "atendimentos_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -536,13 +540,6 @@ export type Database = {
             columns: ["responsavel_id"]
             isOneToOne: false
             referencedRelation: "responsaveis"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atendimentos_atendimento_personalizado_id_fkey"
-            columns: ["atendimento_personalizado_id"]
-            isOneToOne: false
-            referencedRelation: "atendimentos_personalizados"
             referencedColumns: ["id"]
           },
         ]
