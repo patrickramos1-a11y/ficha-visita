@@ -4,7 +4,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
-import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
+import { ProgressStepper, getVisitStepsForMode } from '@/components/visita/ProgressStepper';
 import { MobileFooter } from '@/components/mobile';
 import { PhotoDetailToggle } from '@/components/visita/PhotoDetailToggle';
 import { Camera, AlertCircle, Check, ImagePlus, X, Image } from 'lucide-react';
@@ -18,6 +18,7 @@ export default function FotoFinalObrigatoria() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [detalheTecnico, setDetalheTecnico] = useState(false);
+  const steps = getVisitStepsForMode(data.modo);
 
   const finalFotos = data.fotos.filter(f => f.tipo === 'final');
   const temFotoInicial = data.fotos.some(f => f.tipo === 'inicial');
@@ -79,8 +80,8 @@ export default function FotoFinalObrigatoria() {
   const status = getStatusMessage();
 
   return (
-    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/clientes')} title="Foto Final">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={6} />
+    <MobileLayout showCancelVisita showBack onBack={() => navigate(data.modo === 'personalizado' ? '/visita/demandas' : '/visita/clientes')} title="Foto Final">
+      <ProgressStepper steps={steps} currentStep={steps.length - 1} />
       
       {/* Status Banner */}
       <div className="px-4 py-4">

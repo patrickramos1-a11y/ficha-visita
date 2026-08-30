@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Search, Plus, Pencil, Trash2, Building2, Loader2, Calendar } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { AtendimentosPersonalizadosPanel } from '@/components/clientes/AtendimentosPersonalizadosPanel';
 
 interface ClienteForm { nome: string; }
 
@@ -150,6 +151,10 @@ export default function DesktopClientes() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
         </div>
+
+        {!isLoading && filteredClientes.length > 0 && (
+          <AtendimentosPersonalizadosPanel clientes={clientes ?? []} />
+        )}
 
         {/* Content */}
         {isLoading ? (

@@ -37,6 +37,8 @@ export function ProgressStepper({ steps, currentStep }: ProgressStepperProps) {
         return data.demandas.some((demanda) => demanda.descricao.trim()) || (data.anotacoes_itens ?? []).some((item) => item.texto.trim());
       case 'clientes':
         return data.cliente_ids.length > 0;
+      case 'personalizado':
+        return (data.atendimento_personalizado?.respostas ?? []).some((resposta) => resposta.resposta);
       case 'foto-final':
         return data.possui_foto_final;
       default:
@@ -143,6 +145,15 @@ export function getVisitStepsForMode(modo: VisitaModo): Step[] {
   if (modo === 'processos') return [
     { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' }, { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
     { id: 'processos-identificacao', label: 'Identificação', route: '/visita/processos' }, { id: 'processos-cadastro', label: 'Processos', route: '/visita/processos' }, { id: 'processos-registro', label: 'Registro', route: '/visita/processos' }, { id: 'radar', label: 'Radar', route: '/visita/processos' }, { id: 'processos-final', label: 'Final', route: '/visita/processos' },
+  ];
+  if (modo === 'personalizado') return [
+    { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' },
+    { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
+    { id: 'tipos', label: 'Tipos', route: '/visita/tipos' },
+    { id: 'acoes', label: 'Ações', route: '/visita/acoes' },
+    { id: 'personalizado', label: 'Ficha', route: '/visita/personalizado' },
+    { id: 'radar', label: 'Radar', route: '/visita/demandas' },
+    { id: 'foto-final', label: 'Final', route: '/visita/foto-final' },
   ];
   return modo === 'rapida' ? VISIT_STEPS_RAPIDA : VISIT_STEPS;
 }

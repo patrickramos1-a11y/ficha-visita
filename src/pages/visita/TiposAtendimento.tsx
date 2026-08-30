@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
-import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
+import { ProgressStepper, getVisitStepsForMode } from '@/components/visita/ProgressStepper';
 import { PageHeader, EmptyState, CountBadge, MobileFooter } from '@/components/mobile';
 import { useTiposAtendimentoConfig } from '@/hooks/useConfigEntities';
 import { AtendimentoTipo } from '@/types/atendimento';
@@ -19,6 +19,7 @@ export default function TiposAtendimento() {
   const { data: tipos, isLoading } = useTiposAtendimentoConfig();
   const [selectedTipos, setSelectedTipos] = useState<AtendimentoTipo[]>(data.tipos_atendimento);
   const [search, setSearch] = useState('');
+  const steps = getVisitStepsForMode(data.modo);
 
   const toggleTipo = (tipo: AtendimentoTipo) => {
     setSelectedTipos(prev =>
@@ -33,7 +34,10 @@ export default function TiposAtendimento() {
 
   const q = search.trim().toLowerCase();
   const natureza = data.natureza ?? 'ATENDIMENTO';
-  const ativos = (tipos || []).filter((t: any) => t.ativo !== false && (t.naturezas ?? ['ATENDIMENTO']).includes(natureza));
+  const ativos = data.modo === 'personalizado'
+    ? (data.atendimento_personalizado?.tipos ?? []).filter((t: any) => t.ativo !== false)
+    : (tipos || []).filter((t: any) => t.ativo !== false && (t.naturezas ?? ['ATENDIMENTO']).includes(natureza));
+  const loadingOptions = data.modo === 'personalizado' ? false : isLoading;
   const availableTipos = ativos
     .filter((t: any) =>
       !q || t.nome.toLowerCase().includes(q) || (t.descricao || '').toLowerCase().includes(q)
@@ -43,7 +47,7 @@ export default function TiposAtendimento() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/responsavel')} title="Tipos de Atendimento">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={2} />
+      <ProgressStepper steps={steps} currentStep={2} />
 
       <PageHeader
         icon={ClipboardList}
@@ -70,7 +74,7 @@ export default function TiposAtendimento() {
       </div>
 
       <div className="flex-1 overflow-auto scroll-smooth-y px-4 pb-4">
-        {isLoading ? (
+        {loadingOptions ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : availableTipos.length === 0 && selectedTipos.length > 0 ? (
           <EmptyState icon={Check} title="Nenhum outro tipo encontrado" description="Ajuste a busca para ver outras opções" />
@@ -82,7 +86,7 @@ export default function TiposAtendimento() {
                 onClick={() => toggleTipo(tipoConfig.nome)}
                 selected={selectedTipos.includes(tipoConfig.nome)}
                 label={tipoConfig.nome}
-                meta={formatTopicoSubtopico(tipoConfig)}
+                meta={data.modo === 'personalizado' ? '' : formatTopicoSubtopico(tipoConfig)}
                 kind="tipo"
               />
             ))}

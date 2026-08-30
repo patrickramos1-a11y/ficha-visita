@@ -33,11 +33,20 @@ import {
   type ConformityModule,
   visitModeLabel,
 } from '@/lib/conformityReport';
+import { buildPersonalizadoConformityReport, type PersonalizadoReport } from '@/lib/atendimentoPersonalizado';
 import { cn } from '@/lib/utils';
 import type { AcompanhamentoAmbientalData, AcompanhamentoObraData, NaoConformidadeObra, PendenciaObra } from '@/types/atendimento';
 import { toast } from 'sonner';
 
-type SavedPhoto = { id: string; foto_url: string; tipo: 'inicial' | 'durante' | 'final'; metadata_compressao?: Record<string, unknown> | null };
+type SavedPhoto = {
+  id: string;
+  foto_url: string;
+  tipo: 'inicial' | 'durante' | 'final';
+  metadata_compressao?: Record<string, unknown> | null;
+  atendimento_personalizado_modulo_id?: string | null;
+  atendimento_personalizado_item_id?: string | null;
+  legenda?: string | null;
+};
 
 function formatDate(value?: string | null) {
   return value ? format(new Date(value), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : 'Não informado';
@@ -154,10 +163,10 @@ export default function RelatorioVisita() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('atendimento_fotos')
-        .select('id, foto_url, tipo, metadata_compressao')
+        .select('id, foto_url, tipo, metadata_compressao, atendimento_personalizado_modulo_id, atendimento_personalizado_item_id, legenda')
         .eq('atendimento_id', id)
         .order('created_at');
-      if (error && /metadata_compressao/i.test(String(error.message))) {
+      if (error && /(metadata_compressao|atendimento_personalizado_modulo_id|atendimento_personalizado_item_id|legenda)/i.test(String(error.message))) {
         const fallback = await (supabase as any)
           .from('atendimento_fotos')
           .select('id, foto_url, tipo')
@@ -220,6 +229,11 @@ export default function RelatorioVisita() {
       ? buildWorksConformityReport((data as unknown) as AcompanhamentoObraData)
       : buildEnvironmentalConformityReport((data as unknown) as AcompanhamentoAmbientalData);
   }, [atendimento]);
+
+  const personalizedReport: PersonalizadoReport | null = useMemo(() => {
+    if (!atendimento || atendimento.modo !== 'personalizado') return null;
+    return buildPersonalizadoConformityReport(atendimento.dados_modalidade, fotos);
+  }, [atendimento, fotos]);
 
   if (isLoading) {
     return <div className="min-h-screen bg-background grid place-items-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>;
@@ -314,10 +328,10 @@ export default function RelatorioVisita() {
                 <DetailRow icon={Clock3} label="Duração" value={formatDuration(start, end)} />
               </div>
             </div>
-            {report ? (
+            {report || personalizedReport ? (
               <div className="min-w-[178px] border-l-4 border-primary bg-primary/5 px-5 py-4 text-center">
                 <p className="text-xs font-medium uppercase text-muted-foreground">Conformidade geral</p>
-                <Percentage value={report.percentage} className="block pt-1 text-5xl text-primary" />
+                <Percentage value={(report?.percentage ?? personalizedReport?.percentage) ?? null} className="block pt-1 text-5xl text-primary" />
                 <p className="mt-1 text-xs text-muted-foreground">N/A não entra no cálculo</p>
               </div>
             ) : (
@@ -391,6 +405,71 @@ export default function RelatorioVisita() {
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {report.modules.map((module) => <ModuleCard key={module.id} module={module} />)}
             </div>
+          </section>
+        )}
+
+        {personalizedReport && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Ficha personalizada</h2>
+              <span className="text-xs text-muted-foreground">{personalizedReport.modules.length} módulos</span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {personalizedReport.modules.map((module) => <ModuleCard key={module.id} module={{
+                id: module.id,
+                title: module.title,
+                percentage: module.percentage,
+                counts: module.counts,
+                items: module.items.map((item) => ({ key: item.id, label: item.label, answer: item.response as any })),
+              }} />)}
+            </div>
+            <Card className="shadow-none">
+              <CardContent className="space-y-4 p-5">
+                {personalizedReport.alerts.length ? (
+                  <div className="space-y-2">
+                    {personalizedReport.alerts.map((alert) => (
+                      <div key={alert.key} className={cn('rounded-md border-l-4 px-3 py-2 text-sm', alert.severity === 'critical' ? 'border-red-600 bg-red-50 text-red-900' : 'border-amber-500 bg-amber-50 text-amber-900')}>
+                        <span className="font-medium">{alert.severity === 'critical' ? 'Crítico' : 'Atenção'}:</span> {alert.label}
+                        <span className="text-xs opacity-75"> • {alert.moduleTitle}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhum alerta registrado na ficha personalizada.</div>
+                )}
+                <div className="space-y-4">
+                  {personalizedReport.modules.map((module) => (
+                    <div key={`${module.id}-details`} className="rounded-lg border p-4">
+                      <h3 className="font-semibold">{module.title}</h3>
+                      <div className="mt-3 space-y-3">
+                        {module.items.map((item) => {
+                          const itemFotos = fotos.filter((foto) => foto.atendimento_personalizado_item_id === item.id);
+                          return (
+                            <div key={item.id} className="rounded-md bg-muted/40 p-3">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <p className="text-sm font-medium">{item.label}</p>
+                                <Badge variant="outline">{item.response ? item.response.replaceAll('_', ' ') : 'Sem resposta'}</Badge>
+                              </div>
+                              {item.observation ? <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{item.observation}</p> : null}
+                              {itemFotos.length ? (
+                                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                  {itemFotos.map((foto) => (
+                                    <figure key={foto.id} className="overflow-hidden rounded-md border bg-card">
+                                      <img src={foto.foto_url} alt={foto.legenda || item.label} className="aspect-square w-full object-cover" loading="lazy" />
+                                      <figcaption className="truncate px-2 py-1 text-[11px] text-muted-foreground">{foto.legenda || 'Foto do item'}</figcaption>
+                                    </figure>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </section>
         )}
 

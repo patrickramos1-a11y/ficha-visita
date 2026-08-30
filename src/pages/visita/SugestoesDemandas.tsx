@@ -4,7 +4,7 @@ import { ChevronRight, Send } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { PageHeader, MobileFooter } from '@/components/mobile';
-import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
+import { ProgressStepper, getVisitStepsForMode } from '@/components/visita/ProgressStepper';
 import { RadarVisita } from '@/components/visita/RadarVisita';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
@@ -14,6 +14,7 @@ export default function SugestoesDemandas() {
   const navigate = useNavigate();
   const { data, gerarSugestoesDemandas, addDemanda } = useAtendimento();
   const [initialized, setInitialized] = useState(false);
+  const steps = getVisitStepsForMode(data.modo);
 
   useEffect(() => {
     if (!initialized && data.demandas.length === 0) {
@@ -25,8 +26,8 @@ export default function SugestoesDemandas() {
   }, [addDemanda, data.demandas.length, gerarSugestoesDemandas, initialized]);
 
   return (
-    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/acoes')} title="Radar Vital">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={4} />
+    <MobileLayout showCancelVisita showBack onBack={() => navigate(data.modo === 'personalizado' ? '/visita/personalizado' : '/visita/acoes')} title="Radar Vital">
+      <ProgressStepper steps={steps} currentStep={data.modo === 'personalizado' ? 5 : 4} />
 
       <PageHeader
         icon={Send}
@@ -39,7 +40,7 @@ export default function SugestoesDemandas() {
       </div>
 
       <MobileFooter>
-        <Button onClick={() => navigate('/visita/clientes')} className="w-full h-14 text-lg haptic-press">
+        <Button onClick={() => navigate(data.modo === 'personalizado' ? '/visita/foto-final' : '/visita/clientes')} className="w-full h-14 text-lg haptic-press">
           Continuar
           <ChevronRight className="w-5 h-5 ml-2" />
         </Button>

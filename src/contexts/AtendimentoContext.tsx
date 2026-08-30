@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo, AcompanhamentoObraData, AcompanhamentoAmbientalData, AcompanhamentoProcessosData, AnotacaoVisita, NaoConformidadeObra, PendenciaObra } from '@/types/atendimento';
+import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo, AcompanhamentoObraData, AcompanhamentoAmbientalData, AcompanhamentoProcessosData, AnotacaoVisita, NaoConformidadeObra, PendenciaObra, AtendimentoPersonalizadoData, AtendimentoPersonalizadoResposta } from '@/types/atendimento';
 import { getPlanoFromTipo, getPlanoFromAcao } from '@/types/tiposAtendimentoConfig';
 import { savePhotoBlob, deletePhoto, getPhotoObjectURL } from '@/lib/offlineDB';
 import { format } from 'date-fns';
@@ -30,13 +30,15 @@ interface AtendimentoContextType {
   toggleChecklistItem: (id: string) => void;
   removeChecklistItem: (id: string) => void;
   addFoto: (url: string, tipo: 'inicial' | 'durante' | 'final') => void;
-  addFotoFile: (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options?: { detalheTecnico?: boolean }) => Promise<void>;
+  addFotoFile: (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options?: { detalheTecnico?: boolean; atendimentoPersonalizadoModuloId?: string | null; atendimentoPersonalizadoItemId?: string | null; legenda?: string | null }) => Promise<void>;
   removeFoto: (url: string) => void;
   setTiposAtendimento: (tipos: AtendimentoTipo[]) => void;
   setAcoesEspecificas: (acoes: string[]) => void;
   setAcompanhamentoObra: (updater: (prev: AcompanhamentoObraData) => AcompanhamentoObraData) => void;
   setAcompanhamentoAmbiental: (updater: (prev: AcompanhamentoAmbientalData) => AcompanhamentoAmbientalData) => void;
   setAcompanhamentoProcessos: (updater: (prev: AcompanhamentoProcessosData) => AcompanhamentoProcessosData) => void;
+  setAtendimentoPersonalizado: (updater: (prev: AtendimentoPersonalizadoData | undefined) => AtendimentoPersonalizadoData) => void;
+  updateRespostaPersonalizada: (resposta: AtendimentoPersonalizadoResposta) => void;
   addNaoConformidade: (item: NaoConformidadeObra) => void;
   updateNaoConformidade: (index: number, item: NaoConformidadeObra) => void;
   removeNaoConformidade: (index: number) => void;
@@ -50,6 +52,16 @@ interface AtendimentoContextType {
   finalizarAtendimento: () => void;
   resetAtendimento: () => void;
   iniciarVisita: (modo: VisitaModo) => void;
+  iniciarVisitaPersonalizada: (config: {
+    atendimento_personalizado_id: string;
+    atendimento_personalizado_nome: string;
+    cliente_id: string;
+    cliente_nome?: string;
+    responsavel_id?: string | null;
+    modulos: AtendimentoPersonalizadoData['modulos'];
+    tipos?: AtendimentoPersonalizadoData['tipos'];
+    acoes?: AtendimentoPersonalizadoData['acoes'];
+  }) => void;
   gerarSugestoesDemandas: () => Demanda[];
   setRotaAtual: (rota: string) => void;
   getRotaAtual: () => string | null;
@@ -373,7 +385,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const addFotoFile = async (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options: { detalheTecnico?: boolean } = {}) => {
+  const addFotoFile = async (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options: { detalheTecnico?: boolean; atendimentoPersonalizadoModuloId?: string | null; atendimentoPersonalizadoItemId?: string | null; legenda?: string | null } = {}) => {
     const { fotoId, objectUrl, metadataCompressao } = await savePhotoBlob(file, tipo, options);
     setData(prev => {
       const newFotos = [...prev.fotos, {
@@ -382,6 +394,9 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         tipo,
         detalhe_tecnico: Boolean(options.detalheTecnico),
         metadata_compressao: metadataCompressao as unknown as Record<string, unknown>,
+        atendimento_personalizado_modulo_id: options.atendimentoPersonalizadoModuloId ?? null,
+        atendimento_personalizado_item_id: options.atendimentoPersonalizadoItemId ?? null,
+        legenda: options.legenda ?? null,
       }];
       const possuiFotoFinal = newFotos.some(f => f.tipo === 'final');
       return { ...prev, fotos: newFotos, possui_foto_final: possuiFotoFinal };
@@ -427,6 +442,39 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     setData(prev => {
       const acompanhamento_processos = updater(prev.acompanhamento_processos ?? { ...initialAcompanhamentoProcessos });
       return { ...prev, acompanhamento_processos, cliente_ids: acompanhamento_processos.cliente_ids };
+    });
+  };
+
+  const setAtendimentoPersonalizado = (updater: (prev: AtendimentoPersonalizadoData | undefined) => AtendimentoPersonalizadoData) => {
+    setData(prev => {
+      const atendimento_personalizado = updater(prev.atendimento_personalizado);
+      return {
+        ...prev,
+        atendimento_personalizado,
+        atendimento_personalizado_id: atendimento_personalizado.atendimento_personalizado_id,
+        cliente_ids: atendimento_personalizado.cliente_id ? [atendimento_personalizado.cliente_id] : prev.cliente_ids,
+      };
+    });
+  };
+
+  const updateRespostaPersonalizada = (resposta: AtendimentoPersonalizadoResposta) => {
+    setAtendimentoPersonalizado(prev => {
+      const base = prev ?? {
+        atendimento_personalizado_id: '',
+        atendimento_personalizado_nome: '',
+        cliente_id: '',
+        tipos: [],
+        acoes: [],
+        modulos: [],
+        respostas: [],
+      };
+      const exists = base.respostas.some(item => item.item_id === resposta.item_id);
+      return {
+        ...base,
+        respostas: exists
+          ? base.respostas.map(item => item.item_id === resposta.item_id ? { ...item, ...resposta } : item)
+          : [...base.respostas, resposta],
+      };
     });
   };
 
@@ -507,8 +555,10 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         ? `Acompanhamento Ambiental - ${dataTitulo}`
         : modo === 'processos'
           ? `Acompanhamento de Processos - ${dataTitulo}`
+          : modo === 'personalizado'
+            ? `Atendimento Personalizado - ${dataTitulo}`
         : undefined;
-    const natureza = modo === 'obras' ? 'OBRAS' : modo === 'ambiental' ? 'AMBIENTAL' : modo === 'processos' ? 'PROCESSOS' : 'ATENDIMENTO';
+    const natureza = modo === 'obras' ? 'OBRAS' : modo === 'ambiental' ? 'AMBIENTAL' : modo === 'processos' ? 'PROCESSOS' : modo === 'personalizado' ? 'PERSONALIZADO' : 'ATENDIMENTO';
     clearStorage();
     setData({
       ...initialData,
@@ -520,6 +570,42 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
       acompanhamento_obra: modo === 'obras' ? { ...initialAcompanhamentoObra } : undefined,
       acompanhamento_ambiental: modo === 'ambiental' ? { ...initialAcompanhamentoAmbiental } : undefined,
       acompanhamento_processos: modo === 'processos' ? { ...initialAcompanhamentoProcessos } : undefined,
+    });
+    setAtivo(true);
+  }, []);
+
+  const iniciarVisitaPersonalizada = useCallback((config: {
+    atendimento_personalizado_id: string;
+    atendimento_personalizado_nome: string;
+    cliente_id: string;
+    cliente_nome?: string;
+    responsavel_id?: string | null;
+    modulos: AtendimentoPersonalizadoData['modulos'];
+    tipos?: AtendimentoPersonalizadoData['tipos'];
+    acoes?: AtendimentoPersonalizadoData['acoes'];
+  }) => {
+    const inicio = new Date();
+    clearStorage();
+    setData({
+      ...initialData,
+      sync_id: crypto.randomUUID(),
+      titulo: `${config.atendimento_personalizado_nome} - ${format(inicio, 'dd/MM/yyyy')}`,
+      modo: 'personalizado',
+      natureza: 'PERSONALIZADO',
+      cliente_ids: config.cliente_id ? [config.cliente_id] : [],
+      responsavel_id: config.responsavel_id || undefined,
+      atendimento_personalizado_id: config.atendimento_personalizado_id,
+      data_inicio: inicio,
+      atendimento_personalizado: {
+        atendimento_personalizado_id: config.atendimento_personalizado_id,
+        atendimento_personalizado_nome: config.atendimento_personalizado_nome,
+        cliente_id: config.cliente_id,
+        cliente_nome: config.cliente_nome,
+        tipos: config.tipos ?? [],
+        acoes: config.acoes ?? [],
+        modulos: config.modulos,
+        respostas: [],
+      },
     });
     setAtivo(true);
   }, []);
@@ -585,6 +671,8 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         setAcompanhamentoObra,
         setAcompanhamentoAmbiental,
         setAcompanhamentoProcessos,
+        setAtendimentoPersonalizado,
+        updateRespostaPersonalizada,
         addNaoConformidade,
         updateNaoConformidade,
         removeNaoConformidade,
@@ -598,6 +686,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         finalizarAtendimento,
         resetAtendimento,
         iniciarVisita,
+        iniciarVisitaPersonalizada,
         gerarSugestoesDemandas,
         setRotaAtual,
         getRotaAtual,

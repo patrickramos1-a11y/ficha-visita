@@ -12,6 +12,7 @@ import {
   updateAtendimentoData,
 } from '@/lib/offlineDB';
 import { AtendimentoData } from '@/types/atendimento';
+import { buildPersonalizadoConformityReport, serializePersonalizadoModuleSummary } from '@/lib/atendimentoPersonalizado';
 
 type Listener = () => void;
 
@@ -142,7 +143,12 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       ? data.acompanhamento_ambiental
       : data.modo === 'processos'
         ? data.acompanhamento_processos
-        : null;
+        : data.modo === 'personalizado'
+          ? data.atendimento_personalizado
+          : null;
+  const personalizadoReport = data.modo === 'personalizado'
+    ? buildPersonalizadoConformityReport(data.atendimento_personalizado, data.fotos as any)
+    : null;
   const atendimentoPayload = {
       id: localId,
       titulo: data.titulo || null,
@@ -162,6 +168,11 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       possui_foto_final: data.possui_foto_final,
       modo: data.modo || 'completa',
       natureza: data.natureza || 'ATENDIMENTO',
+      atendimento_personalizado_id: data.atendimento_personalizado_id || data.atendimento_personalizado?.atendimento_personalizado_id || null,
+      percentual_conformidade: personalizadoReport?.percentage ?? data.percentual_conformidade ?? null,
+      conformidade_por_modulo: data.modo === 'personalizado'
+        ? serializePersonalizadoModuleSummary(personalizadoReport)
+        : data.conformidade_por_modulo ?? {},
       obra_id: obraId,
       dados_modalidade: dadosModalidade ? JSON.parse(JSON.stringify(dadosModalidade)) : null,
       finalizado: true,
@@ -173,7 +184,7 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
     .select()
     .single();
 
-  if (atendimentoError && /(titulo|natureza|anotacoes_itens|comentario_base_relatorio|resumo_relatorio|resumo_relatorio_gerado_em|relatorio_publico)/i.test(String(atendimentoError.message))) {
+  if (atendimentoError && /(titulo|natureza|anotacoes_itens|comentario_base_relatorio|resumo_relatorio|resumo_relatorio_gerado_em|relatorio_publico|atendimento_personalizado_id|percentual_conformidade|conformidade_por_modulo)/i.test(String(atendimentoError.message))) {
     const {
       titulo: _titulo,
       natureza: _natureza,
@@ -182,6 +193,9 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       resumo_relatorio: _resumoRelatorio,
       resumo_relatorio_gerado_em: _resumoRelatorioGeradoEm,
       relatorio_publico: _relatorioPublico,
+      atendimento_personalizado_id: _atendimentoPersonalizadoId,
+      percentual_conformidade: _percentualConformidade,
+      conformidade_por_modulo: _conformidadePorModulo,
       ...payloadSemCamposNovos
     } = atendimentoPayload;
     const retry = await db
@@ -213,6 +227,24 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
     if (rows.length) {
       const { error } = await db.from('atendimento_processos').insert(rows);
       if (error) throw error;
+    }
+  }
+
+  if (data.modo === 'personalizado' && data.atendimento_personalizado?.respostas?.length) {
+    const rows = data.atendimento_personalizado.respostas
+      .filter((resposta) => resposta.item_id)
+      .map((resposta) => ({
+        atendimento_id: atendimento.id,
+        item_id: resposta.item_id,
+        resposta: resposta.resposta || null,
+        observacao: resposta.observacao || null,
+        atualizado_em: new Date().toISOString(),
+      }));
+    if (rows.length) {
+      const { error } = await db
+        .from('atendimento_personalizado_respostas')
+        .upsert(rows, { onConflict: 'atendimento_id,item_id' });
+      if (error && !/atendimento_personalizado_respostas/i.test(String(error.message))) throw error;
     }
   }
 
@@ -270,10 +302,19 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       foto_url: publicUrl.publicUrl,
       tipo: foto.tipo,
       metadata_compressao: foto.metadata_compressao ?? {},
+      atendimento_personalizado_modulo_id: foto.atendimento_personalizado_modulo_id ?? null,
+      atendimento_personalizado_item_id: foto.atendimento_personalizado_item_id ?? null,
+      legenda: foto.legenda ?? null,
     };
     let { error: insErr } = await supabase.from('atendimento_fotos').insert(fotoPayload as any);
-    if (insErr && /metadata_compressao/i.test(String(insErr.message))) {
-      const { metadata_compressao: _metadataCompressao, ...payloadSemMetadata } = fotoPayload;
+    if (insErr && /(metadata_compressao|atendimento_personalizado_modulo_id|atendimento_personalizado_item_id|legenda)/i.test(String(insErr.message))) {
+      const {
+        metadata_compressao: _metadataCompressao,
+        atendimento_personalizado_modulo_id: _fotoModuloId,
+        atendimento_personalizado_item_id: _fotoItemId,
+        legenda: _fotoLegenda,
+        ...payloadSemMetadata
+      } = fotoPayload;
       const retry = await supabase.from('atendimento_fotos').insert(payloadSemMetadata);
       insErr = retry.error;
     }

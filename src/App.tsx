@@ -32,6 +32,7 @@ import RadarRapida from "./pages/visita/rapida/RadarRapida";
 import AcompanhamentoObras from "./pages/visita/AcompanhamentoObras";
 import AcompanhamentoAmbiental from "./pages/visita/AcompanhamentoAmbiental";
 import AcompanhamentoProcessos from "./pages/visita/AcompanhamentoProcessos";
+import AtendimentoPersonalizado from "./pages/visita/AtendimentoPersonalizado";
 
 // Desktop pages
 import Dashboard from "./pages/desktop/Dashboard";
@@ -99,6 +100,7 @@ function Application() {
             <Route path="/visita/obras" element={<AcompanhamentoObras />} />
             <Route path="/visita/ambiental" element={<AcompanhamentoAmbiental />} />
             <Route path="/visita/processos" element={<AcompanhamentoProcessos />} />
+            <Route path="/visita/personalizado" element={<AtendimentoPersonalizado />} />
             <Route path="/visita/resumo" element={<ResumoAtendimento />} />
             <Route path="/sucesso" element={<Sucesso />} />
             <Route path="/historico" element={<Historico />} />

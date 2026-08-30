@@ -281,6 +281,7 @@ export function visitModeLabel(modo?: string | null) {
   if (modo === 'obras') return 'Acompanhamento de Obras';
   if (modo === 'ambiental') return 'Acompanhamento Ambiental';
   if (modo === 'processos') return 'Acompanhamento de Processos';
+  if (modo === 'personalizado') return 'Atendimento Personalizado';
   if (modo === 'rapida') return 'Visita Rápida';
   return 'Atendimento Técnico';
 }

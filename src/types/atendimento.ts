@@ -41,8 +41,8 @@ export interface Demanda {
   status?: DemandaStatus;
 }
 
-export type VisitaModo = 'completa' | 'rapida' | 'obras' | 'ambiental' | 'processos';
-export type NaturezaVisitaCodigo = 'ATENDIMENTO' | 'OBRAS' | 'AMBIENTAL' | 'PROCESSOS';
+export type VisitaModo = 'completa' | 'rapida' | 'obras' | 'ambiental' | 'processos' | 'personalizado';
+export type NaturezaVisitaCodigo = 'ATENDIMENTO' | 'OBRAS' | 'AMBIENTAL' | 'PROCESSOS' | 'PERSONALIZADO';
 
 export interface AnotacaoVisita {
   id: string;
@@ -57,6 +57,49 @@ export interface AcompanhamentoProcessosData {
   orgao_ids: string[];
   processo_ids: string[];
   foto_itens: string[];
+}
+
+export type RespostaConformidadePersonalizada = 'CONFORME' | 'PARCIAL' | 'NAO_CONFORME' | 'NAO_SE_APLICA' | '';
+
+export interface AtendimentoPersonalizadoResposta {
+  item_id: string;
+  modulo_id: string;
+  resposta: RespostaConformidadePersonalizada;
+  observacao?: string;
+}
+
+export interface AtendimentoPersonalizadoItem {
+  id: string;
+  modulo_id: string;
+  texto: string;
+  tipo_resposta: string;
+  exige_foto: boolean;
+  permite_observacao: boolean;
+  entra_conformidade: boolean;
+  ordem: number;
+  ativo: boolean;
+}
+
+export interface AtendimentoPersonalizadoModulo {
+  id: string;
+  atendimento_personalizado_id: string;
+  titulo: string;
+  descricao?: string | null;
+  ordem: number;
+  entra_conformidade: boolean;
+  ativo: boolean;
+  itens?: AtendimentoPersonalizadoItem[];
+}
+
+export interface AtendimentoPersonalizadoData {
+  atendimento_personalizado_id: string;
+  atendimento_personalizado_nome: string;
+  cliente_id: string;
+  cliente_nome?: string;
+  tipos: { id: string; nome: string; icone?: string | null; cor?: string | null; ordem: number; ativo: boolean }[];
+  acoes: { id: string; nome: string; icone?: string | null; cor?: string | null; ordem: number; ativo: boolean }[];
+  modulos: AtendimentoPersonalizadoModulo[];
+  respostas: AtendimentoPersonalizadoResposta[];
 }
 
 export type SimNaoParcialNA = 'SIM' | 'NAO' | 'PARCIALMENTE' | 'NAO_SE_APLICA';
@@ -250,10 +293,17 @@ export interface AtendimentoData {
     tipo: 'inicial' | 'durante' | 'final';
     detalhe_tecnico?: boolean;
     metadata_compressao?: Record<string, unknown>;
+    atendimento_personalizado_modulo_id?: string | null;
+    atendimento_personalizado_item_id?: string | null;
+    legenda?: string | null;
   }[];
   demandas: Demanda[];
   possui_foto_final: boolean;
   acompanhamento_obra?: AcompanhamentoObraData;
   acompanhamento_ambiental?: AcompanhamentoAmbientalData;
   acompanhamento_processos?: AcompanhamentoProcessosData;
+  atendimento_personalizado?: AtendimentoPersonalizadoData;
+  atendimento_personalizado_id?: string;
+  percentual_conformidade?: number | null;
+  conformidade_por_modulo?: Record<string, unknown>;
 }

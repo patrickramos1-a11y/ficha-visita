@@ -111,25 +111,34 @@ export type Database = {
       atendimento_fotos: {
         Row: {
           atendimento_id: string
+          atendimento_personalizado_item_id: string | null
+          atendimento_personalizado_modulo_id: string | null
           created_at: string
           foto_url: string
           id: string
+          legenda: string | null
           metadata_compressao: Json
           tipo: string
         }
         Insert: {
           atendimento_id: string
+          atendimento_personalizado_item_id?: string | null
+          atendimento_personalizado_modulo_id?: string | null
           created_at?: string
           foto_url: string
           id?: string
+          legenda?: string | null
           metadata_compressao?: Json
           tipo?: string
         }
         Update: {
           atendimento_id?: string
+          atendimento_personalizado_item_id?: string | null
+          atendimento_personalizado_modulo_id?: string | null
           created_at?: string
           foto_url?: string
           id?: string
+          legenda?: string | null
           metadata_compressao?: Json
           tipo?: string
         }
@@ -139,6 +148,223 @@ export type Database = {
             columns: ["atendimento_id"]
             isOneToOne: false
             referencedRelation: "atendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimento_fotos_atendimento_personalizado_item_id_fkey"
+            columns: ["atendimento_personalizado_item_id"]
+            isOneToOne: false
+            referencedRelation: "atendimento_personalizado_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimento_fotos_atendimento_personalizado_modulo_id_fkey"
+            columns: ["atendimento_personalizado_modulo_id"]
+            isOneToOne: false
+            referencedRelation: "atendimento_personalizado_modulos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atendimento_personalizado_acoes: {
+        Row: {
+          ativo: boolean
+          atendimento_personalizado_id: string
+          cor: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          atendimento_personalizado_id: string
+          cor?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          atendimento_personalizado_id?: string
+          cor?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimento_personalizado_acoes_atendimento_personalizado_id_fkey"
+            columns: ["atendimento_personalizado_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos_personalizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atendimento_personalizado_itens: {
+        Row: {
+          ativo: boolean
+          entra_conformidade: boolean
+          exige_foto: boolean
+          id: string
+          modulo_id: string
+          ordem: number
+          permite_observacao: boolean
+          texto: string
+          tipo_resposta: string
+        }
+        Insert: {
+          ativo?: boolean
+          entra_conformidade?: boolean
+          exige_foto?: boolean
+          id?: string
+          modulo_id: string
+          ordem?: number
+          permite_observacao?: boolean
+          texto: string
+          tipo_resposta?: string
+        }
+        Update: {
+          ativo?: boolean
+          entra_conformidade?: boolean
+          exige_foto?: boolean
+          id?: string
+          modulo_id?: string
+          ordem?: number
+          permite_observacao?: boolean
+          texto?: string
+          tipo_resposta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimento_personalizado_itens_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "atendimento_personalizado_modulos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atendimento_personalizado_modulos: {
+        Row: {
+          ativo: boolean
+          atendimento_personalizado_id: string
+          descricao: string | null
+          entra_conformidade: boolean
+          id: string
+          ordem: number
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          atendimento_personalizado_id: string
+          descricao?: string | null
+          entra_conformidade?: boolean
+          id?: string
+          ordem?: number
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          atendimento_personalizado_id?: string
+          descricao?: string | null
+          entra_conformidade?: boolean
+          id?: string
+          ordem?: number
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimento_personalizado_modulos_atendimento_personalizado_id_fkey"
+            columns: ["atendimento_personalizado_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos_personalizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atendimento_personalizado_respostas: {
+        Row: {
+          atendimento_id: string
+          atualizado_em: string
+          criado_em: string
+          id: string
+          item_id: string
+          observacao: string | null
+          resposta: string | null
+        }
+        Insert: {
+          atendimento_id: string
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          item_id: string
+          observacao?: string | null
+          resposta?: string | null
+        }
+        Update: {
+          atendimento_id?: string
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          item_id?: string
+          observacao?: string | null
+          resposta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimento_personalizado_respostas_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimento_personalizado_respostas_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "atendimento_personalizado_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atendimento_personalizado_tipos: {
+        Row: {
+          ativo: boolean
+          atendimento_personalizado_id: string
+          cor: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          atendimento_personalizado_id: string
+          cor?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          atendimento_personalizado_id?: string
+          cor?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimento_personalizado_tipos_atendimento_personalizado_id_fkey"
+            columns: ["atendimento_personalizado_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos_personalizados"
             referencedColumns: ["id"]
           },
         ]
@@ -191,6 +417,7 @@ export type Database = {
           acoes_especificas: string[] | null
           anotacoes: string | null
           anotacoes_itens: Json
+          atendimento_personalizado_id: string | null
           checklist: Json | null
           cliente_id: string | null
           comentario_base_relatorio: string | null
@@ -207,6 +434,8 @@ export type Database = {
           obra_id: string | null
           origem_id: string | null
           possui_foto_final: boolean | null
+          conformidade_por_modulo: Json
+          percentual_conformidade: number | null
           relatorio_publico: boolean | null
           responsavel_id: string | null
           resumo_relatorio: string | null
@@ -220,6 +449,7 @@ export type Database = {
           acoes_especificas?: string[] | null
           anotacoes?: string | null
           anotacoes_itens?: Json
+          atendimento_personalizado_id?: string | null
           checklist?: Json | null
           cliente_id?: string | null
           comentario_base_relatorio?: string | null
@@ -236,6 +466,8 @@ export type Database = {
           obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
+          conformidade_por_modulo?: Json
+          percentual_conformidade?: number | null
           relatorio_publico?: boolean | null
           responsavel_id?: string | null
           resumo_relatorio?: string | null
@@ -249,6 +481,7 @@ export type Database = {
           acoes_especificas?: string[] | null
           anotacoes?: string | null
           anotacoes_itens?: Json
+          atendimento_personalizado_id?: string | null
           checklist?: Json | null
           cliente_id?: string | null
           comentario_base_relatorio?: string | null
@@ -265,6 +498,8 @@ export type Database = {
           obra_id?: string | null
           origem_id?: string | null
           possui_foto_final?: boolean | null
+          conformidade_por_modulo?: Json
+          percentual_conformidade?: number | null
           relatorio_publico?: boolean | null
           responsavel_id?: string | null
           resumo_relatorio?: string | null
@@ -299,6 +534,67 @@ export type Database = {
           {
             foreignKeyName: "atendimentos_responsavel_id_fkey"
             columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "responsaveis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_atendimento_personalizado_id_fkey"
+            columns: ["atendimento_personalizado_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos_personalizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atendimentos_personalizados: {
+        Row: {
+          atualizado_em: string
+          cliente_id: string
+          criado_em: string
+          descricao: string | null
+          frequencia: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          responsavel_padrao_id: string | null
+          status: string
+        }
+        Insert: {
+          atualizado_em?: string
+          cliente_id: string
+          criado_em?: string
+          descricao?: string | null
+          frequencia?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          responsavel_padrao_id?: string | null
+          status?: string
+        }
+        Update: {
+          atualizado_em?: string
+          cliente_id?: string
+          criado_em?: string
+          descricao?: string | null
+          frequencia?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          responsavel_padrao_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimentos_personalizados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimentos_personalizados_responsavel_padrao_id_fkey"
+            columns: ["responsavel_padrao_id"]
             isOneToOne: false
             referencedRelation: "responsaveis"
             referencedColumns: ["id"]

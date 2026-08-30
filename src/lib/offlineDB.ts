@@ -156,6 +156,9 @@ export async function enqueueAtendimento(data: AtendimentoData): Promise<string>
       remoteUrl: f.remoteUrl,
       detalhe_tecnico: f.detalhe_tecnico,
       metadata_compressao: f.metadata_compressao,
+      atendimento_personalizado_modulo_id: f.atendimento_personalizado_modulo_id ?? null,
+      atendimento_personalizado_item_id: f.atendimento_personalizado_item_id ?? null,
+      legenda: f.legenda ?? null,
     })) as any,
   };
 

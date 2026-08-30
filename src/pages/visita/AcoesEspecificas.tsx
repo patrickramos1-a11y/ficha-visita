@@ -4,7 +4,7 @@ import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
-import { ProgressStepper, VISIT_STEPS } from '@/components/visita/ProgressStepper';
+import { ProgressStepper, getVisitStepsForMode } from '@/components/visita/ProgressStepper';
 import { PageHeader, EmptyState, CountBadge, MobileFooter } from '@/components/mobile';
 import { useAcoesEspecificasConfig } from '@/hooks/useConfigEntities';
 import { VisitSelectionTile } from '@/components/visita/VisitSelectionTile';
@@ -16,6 +16,7 @@ export default function AcoesEspecificas() {
   const { data, setAcoesEspecificas } = useAtendimento();
   const { data: acoes, isLoading } = useAcoesEspecificasConfig();
   const [selectedAcoes, setSelectedAcoes] = useState<string[]>(data.acoes_especificas);
+  const steps = getVisitStepsForMode(data.modo);
 
   const toggleAcao = (acao: string) => {
     setSelectedAcoes(prev =>
@@ -25,17 +26,20 @@ export default function AcoesEspecificas() {
 
   const handleContinue = () => {
     setAcoesEspecificas(selectedAcoes);
-    navigate('/visita/demandas');
+    navigate(data.modo === 'personalizado' ? '/visita/personalizado' : '/visita/demandas');
   };
 
   const natureza = data.natureza ?? 'ATENDIMENTO';
-  const availableAcoes = (acoes || []).filter((a: any) => a.ativo !== false && (a.naturezas ?? ['ATENDIMENTO']).includes(natureza));
+  const availableAcoes = data.modo === 'personalizado'
+    ? (data.atendimento_personalizado?.acoes ?? []).filter((a: any) => a.ativo !== false)
+    : (acoes || []).filter((a: any) => a.ativo !== false && (a.naturezas ?? ['ATENDIMENTO']).includes(natureza));
+  const loadingOptions = data.modo === 'personalizado' ? false : isLoading;
   const formatTopicoSubtopico = (item: any) =>
     [item?.topicos?.nome, item?.subtopicos?.nome].filter(Boolean).join(' › ');
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/tipos')} title="Ações Específicas">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={3} />
+      <ProgressStepper steps={steps} currentStep={3} />
 
       <PageHeader
         icon={Wrench}
@@ -45,12 +49,12 @@ export default function AcoesEspecificas() {
       />
 
       <div className="flex-1 overflow-auto scroll-smooth-y px-4 pb-4">
-        {isLoading ? (
+        {loadingOptions ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : availableAcoes.length > 0 ? (
           <div className="grid grid-cols-2 gap-2">
             {availableAcoes.map((acao: any) => (
-              <VisitSelectionTile key={acao.id} label={acao.nome} selected={selectedAcoes.includes(acao.nome)} onClick={() => toggleAcao(acao.nome)} meta={formatTopicoSubtopico(acao)} kind="acao" />
+              <VisitSelectionTile key={acao.id} label={acao.nome} selected={selectedAcoes.includes(acao.nome)} onClick={() => toggleAcao(acao.nome)} meta={data.modo === 'personalizado' ? '' : formatTopicoSubtopico(acao)} kind="acao" />
             ))}
           </div>
         ) : selectedAcoes.length > 0 ? (

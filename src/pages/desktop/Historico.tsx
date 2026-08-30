@@ -30,6 +30,7 @@ import {
   buildWorksConformityReport,
   isConformityVisitMode,
 } from '@/lib/conformityReport';
+import { buildPersonalizadoConformityReport } from '@/lib/atendimentoPersonalizado';
 import { toast } from 'sonner';
 
 const ITEMS_PER_PAGE = 10;
@@ -46,6 +47,7 @@ const MODE_FILTERS = [
   { value: 'obras', label: 'Obras' },
   { value: 'ambiental', label: 'Ambiental' },
   { value: 'processos', label: 'Processos' },
+  { value: 'personalizado', label: 'Personalizado' },
 ] as const;
 
 type SortKey = 'data' | 'titulo' | 'cliente' | 'responsavel' | 'modo' | 'status' | 'duracao';
@@ -76,6 +78,7 @@ function getModeLabel(modo?: string | null) {
   if (modo === 'obras') return 'Obras';
   if (modo === 'ambiental') return 'Ambiental';
   if (modo === 'processos') return 'Processos';
+  if (modo === 'personalizado') return 'Personalizado';
   if (modo === 'rapida') return 'Rápida';
   return 'Atendimento';
 }
@@ -84,6 +87,7 @@ function getModeBadgeClass(modo?: string | null) {
   if (modo === 'obras') return 'border-orange-200 bg-orange-50 text-orange-700';
   if (modo === 'ambiental') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (modo === 'processos') return 'border-violet-200 bg-violet-50 text-violet-700';
+  if (modo === 'personalizado') return 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700';
   if (modo === 'rapida') return 'border-sky-200 bg-sky-50 text-sky-700';
   return 'border-blue-200 bg-blue-50 text-blue-700';
 }
@@ -92,6 +96,7 @@ function getNaturezaForMode(modo?: string | null) {
   if (modo === 'obras') return 'OBRAS';
   if (modo === 'ambiental') return 'AMBIENTAL';
   if (modo === 'processos') return 'PROCESSOS';
+  if (modo === 'personalizado') return 'PERSONALIZADO';
   return 'ATENDIMENTO';
 }
 
@@ -209,6 +214,9 @@ function getDurationLabel(atendimento: any) {
 }
 
 function getConformityPercentage(atendimento: any) {
+  if (atendimento.modo === 'personalizado') {
+    return atendimento.percentual_conformidade ?? buildPersonalizadoConformityReport(atendimento.dados_modalidade)?.percentage ?? null;
+  }
   if (!isConformityVisitMode(atendimento.modo) || !atendimento.dados_modalidade) return null;
   const summary = atendimento.modo === 'obras'
     ? buildWorksConformityReport(atendimento.dados_modalidade)
@@ -879,6 +887,7 @@ export default function DesktopHistorico() {
                     <SelectItem value="obras">Acompanhamento de Obras</SelectItem>
                     <SelectItem value="ambiental">Acompanhamento Ambiental</SelectItem>
                     <SelectItem value="processos">Acompanhamento de Processos</SelectItem>
+                    <SelectItem value="personalizado">Atendimento Personalizado</SelectItem>
                   </SelectContent>
                 </Select>
                 {editingVisit && (editingVisit.modo || 'completa') !== editMode && (

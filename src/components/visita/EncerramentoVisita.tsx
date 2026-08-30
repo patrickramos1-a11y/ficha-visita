@@ -36,6 +36,7 @@ const MODO_LABEL: Record<string, string> = {
   obras: 'Acompanhamento de obras',
   ambiental: 'Acompanhamento ambiental',
   processos: 'Acompanhamento de processos',
+  personalizado: 'Atendimento personalizado',
 };
 
 function toInputValue(value?: Date) {
