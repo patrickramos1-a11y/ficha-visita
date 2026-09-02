@@ -63,7 +63,7 @@ export function useAtendimentoPersonalizadoDetalhe(id?: string | null) {
         tipos: tipos.data ?? [],
         acoes: acoes.data ?? [],
         modulos: (modulos.data ?? []).map((module: any) => ({ ...module, itens: itensByModule[module.id] ?? [] })),
-      };
+      } as Record<string, any>;
     },
     retry: 1,
   });

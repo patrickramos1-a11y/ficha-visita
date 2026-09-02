@@ -55,7 +55,7 @@ export default function AtendimentoPersonalizado() {
 
   const responseByItem = useMemo(() => new Map((personalizado?.respostas ?? []).map((resposta) => [resposta.item_id, resposta])), [personalizado?.respostas]);
   const currentModule = activeModules[activeModuleIndex];
-  const currentModuleSummary = report?.modules.find((module) => module.moduleId === currentModule?.id);
+  const currentModuleSummary = report?.modules.find((module) => module.id === currentModule?.id);
   const currentItems = useMemo(
     () => (currentModule?.itens ?? [])
       .filter((item) => item.ativo !== false)
