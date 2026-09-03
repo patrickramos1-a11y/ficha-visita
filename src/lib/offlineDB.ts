@@ -158,6 +158,8 @@ export async function enqueueAtendimento(data: AtendimentoData): Promise<string>
       metadata_compressao: f.metadata_compressao,
       atendimento_personalizado_modulo_id: f.atendimento_personalizado_modulo_id ?? null,
       atendimento_personalizado_item_id: f.atendimento_personalizado_item_id ?? null,
+      atendimento_personalizado_item_ids: f.atendimento_personalizado_item_ids ?? [],
+      tipo_evidencia: f.tipo_evidencia ?? null,
       legenda: f.legenda ?? null,
     })) as any,
   };

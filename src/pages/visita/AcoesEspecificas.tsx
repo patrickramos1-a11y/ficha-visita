@@ -26,7 +26,7 @@ export default function AcoesEspecificas() {
 
   const handleContinue = () => {
     setAcoesEspecificas(selectedAcoes);
-    navigate(data.modo === 'personalizado' ? '/visita/personalizado' : '/visita/demandas');
+    navigate('/visita/demandas');
   };
 
   const natureza = data.natureza ?? 'ATENDIMENTO';
@@ -39,7 +39,7 @@ export default function AcoesEspecificas() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/tipos')} title="Ações Específicas">
-      <ProgressStepper steps={steps} currentStep={3} />
+      <ProgressStepper steps={steps} currentStep={data.modo === 'personalizado' ? 4 : 3} />
 
       <PageHeader
         icon={Wrench}

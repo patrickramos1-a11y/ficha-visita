@@ -304,21 +304,41 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
       metadata_compressao: foto.metadata_compressao ?? {},
       atendimento_personalizado_modulo_id: foto.atendimento_personalizado_modulo_id ?? null,
       atendimento_personalizado_item_id: foto.atendimento_personalizado_item_id ?? null,
+      tipo_evidencia: foto.tipo_evidencia ?? null,
       legenda: foto.legenda ?? null,
     };
-    let { error: insErr } = await supabase.from('atendimento_fotos').insert(fotoPayload as any);
-    if (insErr && /(metadata_compressao|atendimento_personalizado_modulo_id|atendimento_personalizado_item_id|legenda)/i.test(String(insErr.message))) {
+    let insertedPhotoId: string | null = null;
+    let { data: insertedPhoto, error: insErr } = await (supabase as any)
+      .from('atendimento_fotos')
+      .insert(fotoPayload)
+      .select('id')
+      .single();
+    insertedPhotoId = insertedPhoto?.id ?? null;
+    if (insErr && /(metadata_compressao|atendimento_personalizado_modulo_id|atendimento_personalizado_item_id|tipo_evidencia|legenda)/i.test(String(insErr.message))) {
       const {
         metadata_compressao: _metadataCompressao,
         atendimento_personalizado_modulo_id: _fotoModuloId,
         atendimento_personalizado_item_id: _fotoItemId,
+        tipo_evidencia: _tipoEvidencia,
         legenda: _fotoLegenda,
         ...payloadSemMetadata
       } = fotoPayload;
-      const retry = await supabase.from('atendimento_fotos').insert(payloadSemMetadata);
+      const retry = await (supabase as any).from('atendimento_fotos').insert(payloadSemMetadata).select('id').single();
       insErr = retry.error;
+      insertedPhotoId = retry.data?.id ?? null;
     }
     if (insErr && !String(insErr.message).toLowerCase().includes('duplicate')) throw insErr;
+    const linkedItemIds = Array.from(new Set([
+      ...(foto.atendimento_personalizado_item_ids ?? []),
+      foto.atendimento_personalizado_item_id,
+    ].filter(Boolean)));
+    if (insertedPhotoId && linkedItemIds.length) {
+      const linkRows = linkedItemIds.map((item_id) => ({ foto_id: insertedPhotoId, item_id }));
+      const { error: linkError } = await (supabase as any)
+        .from('atendimento_foto_itens')
+        .upsert(linkRows, { onConflict: 'foto_id,item_id' });
+      if (linkError && !/atendimento_foto_itens|schema cache/i.test(String(linkError.message))) throw linkError;
+    }
 
     // Mark uploaded for idempotency on retries
     updatedFotos[i] = { ...foto, remoteUrl: publicUrl.publicUrl } as any;

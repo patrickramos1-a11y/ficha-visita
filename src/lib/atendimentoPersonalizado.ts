@@ -1,5 +1,6 @@
 import type {
   AtendimentoPersonalizadoData,
+  AtendimentoPersonalizadoItem,
   AtendimentoPersonalizadoModulo,
   AtendimentoPersonalizadoResposta,
   RespostaConformidadePersonalizada,
@@ -10,6 +11,7 @@ export type PersonalizadoCounts = {
   parcial: number;
   naoConforme: number;
   naoSeAplica: number;
+  registros: number;
 };
 
 export type PersonalizadoModuleSummary = {
@@ -24,6 +26,8 @@ export type PersonalizadoModuleSummary = {
     observation?: string;
     requiresPhoto?: boolean;
     hasPhoto?: boolean;
+    responseLabel?: string;
+    tipoResposta?: string;
   }>;
 };
 
@@ -46,6 +50,7 @@ const emptyCounts = (): PersonalizadoCounts => ({
   parcial: 0,
   naoConforme: 0,
   naoSeAplica: 0,
+  registros: 0,
 });
 
 function addCounts(target: PersonalizadoCounts, source: PersonalizadoCounts) {
@@ -53,20 +58,73 @@ function addCounts(target: PersonalizadoCounts, source: PersonalizadoCounts) {
   target.parcial += source.parcial;
   target.naoConforme += source.naoConforme;
   target.naoSeAplica += source.naoSeAplica;
+  target.registros += source.registros;
 }
 
-function responseScore(response: RespostaConformidadePersonalizada) {
-  if (response === 'CONFORME') return 100;
-  if (response === 'PARCIAL') return 50;
-  if (response === 'NAO_CONFORME') return 0;
-  return null;
+function normalizeConformityResponse(response: RespostaConformidadePersonalizada) {
+  if (response === 'CONFORME' || response === 'ADEQUADO') return 'ADEQUADO';
+  if (response === 'PARCIAL' || response === 'REQUER_ATENCAO') return 'REQUER_ATENCAO';
+  if (response === 'NAO_CONFORME') return 'NAO_CONFORME';
+  if (response === 'NAO_SE_APLICA') return 'NAO_SE_APLICA';
+  return response;
 }
 
-function countResponse(counts: PersonalizadoCounts, response: RespostaConformidadePersonalizada) {
-  if (response === 'CONFORME') counts.conforme += 1;
-  else if (response === 'PARCIAL') counts.parcial += 1;
-  else if (response === 'NAO_CONFORME') counts.naoConforme += 1;
-  else if (response === 'NAO_SE_APLICA') counts.naoSeAplica += 1;
+function responseLabel(response: RespostaConformidadePersonalizada) {
+  const labels: Record<string, string> = {
+    CONFORME: 'Adequado',
+    ADEQUADO: 'Adequado',
+    PARCIAL: 'Requer atenção',
+    REQUER_ATENCAO: 'Requer atenção',
+    NAO_CONFORME: 'Não conforme',
+    NAO_SE_APLICA: 'N/A',
+    SIM: 'Sim',
+    NAO: 'Não',
+    NAO_NECESSARIA: 'Não necessária',
+    AVALIAR: 'Avaliar',
+    NECESSARIA: 'Necessária',
+    REGISTRO: 'Registro',
+  };
+  return response ? labels[response] ?? response.replaceAll('_', ' ') : 'Sem resposta';
+}
+
+function evaluateResponse(item: AtendimentoPersonalizadoItem, response: RespostaConformidadePersonalizada) {
+  const tipo = item.tipo_resposta || 'CONFORMIDADE';
+  if (!response) return { score: null as number | null, bucket: null as keyof PersonalizadoCounts | null };
+  if (response === 'NAO_SE_APLICA') return { score: null, bucket: 'naoSeAplica' as const };
+  if (tipo === 'REGISTRO' || item.entra_conformidade === false) {
+    return { score: null, bucket: response || item.permite_observacao ? 'registros' as const : null };
+  }
+
+  if (tipo === 'SIM_NAO_EVENTO') {
+    const positive = item.resposta_positiva || 'NAO';
+    return response === positive
+      ? { score: 100, bucket: 'conforme' as const }
+      : { score: 0, bucket: 'naoConforme' as const };
+  }
+
+  if (tipo === 'NECESSIDADE_ACAO') {
+    if (response === 'NAO_NECESSARIA') return { score: 100, bucket: 'conforme' as const };
+    if (response === 'AVALIAR') return { score: 50, bucket: 'parcial' as const };
+    if (response === 'NECESSARIA') return { score: 0, bucket: 'naoConforme' as const };
+  }
+
+  const normalized = normalizeConformityResponse(response);
+  if (normalized === 'ADEQUADO') return { score: 100, bucket: 'conforme' as const };
+  if (normalized === 'REQUER_ATENCAO') return { score: 50, bucket: 'parcial' as const };
+  if (normalized === 'NAO_CONFORME') return { score: 0, bucket: 'naoConforme' as const };
+  return { score: null, bucket: null };
+}
+
+function isAttentionResponse(item: AtendimentoPersonalizadoItem, response: RespostaConformidadePersonalizada) {
+  const result = evaluateResponse(item, response);
+  return result.bucket === 'parcial' || result.bucket === 'naoConforme';
+}
+
+function alertSeverity(item: AtendimentoPersonalizadoItem, response: RespostaConformidadePersonalizada): 'attention' | 'critical' {
+  const criticality = String(item.criticidade ?? '').toLowerCase();
+  const result = evaluateResponse(item, response);
+  if (result.bucket === 'naoConforme' || criticality === 'alta' || criticality === 'critica') return 'critical';
+  return 'attention';
 }
 
 function percentageFromScores(scores: number[]) {
@@ -76,14 +134,20 @@ function percentageFromScores(scores: number[]) {
 
 export function buildPersonalizadoConformityReport(
   data?: AtendimentoPersonalizadoData | null,
-  photos: Array<{ atendimento_personalizado_item_id?: string | null }> = [],
+  photos: Array<{ atendimento_personalizado_item_id?: string | null; atendimento_personalizado_item_ids?: string[] | null }> = [],
 ): PersonalizadoReport | null {
   if (!data) return null;
 
   const responseByItem = new Map<string, AtendimentoPersonalizadoResposta>();
   for (const response of data.respostas ?? []) responseByItem.set(response.item_id, response);
 
-  const photoItemIds = new Set(photos.map((photo) => photo.atendimento_personalizado_item_id).filter(Boolean));
+  const photoItemIds = new Set<string>();
+  for (const photo of photos) {
+    if (photo.atendimento_personalizado_item_id) photoItemIds.add(photo.atendimento_personalizado_item_id);
+    for (const itemId of photo.atendimento_personalizado_item_ids ?? []) {
+      if (itemId) photoItemIds.add(itemId);
+    }
+  }
   const totalCounts = emptyCounts();
   const totalScores: number[] = [];
   const alerts: PersonalizadoAlert[] = [];
@@ -96,20 +160,22 @@ export function buildPersonalizadoConformityReport(
       const scores: number[] = [];
       const items = (module.itens ?? [])
         .filter((item) => item.ativo !== false)
+        .filter((item) => {
+          if (!item.condicional_item_id || !item.condicional_resposta) return true;
+          return responseByItem.get(item.condicional_item_id)?.resposta === item.condicional_resposta;
+        })
         .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
         .map((item) => {
           const saved = responseByItem.get(item.id);
           const response = (saved?.resposta || '') as RespostaConformidadePersonalizada;
           const hasPhoto = photoItemIds.has(item.id);
-          const score = item.entra_conformidade === false ? null : responseScore(response);
+          const evaluation = evaluateResponse(item, response);
 
-          countResponse(counts, response);
-          if (score !== null && module.entra_conformidade !== false) scores.push(score);
+          if (evaluation.bucket) counts[evaluation.bucket] += 1;
+          if (evaluation.score !== null && module.entra_conformidade !== false) scores.push(evaluation.score);
 
-          if (response === 'NAO_CONFORME') {
-            alerts.push({ key: item.id, moduleTitle: module.titulo, label: item.texto, severity: 'critical' });
-          } else if (response === 'PARCIAL') {
-            alerts.push({ key: item.id, moduleTitle: module.titulo, label: item.texto, severity: 'attention' });
+          if (response && response !== 'NAO_SE_APLICA' && isAttentionResponse(item, response)) {
+            alerts.push({ key: item.id, moduleTitle: module.titulo, label: item.texto, severity: alertSeverity(item, response) });
           }
 
           if (item.exige_foto && !hasPhoto) {
@@ -128,6 +194,8 @@ export function buildPersonalizadoConformityReport(
             observation: saved?.observacao,
             requiresPhoto: item.exige_foto,
             hasPhoto,
+            responseLabel: responseLabel(response),
+            tipoResposta: item.tipo_resposta,
           };
         });
 

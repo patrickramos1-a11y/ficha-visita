@@ -59,7 +59,22 @@ export interface AcompanhamentoProcessosData {
   foto_itens: string[];
 }
 
-export type RespostaConformidadePersonalizada = 'CONFORME' | 'PARCIAL' | 'NAO_CONFORME' | 'NAO_SE_APLICA' | '';
+export type TipoRespostaPersonalizada = 'CONFORMIDADE' | 'SIM_NAO_EVENTO' | 'NECESSIDADE_ACAO' | 'REGISTRO' | 'CONDICIONAL' | string;
+export type RespostaConformidadePersonalizada =
+  | 'CONFORME'
+  | 'PARCIAL'
+  | 'ADEQUADO'
+  | 'REQUER_ATENCAO'
+  | 'NAO_CONFORME'
+  | 'NAO_SE_APLICA'
+  | 'SIM'
+  | 'NAO'
+  | 'NAO_NECESSARIA'
+  | 'AVALIAR'
+  | 'NECESSARIA'
+  | 'REGISTRO'
+  | '';
+export type TipoEvidenciaFoto = 'VISAO_GERAL' | 'CONFORMIDADE' | 'ATENCAO' | 'NAO_CONFORMIDADE' | 'COMPROVANTE' | 'ANTES_DEPOIS' | 'OUTRO';
 
 export interface AtendimentoPersonalizadoResposta {
   item_id: string;
@@ -72,7 +87,12 @@ export interface AtendimentoPersonalizadoItem {
   id: string;
   modulo_id: string;
   texto: string;
-  tipo_resposta: string;
+  tipo_resposta: TipoRespostaPersonalizada;
+  resposta_positiva?: string | null;
+  condicional_item_id?: string | null;
+  condicional_resposta?: string | null;
+  peso?: number | null;
+  criticidade?: string | null;
   exige_foto: boolean;
   permite_observacao: boolean;
   entra_conformidade: boolean;
@@ -295,6 +315,8 @@ export interface AtendimentoData {
     metadata_compressao?: Record<string, unknown>;
     atendimento_personalizado_modulo_id?: string | null;
     atendimento_personalizado_item_id?: string | null;
+    atendimento_personalizado_item_ids?: string[];
+    tipo_evidencia?: TipoEvidenciaFoto | string | null;
     legenda?: string | null;
   }[];
   demandas: Demanda[];

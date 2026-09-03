@@ -45,6 +45,8 @@ type SavedPhoto = {
   metadata_compressao?: Record<string, unknown> | null;
   atendimento_personalizado_modulo_id?: string | null;
   atendimento_personalizado_item_id?: string | null;
+  atendimento_personalizado_item_ids?: string[] | null;
+  tipo_evidencia?: string | null;
   legenda?: string | null;
 };
 
@@ -163,10 +165,10 @@ export default function RelatorioVisita() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('atendimento_fotos')
-        .select('id, foto_url, tipo, metadata_compressao, atendimento_personalizado_modulo_id, atendimento_personalizado_item_id, legenda')
+        .select('id, foto_url, tipo, metadata_compressao, atendimento_personalizado_modulo_id, atendimento_personalizado_item_id, tipo_evidencia, legenda')
         .eq('atendimento_id', id)
         .order('created_at');
-      if (error && /(metadata_compressao|atendimento_personalizado_modulo_id|atendimento_personalizado_item_id|legenda)/i.test(String(error.message))) {
+      if (error && /(metadata_compressao|atendimento_personalizado_modulo_id|atendimento_personalizado_item_id|tipo_evidencia|legenda)/i.test(String(error.message))) {
         const fallback = await (supabase as any)
           .from('atendimento_fotos')
           .select('id, foto_url, tipo')
@@ -179,6 +181,34 @@ export default function RelatorioVisita() {
       return (data ?? []) as SavedPhoto[];
     },
   });
+
+  const { data: fotoItemLinks = [] } = useQuery({
+    queryKey: ['relatorio-visita-foto-itens', id, fotos.map((foto) => foto.id).join(',')],
+    enabled: Boolean(id && atendimento && fotos.length),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('atendimento_foto_itens')
+        .select('foto_id, item_id')
+        .in('foto_id', fotos.map((foto) => foto.id));
+      if (error && /atendimento_foto_itens|schema cache/i.test(String(error.message))) return [];
+      if (error) throw error;
+      return (data ?? []) as Array<{ foto_id: string; item_id: string }>;
+    },
+  });
+
+  const fotosComItens = useMemo(() => {
+    const linksByPhoto = new Map<string, string[]>();
+    for (const link of fotoItemLinks) {
+      const current = linksByPhoto.get(link.foto_id) ?? [];
+      current.push(link.item_id);
+      linksByPhoto.set(link.foto_id, current);
+    }
+    return fotos.map((foto) => {
+      const linked = linksByPhoto.get(foto.id) ?? [];
+      const itemIds = Array.from(new Set([...(foto.atendimento_personalizado_item_ids ?? []), foto.atendimento_personalizado_item_id, ...linked].filter(Boolean) as string[]));
+      return { ...foto, atendimento_personalizado_item_ids: itemIds };
+    });
+  }, [fotoItemLinks, fotos]);
 
   const { data: demandas = [] } = useQuery({
     queryKey: ['relatorio-visita-demandas', id],
@@ -232,8 +262,8 @@ export default function RelatorioVisita() {
 
   const personalizedReport: PersonalizadoReport | null = useMemo(() => {
     if (!atendimento || atendimento.modo !== 'personalizado') return null;
-    return buildPersonalizadoConformityReport(atendimento.dados_modalidade, fotos);
-  }, [atendimento, fotos]);
+    return buildPersonalizadoConformityReport(atendimento.dados_modalidade, fotosComItens);
+  }, [atendimento, fotosComItens]);
 
   if (isLoading) {
     return <div className="min-h-screen bg-background grid place-items-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>;
@@ -443,12 +473,12 @@ export default function RelatorioVisita() {
                       <h3 className="font-semibold">{module.title}</h3>
                       <div className="mt-3 space-y-3">
                         {module.items.map((item) => {
-                          const itemFotos = fotos.filter((foto) => foto.atendimento_personalizado_item_id === item.id);
+                          const itemFotos = fotosComItens.filter((foto) => foto.atendimento_personalizado_item_id === item.id || (foto.atendimento_personalizado_item_ids ?? []).includes(item.id));
                           return (
                             <div key={item.id} className="rounded-md bg-muted/40 p-3">
                               <div className="flex flex-wrap items-start justify-between gap-2">
                                 <p className="text-sm font-medium">{item.label}</p>
-                                <Badge variant="outline">{item.response ? item.response.replaceAll('_', ' ') : 'Sem resposta'}</Badge>
+                                <Badge variant="outline">{item.responseLabel ?? (item.response ? item.response.replaceAll('_', ' ') : 'Sem resposta')}</Badge>
                               </div>
                               {item.observation ? <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{item.observation}</p> : null}
                               {itemFotos.length ? (
@@ -456,7 +486,10 @@ export default function RelatorioVisita() {
                                   {itemFotos.map((foto) => (
                                     <figure key={foto.id} className="overflow-hidden rounded-md border bg-card">
                                       <img src={foto.foto_url} alt={foto.legenda || item.label} className="aspect-square w-full object-cover" loading="lazy" />
-                                      <figcaption className="truncate px-2 py-1 text-[11px] text-muted-foreground">{foto.legenda || 'Foto do item'}</figcaption>
+                                      <figcaption className="space-y-0.5 px-2 py-1 text-[11px] text-muted-foreground">
+                                        <span className="block truncate">{foto.legenda || 'Foto do item'}</span>
+                                        {foto.tipo_evidencia ? <span className="block truncate">{foto.tipo_evidencia.replaceAll('_', ' ')}</span> : null}
+                                      </figcaption>
                                     </figure>
                                   ))}
                                 </div>

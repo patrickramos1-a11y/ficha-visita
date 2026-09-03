@@ -149,9 +149,9 @@ export function getVisitStepsForMode(modo: VisitaModo): Step[] {
   if (modo === 'personalizado') return [
     { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' },
     { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
+    { id: 'personalizado', label: 'Ficha', route: '/visita/personalizado' },
     { id: 'tipos', label: 'Tipos', route: '/visita/tipos' },
     { id: 'acoes', label: 'Ações', route: '/visita/acoes' },
-    { id: 'personalizado', label: 'Ficha', route: '/visita/personalizado' },
     { id: 'radar', label: 'Radar', route: '/visita/demandas' },
     { id: 'foto-final', label: 'Final', route: '/visita/foto-final' },
   ];

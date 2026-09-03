@@ -46,8 +46,8 @@ export default function TiposAtendimento() {
     [item.topicos?.nome, item.subtopicos?.nome].filter(Boolean).join(' › ');
 
   return (
-    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/responsavel')} title="Tipos de Atendimento">
-      <ProgressStepper steps={steps} currentStep={2} />
+    <MobileLayout showCancelVisita showBack onBack={() => navigate(data.modo === 'personalizado' ? '/visita/personalizado' : '/visita/responsavel')} title="Tipos de Atendimento">
+      <ProgressStepper steps={steps} currentStep={data.modo === 'personalizado' ? 3 : 2} />
 
       <PageHeader
         icon={ClipboardList}

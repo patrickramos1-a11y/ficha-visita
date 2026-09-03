@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Camera, ChevronLeft, ChevronRight, ClipboardCheck, ImagePlus } from 'lucide-react';
+import { AlertTriangle, Camera, ChevronLeft, ChevronRight, ClipboardCheck, ImagePlus, Link2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { ProgressStepper, getVisitStepsForMode } from '@/components/visita/ProgressStepper';
@@ -10,28 +10,71 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { PhotoDetailToggle } from '@/components/visita/PhotoDetailToggle';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
 import { useVisitRoute } from '@/hooks/useVisitRoute';
 import { buildPersonalizadoConformityReport } from '@/lib/atendimentoPersonalizado';
-import type { RespostaConformidadePersonalizada } from '@/types/atendimento';
+import type { AtendimentoPersonalizadoItem, RespostaConformidadePersonalizada, TipoEvidenciaFoto } from '@/types/atendimento';
 import { cn } from '@/lib/utils';
 
-const OPTIONS: Array<{ value: RespostaConformidadePersonalizada; label: string; className: string }> = [
-  { value: 'CONFORME', label: 'Conforme', className: 'data-[selected=true]:bg-emerald-600 data-[selected=true]:text-white' },
-  { value: 'PARCIAL', label: 'Parcial', className: 'data-[selected=true]:bg-amber-500 data-[selected=true]:text-white' },
-  { value: 'NAO_CONFORME', label: 'Não conforme', className: 'data-[selected=true]:bg-red-600 data-[selected=true]:text-white' },
-  { value: 'NAO_SE_APLICA', label: 'N/A', className: 'data-[selected=true]:bg-slate-600 data-[selected=true]:text-white' },
+const OPTION_CLASSES = {
+  good: 'data-[selected=true]:bg-emerald-600 data-[selected=true]:text-white',
+  attention: 'data-[selected=true]:bg-amber-500 data-[selected=true]:text-white',
+  bad: 'data-[selected=true]:bg-red-600 data-[selected=true]:text-white',
+  neutral: 'data-[selected=true]:bg-slate-600 data-[selected=true]:text-white',
+};
+
+const EVIDENCE_TYPES: Array<{ value: TipoEvidenciaFoto; label: string }> = [
+  { value: 'VISAO_GERAL', label: 'Visão geral' },
+  { value: 'CONFORMIDADE', label: 'Conformidade' },
+  { value: 'ATENCAO', label: 'Atenção' },
+  { value: 'NAO_CONFORMIDADE', label: 'Não conformidade' },
+  { value: 'COMPROVANTE', label: 'Comprovante' },
+  { value: 'ANTES_DEPOIS', label: 'Antes/depois' },
+  { value: 'OUTRO', label: 'Outro' },
 ];
+
+function getOptions(item: AtendimentoPersonalizadoItem): Array<{ value: RespostaConformidadePersonalizada; label: string; className: string }> {
+  if (item.tipo_resposta === 'SIM_NAO_EVENTO') {
+    return [
+      { value: 'NAO', label: 'Não', className: item.resposta_positiva === 'NAO' ? OPTION_CLASSES.good : OPTION_CLASSES.bad },
+      { value: 'SIM', label: 'Sim', className: item.resposta_positiva === 'SIM' ? OPTION_CLASSES.good : OPTION_CLASSES.bad },
+      { value: 'NAO_SE_APLICA', label: 'N/A', className: OPTION_CLASSES.neutral },
+    ];
+  }
+  if (item.tipo_resposta === 'NECESSIDADE_ACAO') {
+    return [
+      { value: 'NAO_NECESSARIA', label: 'Não necessária', className: OPTION_CLASSES.good },
+      { value: 'AVALIAR', label: 'Avaliar', className: OPTION_CLASSES.attention },
+      { value: 'NECESSARIA', label: 'Necessária', className: OPTION_CLASSES.bad },
+      { value: 'NAO_SE_APLICA', label: 'N/A', className: OPTION_CLASSES.neutral },
+    ];
+  }
+  return [
+    { value: 'ADEQUADO', label: 'Adequado', className: OPTION_CLASSES.good },
+    { value: 'REQUER_ATENCAO', label: 'Atenção', className: OPTION_CLASSES.attention },
+    { value: 'NAO_CONFORME', label: 'Não conforme', className: OPTION_CLASSES.bad },
+    { value: 'NAO_SE_APLICA', label: 'N/A', className: OPTION_CLASSES.neutral },
+  ];
+}
+
+function isItemVisible(item: AtendimentoPersonalizadoItem, responseByItem: Map<string, { resposta: RespostaConformidadePersonalizada }>) {
+  if (!item.condicional_item_id || !item.condicional_resposta) return true;
+  return responseByItem.get(item.condicional_item_id)?.resposta === item.condicional_resposta;
+}
 
 export default function AtendimentoPersonalizado() {
   useVisitRoute('/visita/personalizado');
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-  const { data, updateRespostaPersonalizada, addFotoFile } = useAtendimento();
-  const [photoTarget, setPhotoTarget] = useState<{ moduloId: string; itemId: string; legenda: string } | null>(null);
+  const { data, updateRespostaPersonalizada, addFotoFile, removeFoto } = useAtendimento();
   const [detalheTecnico, setDetalheTecnico] = useState(false);
   const [activeModuleIndex, setActiveModuleIndex] = useState(0);
+  const [photoModuleId, setPhotoModuleId] = useState<string | null>(null);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [legenda, setLegenda] = useState('');
+  const [tipoEvidencia, setTipoEvidencia] = useState<TipoEvidenciaFoto>('VISAO_GERAL');
   const steps = getVisitStepsForMode(data.modo);
   const personalizado = data.atendimento_personalizado;
 
@@ -59,36 +102,50 @@ export default function AtendimentoPersonalizado() {
   const currentItems = useMemo(
     () => (currentModule?.itens ?? [])
       .filter((item) => item.ativo !== false)
+      .filter((item) => isItemVisible(item, responseByItem))
       .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
-    [currentModule?.itens],
+    [currentModule?.itens, responseByItem],
   );
-  const answeredCount = currentItems.filter((item) => Boolean(responseByItem.get(item.id)?.resposta)).length;
+  const modulePhotos = data.fotos.filter((foto) => foto.atendimento_personalizado_modulo_id === currentModule?.id);
+  const answeredCount = currentItems.filter((item) => {
+    const saved = responseByItem.get(item.id);
+    return Boolean(saved?.resposta || saved?.observacao?.trim());
+  }).length;
   const moduleProgress = activeModules.length ? ((activeModuleIndex + 1) / activeModules.length) * 100 : 0;
 
-  const handlePickPhoto = (moduloId: string, itemId: string, legenda: string) => {
-    setPhotoTarget({ moduloId, itemId, legenda });
+  useEffect(() => {
+    setSelectedItemIds([]);
+    setLegenda('');
+    setTipoEvidencia('VISAO_GERAL');
+  }, [currentModule?.id]);
+
+  const handlePickModulePhotos = () => {
+    if (!currentModule) return;
+    setPhotoModuleId(currentModule.id);
     inputRef.current?.click();
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
     event.target.value = '';
-    if (!files.length || !photoTarget) return;
+    if (!files.length || !photoModuleId) return;
     try {
+      const cleanedLegenda = legenda.trim();
       for (const file of files) {
         await addFotoFile(file, 'durante', {
           detalheTecnico,
-          atendimentoPersonalizadoModuloId: photoTarget.moduloId,
-          atendimentoPersonalizadoItemId: photoTarget.itemId,
-          legenda: photoTarget.legenda,
+          atendimentoPersonalizadoModuloId: photoModuleId,
+          atendimentoPersonalizadoItemIds: selectedItemIds,
+          tipoEvidencia,
+          legenda: cleanedLegenda || currentModule?.titulo || 'Foto do módulo',
         });
       }
-      toast.success(files.length === 1 ? 'Foto vinculada ao item' : `${files.length} fotos vinculadas`);
+      toast.success(files.length === 1 ? 'Foto vinculada ao módulo' : `${files.length} fotos vinculadas`);
     } catch (error) {
       console.error(error);
       toast.error('Erro ao salvar foto');
     } finally {
-      setPhotoTarget(null);
+      setPhotoModuleId(null);
     }
   };
 
@@ -108,8 +165,8 @@ export default function AtendimentoPersonalizado() {
   }
 
   return (
-    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/acoes')} title="Ficha personalizada">
-      <ProgressStepper steps={steps} currentStep={4} />
+    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/responsavel')} title="Ficha personalizada">
+      <ProgressStepper steps={steps} currentStep={2} />
       <PageHeader
         icon={ClipboardCheck}
         title={personalizado.atendimento_personalizado_nome}
@@ -118,7 +175,6 @@ export default function AtendimentoPersonalizado() {
       />
 
       <div className="flex-1 space-y-3 overflow-auto scroll-smooth-y px-4 pb-4">
-        <PhotoDetailToggle checked={detalheTecnico} onCheckedChange={setDetalheTecnico} />
         {currentModule ? (
           <>
             <Card className="shadow-none">
@@ -140,15 +196,75 @@ export default function AtendimentoPersonalizado() {
                   <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
                     {currentModuleSummary?.percentage ?? 'N/A'}% conformidade
                   </Badge>
-                  <Badge variant="outline">
-                    {currentItems.length} itens
-                  </Badge>
-                  {currentItems.some((item) => item.exige_foto) ? (
-                    <Badge variant="outline">
-                      fotos técnicas previstas
-                    </Badge>
-                  ) : null}
+                  <Badge variant="outline">{currentItems.length} itens</Badge>
+                  <Badge variant="outline">{modulePhotos.length} fotos</Badge>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-none">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Camera className="h-4 w-4 text-primary" />
+                  Fotos do módulo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <PhotoDetailToggle checked={detalheTecnico} onCheckedChange={setDetalheTecnico} />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Input value={legenda} onChange={(event) => setLegenda(event.target.value)} placeholder="Legenda da evidência" className="h-10" />
+                  <select
+                    value={tipoEvidencia}
+                    onChange={(event) => setTipoEvidencia(event.target.value as TipoEvidenciaFoto)}
+                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    aria-label="Tipo de evidência"
+                  >
+                    {EVIDENCE_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  </select>
+                </div>
+                {currentItems.length ? (
+                  <div className="rounded-lg border bg-muted/20 p-3">
+                    <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase text-muted-foreground">
+                      <Link2 className="h-3.5 w-3.5" />
+                      Vincular aos itens
+                    </p>
+                    <div className="grid gap-2">
+                      {currentItems.map((item) => (
+                        <label key={item.id} className="flex items-start gap-2 text-sm leading-5">
+                          <input
+                            type="checkbox"
+                            checked={selectedItemIds.includes(item.id)}
+                            onChange={(event) => setSelectedItemIds((current) => event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id))}
+                            className="mt-1 h-4 w-4 rounded border-muted-foreground"
+                          />
+                          <span>{item.texto}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                <Button type="button" variant="outline" className="h-11 w-full gap-2" onClick={handlePickModulePhotos}>
+                  <ImagePlus className="h-4 w-4" />
+                  Adicionar fotos ao módulo
+                </Button>
+                {modulePhotos.length ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {modulePhotos.map((foto, index) => (
+                      <figure key={`${foto.url}-${index}`} className="overflow-hidden rounded-lg border bg-card">
+                        <img src={foto.url} alt={foto.legenda || `Foto ${index + 1}`} className="aspect-square w-full object-cover" />
+                        <figcaption className="space-y-1 p-2 text-[11px] text-muted-foreground">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate">{foto.legenda || 'Foto do módulo'}</span>
+                            <button type="button" onClick={() => removeFoto(foto.url)} aria-label="Remover foto" className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-destructive">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          <span className="inline-flex rounded-full bg-muted px-2 py-0.5">{String(foto.tipo_evidencia ?? 'VISAO_GERAL').replaceAll('_', ' ')}</span>
+                        </figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -159,54 +275,60 @@ export default function AtendimentoPersonalizado() {
               <CardContent className="space-y-3">
                 {currentItems.map((item) => {
                   const saved = responseByItem.get(item.id);
-                  const itemPhotos = data.fotos.filter((foto) => foto.atendimento_personalizado_item_id === item.id);
+                  const itemPhotos = modulePhotos.filter((foto) => {
+                    const itemIds = foto.atendimento_personalizado_item_ids ?? [];
+                    return foto.atendimento_personalizado_item_id === item.id || itemIds.includes(item.id);
+                  });
+                  const isRegistro = item.tipo_resposta === 'REGISTRO';
                   return (
                     <div key={item.id} className="space-y-2 rounded-lg border p-3">
                       <div className="flex items-start justify-between gap-3">
                         <p className="text-sm font-medium leading-5">{item.texto}</p>
-                        {item.exige_foto ? <Badge variant={itemPhotos.length ? 'secondary' : 'outline'} className="shrink-0 text-[10px]">Foto</Badge> : null}
+                        <div className="flex shrink-0 gap-1">
+                          {isRegistro ? <Badge variant="outline" className="text-[10px]">Registro</Badge> : null}
+                          {item.exige_foto ? <Badge variant={itemPhotos.length ? 'secondary' : 'outline'} className="text-[10px]">Foto</Badge> : null}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {OPTIONS.map((option) => (
-                          <Button
-                            key={option.value}
-                            type="button"
-                            variant="outline"
-                            data-selected={saved?.resposta === option.value}
-                            className={cn('h-10 text-xs', option.className)}
-                            onClick={() => updateRespostaPersonalizada({
-                              modulo_id: currentModule.id,
-                              item_id: item.id,
-                              resposta: option.value,
-                              observacao: saved?.observacao ?? '',
-                            })}
-                          >
-                            {option.label}
-                          </Button>
-                        ))}
-                      </div>
+                      {!isRegistro ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {getOptions(item).map((option) => (
+                            <Button
+                              key={option.value}
+                              type="button"
+                              variant="outline"
+                              data-selected={saved?.resposta === option.value || (saved?.resposta === 'CONFORME' && option.value === 'ADEQUADO') || (saved?.resposta === 'PARCIAL' && option.value === 'REQUER_ATENCAO')}
+                              className={cn('h-10 text-xs', option.className)}
+                              onClick={() => updateRespostaPersonalizada({
+                                modulo_id: currentModule.id,
+                                item_id: item.id,
+                                resposta: option.value,
+                                observacao: saved?.observacao ?? '',
+                              })}
+                            >
+                              {option.label}
+                            </Button>
+                          ))}
+                        </div>
+                      ) : null}
                       {item.permite_observacao !== false ? (
                         <Textarea
                           value={saved?.observacao ?? ''}
                           onChange={(event) => updateRespostaPersonalizada({
                             modulo_id: currentModule.id,
                             item_id: item.id,
-                            resposta: saved?.resposta ?? '',
+                            resposta: isRegistro ? 'REGISTRO' : saved?.resposta ?? '',
                             observacao: event.target.value,
                           })}
-                          placeholder="Observação técnica do item"
+                          placeholder={isRegistro ? 'Registro técnico do item' : 'Observação técnica do item'}
                           className="min-h-16 resize-none text-sm"
                         />
                       ) : null}
-                      <div className="flex items-center justify-between gap-2">
-                        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => handlePickPhoto(currentModule.id, item.id, item.texto)}>
-                          <Camera className="h-4 w-4" />
-                          Foto do item
-                        </Button>
-                        {itemPhotos.length > 0 ? (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground"><ImagePlus className="h-3.5 w-3.5" />{itemPhotos.length}</span>
-                        ) : null}
-                      </div>
+                      {itemPhotos.length > 0 ? (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ImagePlus className="h-3.5 w-3.5" />
+                          {itemPhotos.length} foto{itemPhotos.length > 1 ? 's' : ''} vinculada{itemPhotos.length > 1 ? 's' : ''}
+                        </span>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -229,7 +351,7 @@ export default function AtendimentoPersonalizado() {
             variant="outline"
             onClick={() => {
               if (activeModuleIndex === 0) {
-                navigate('/visita/acoes');
+                navigate('/visita/responsavel');
                 return;
               }
               setActiveModuleIndex((index) => Math.max(index - 1, 0));
@@ -242,7 +364,7 @@ export default function AtendimentoPersonalizado() {
           <Button
             onClick={() => {
               if (activeModuleIndex >= activeModules.length - 1) {
-                navigate('/visita/demandas');
+                navigate('/visita/tipos');
                 return;
               }
               setActiveModuleIndex((index) => index + 1);

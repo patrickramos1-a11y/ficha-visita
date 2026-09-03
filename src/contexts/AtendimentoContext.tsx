@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo, AcompanhamentoObraData, AcompanhamentoAmbientalData, AcompanhamentoProcessosData, AnotacaoVisita, NaoConformidadeObra, PendenciaObra, AtendimentoPersonalizadoData, AtendimentoPersonalizadoResposta } from '@/types/atendimento';
+import { AtendimentoData, ChecklistItem, AtendimentoTipo, Demanda, TopicoReuniao, PlanoTipo, VisitaModo, AcompanhamentoObraData, AcompanhamentoAmbientalData, AcompanhamentoProcessosData, AnotacaoVisita, NaoConformidadeObra, PendenciaObra, AtendimentoPersonalizadoData, AtendimentoPersonalizadoResposta, TipoEvidenciaFoto } from '@/types/atendimento';
 import { getPlanoFromTipo, getPlanoFromAcao } from '@/types/tiposAtendimentoConfig';
 import { savePhotoBlob, deletePhoto, getPhotoObjectURL } from '@/lib/offlineDB';
 import { format } from 'date-fns';
@@ -30,7 +30,7 @@ interface AtendimentoContextType {
   toggleChecklistItem: (id: string) => void;
   removeChecklistItem: (id: string) => void;
   addFoto: (url: string, tipo: 'inicial' | 'durante' | 'final') => void;
-  addFotoFile: (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options?: { detalheTecnico?: boolean; atendimentoPersonalizadoModuloId?: string | null; atendimentoPersonalizadoItemId?: string | null; legenda?: string | null }) => Promise<void>;
+  addFotoFile: (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options?: { detalheTecnico?: boolean; atendimentoPersonalizadoModuloId?: string | null; atendimentoPersonalizadoItemId?: string | null; atendimentoPersonalizadoItemIds?: string[]; tipoEvidencia?: TipoEvidenciaFoto | string | null; legenda?: string | null }) => Promise<void>;
   removeFoto: (url: string) => void;
   setTiposAtendimento: (tipos: AtendimentoTipo[]) => void;
   setAcoesEspecificas: (acoes: string[]) => void;
@@ -385,9 +385,14 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const addFotoFile = async (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options: { detalheTecnico?: boolean; atendimentoPersonalizadoModuloId?: string | null; atendimentoPersonalizadoItemId?: string | null; legenda?: string | null } = {}) => {
+  const addFotoFile = async (file: File | Blob, tipo: 'inicial' | 'durante' | 'final', options: { detalheTecnico?: boolean; atendimentoPersonalizadoModuloId?: string | null; atendimentoPersonalizadoItemId?: string | null; atendimentoPersonalizadoItemIds?: string[]; tipoEvidencia?: TipoEvidenciaFoto | string | null; legenda?: string | null } = {}) => {
     const { fotoId, objectUrl, metadataCompressao } = await savePhotoBlob(file, tipo, options);
     setData(prev => {
+      const itemIds = options.atendimentoPersonalizadoItemIds?.length
+        ? options.atendimentoPersonalizadoItemIds
+        : options.atendimentoPersonalizadoItemId
+          ? [options.atendimentoPersonalizadoItemId]
+          : [];
       const newFotos = [...prev.fotos, {
         fotoId,
         url: objectUrl,
@@ -395,7 +400,9 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         detalhe_tecnico: Boolean(options.detalheTecnico),
         metadata_compressao: metadataCompressao as unknown as Record<string, unknown>,
         atendimento_personalizado_modulo_id: options.atendimentoPersonalizadoModuloId ?? null,
-        atendimento_personalizado_item_id: options.atendimentoPersonalizadoItemId ?? null,
+        atendimento_personalizado_item_id: options.atendimentoPersonalizadoItemId ?? itemIds[0] ?? null,
+        atendimento_personalizado_item_ids: itemIds,
+        tipo_evidencia: options.tipoEvidencia ?? null,
         legenda: options.legenda ?? null,
       }];
       const possuiFotoFinal = newFotos.some(f => f.tipo === 'final');
