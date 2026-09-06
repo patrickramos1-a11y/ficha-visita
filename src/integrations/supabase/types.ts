@@ -108,67 +108,6 @@ export type Database = {
           },
         ]
       }
-      atendimento_fotos: {
-        Row: {
-          atendimento_id: string
-          atendimento_personalizado_item_id: string | null
-          atendimento_personalizado_modulo_id: string | null
-          created_at: string
-          foto_url: string
-          id: string
-          legenda: string | null
-          metadata_compressao: Json
-          tipo: string
-          tipo_evidencia: string | null
-        }
-        Insert: {
-          atendimento_id: string
-          atendimento_personalizado_item_id?: string | null
-          atendimento_personalizado_modulo_id?: string | null
-          created_at?: string
-          foto_url: string
-          id?: string
-          legenda?: string | null
-          metadata_compressao?: Json
-          tipo?: string
-          tipo_evidencia?: string | null
-        }
-        Update: {
-          atendimento_id?: string
-          atendimento_personalizado_item_id?: string | null
-          atendimento_personalizado_modulo_id?: string | null
-          created_at?: string
-          foto_url?: string
-          id?: string
-          legenda?: string | null
-          metadata_compressao?: Json
-          tipo?: string
-          tipo_evidencia?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "atendimento_fotos_atendimento_id_fkey"
-            columns: ["atendimento_id"]
-            isOneToOne: false
-            referencedRelation: "atendimentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atendimento_fotos_atendimento_personalizado_item_id_fkey"
-            columns: ["atendimento_personalizado_item_id"]
-            isOneToOne: false
-            referencedRelation: "atendimento_personalizado_itens"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atendimento_fotos_atendimento_personalizado_modulo_id_fkey"
-            columns: ["atendimento_personalizado_modulo_id"]
-            isOneToOne: false
-            referencedRelation: "atendimento_personalizado_modulos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       atendimento_foto_itens: {
         Row: {
           criado_em: string
@@ -201,6 +140,64 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "atendimento_personalizado_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atendimento_fotos: {
+        Row: {
+          atendimento_id: string
+          atendimento_personalizado_item_id: string | null
+          atendimento_personalizado_modulo_id: string | null
+          created_at: string
+          foto_url: string
+          id: string
+          legenda: string | null
+          tipo: string
+          tipo_evidencia: string | null
+        }
+        Insert: {
+          atendimento_id: string
+          atendimento_personalizado_item_id?: string | null
+          atendimento_personalizado_modulo_id?: string | null
+          created_at?: string
+          foto_url: string
+          id?: string
+          legenda?: string | null
+          tipo?: string
+          tipo_evidencia?: string | null
+        }
+        Update: {
+          atendimento_id?: string
+          atendimento_personalizado_item_id?: string | null
+          atendimento_personalizado_modulo_id?: string | null
+          created_at?: string
+          foto_url?: string
+          id?: string
+          legenda?: string | null
+          tipo?: string
+          tipo_evidencia?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atendimento_fotos_atendimento_id_fkey"
+            columns: ["atendimento_id"]
+            isOneToOne: false
+            referencedRelation: "atendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimento_fotos_atendimento_personalizado_item_id_fkey"
+            columns: ["atendimento_personalizado_item_id"]
+            isOneToOne: false
+            referencedRelation: "atendimento_personalizado_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atendimento_fotos_atendimento_personalizado_modulo_id_fkey"
+            columns: ["atendimento_personalizado_modulo_id"]
+            isOneToOne: false
+            referencedRelation: "atendimento_personalizado_modulos"
             referencedColumns: ["id"]
           },
         ]
@@ -254,8 +251,8 @@ export type Database = {
           id: string
           modulo_id: string
           ordem: number
-          peso: number
           permite_observacao: boolean
+          peso: number
           resposta_positiva: string | null
           texto: string
           tipo_resposta: string
@@ -270,8 +267,8 @@ export type Database = {
           id?: string
           modulo_id: string
           ordem?: number
-          peso?: number
           permite_observacao?: boolean
+          peso?: number
           resposta_positiva?: string | null
           texto: string
           tipo_resposta?: string
@@ -286,8 +283,8 @@ export type Database = {
           id?: string
           modulo_id?: string
           ordem?: number
-          peso?: number
           permite_observacao?: boolean
+          peso?: number
           resposta_positiva?: string | null
           texto?: string
           tipo_resposta?: string
