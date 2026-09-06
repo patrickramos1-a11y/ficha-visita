@@ -117,9 +117,7 @@ export type Database = {
           foto_url: string
           id: string
           legenda: string | null
-          metadata_compressao: Json
           tipo: string
-          tipo_evidencia: string | null
         }
         Insert: {
           atendimento_id: string
@@ -129,9 +127,7 @@ export type Database = {
           foto_url: string
           id?: string
           legenda?: string | null
-          metadata_compressao?: Json
           tipo?: string
-          tipo_evidencia?: string | null
         }
         Update: {
           atendimento_id?: string
@@ -141,9 +137,7 @@ export type Database = {
           foto_url?: string
           id?: string
           legenda?: string | null
-          metadata_compressao?: Json
           tipo?: string
-          tipo_evidencia?: string | null
         }
         Relationships: [
           {
@@ -165,42 +159,6 @@ export type Database = {
             columns: ["atendimento_personalizado_modulo_id"]
             isOneToOne: false
             referencedRelation: "atendimento_personalizado_modulos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      atendimento_foto_itens: {
-        Row: {
-          criado_em: string
-          foto_id: string
-          id: string
-          item_id: string
-        }
-        Insert: {
-          criado_em?: string
-          foto_id: string
-          id?: string
-          item_id: string
-        }
-        Update: {
-          criado_em?: string
-          foto_id?: string
-          id?: string
-          item_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "atendimento_foto_itens_foto_id_fkey"
-            columns: ["foto_id"]
-            isOneToOne: false
-            referencedRelation: "atendimento_fotos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "atendimento_foto_itens_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "atendimento_personalizado_itens"
             referencedColumns: ["id"]
           },
         ]
@@ -246,60 +204,38 @@ export type Database = {
       atendimento_personalizado_itens: {
         Row: {
           ativo: boolean
-          condicional_item_id: string | null
-          condicional_resposta: string | null
-          criticidade: string
           entra_conformidade: boolean
           exige_foto: boolean
           id: string
           modulo_id: string
           ordem: number
-          peso: number
           permite_observacao: boolean
-          resposta_positiva: string | null
           texto: string
           tipo_resposta: string
         }
         Insert: {
           ativo?: boolean
-          condicional_item_id?: string | null
-          condicional_resposta?: string | null
-          criticidade?: string
           entra_conformidade?: boolean
           exige_foto?: boolean
           id?: string
           modulo_id: string
           ordem?: number
-          peso?: number
           permite_observacao?: boolean
-          resposta_positiva?: string | null
           texto: string
           tipo_resposta?: string
         }
         Update: {
           ativo?: boolean
-          condicional_item_id?: string | null
-          condicional_resposta?: string | null
-          criticidade?: string
           entra_conformidade?: boolean
           exige_foto?: boolean
           id?: string
           modulo_id?: string
           ordem?: number
-          peso?: number
           permite_observacao?: boolean
-          resposta_positiva?: string | null
           texto?: string
           tipo_resposta?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "atendimento_personalizado_itens_condicional_item_id_fkey"
-            columns: ["condicional_item_id"]
-            isOneToOne: false
-            referencedRelation: "atendimento_personalizado_itens"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "atendimento_personalizado_itens_modulo_id_fkey"
             columns: ["modulo_id"]
