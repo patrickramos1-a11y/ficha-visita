@@ -24,7 +24,7 @@ export function PhotoDetailToggle({ checked, onCheckedChange, className }: Photo
         <span className="min-w-0">
           <span className="block text-sm font-semibold">Detalhe técnico</span>
           <span className="block text-xs text-muted-foreground">
-            Para placas, etiquetas, documentos, medições e números.
+            Ative para salvar esta foto com qualidade melhor.
           </span>
         </span>
       </span>
