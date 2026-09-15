@@ -191,6 +191,10 @@ export default function Gestao() {
   const [visitSortDir, setVisitSortDir] = useState<SortDir>("desc");
   const [selectedVisitIds, setSelectedVisitIds] = useState<string[]>([]);
   const [deletingVisits, setDeletingVisits] = useState(false);
+  const [editingDurationVisit, setEditingDurationVisit] = useState<any | null>(null);
+  const [durationHours, setDurationHours] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState("");
+  const [savingDuration, setSavingDuration] = useState(false);
   const [confirmVisit, setConfirmVisit] = useState<any | null>(null);
   const [radarClients, setRadarClients] = useState<any[]>([]);
   const [radarClientId, setRadarClientId] = useState("");
@@ -540,6 +544,47 @@ export default function Gestao() {
       toast.error(error.message || "Não foi possível excluir as visitas");
     } finally {
       setDeletingVisits(false);
+    }
+  };
+
+  const openDurationEditor = (visit: any) => {
+    const minutes = visitDurationMinutes(visit);
+    setEditingDurationVisit(visit);
+    setDurationHours(minutes === null ? "" : String(Math.floor(minutes / 60)));
+    setDurationMinutes(minutes === null ? "" : String(minutes % 60));
+  };
+
+  const saveDuration = async () => {
+    if (!editingDurationVisit) return;
+    const hours = Number(durationHours || 0);
+    const minutes = Number(durationMinutes || 0);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || minutes < 0 || minutes > 59) {
+      toast.error("Informe uma duração válida em horas e minutos");
+      return;
+    }
+
+    const totalMinutes = Math.round(hours * 60 + minutes);
+    const startedAt = getVisitDate(editingDurationVisit);
+    if (Number.isNaN(startedAt.getTime())) {
+      toast.error("A data inicial da visita está inválida");
+      return;
+    }
+
+    const endedAt = new Date(startedAt.getTime() + totalMinutes * 60_000);
+    setSavingDuration(true);
+    try {
+      const { error } = await db
+        .from("atendimentos")
+        .update({ data_fim: endedAt.toISOString() })
+        .eq("id", editingDurationVisit.id);
+      if (error) throw error;
+      toast.success("Duração da visita atualizada");
+      setEditingDurationVisit(null);
+      await queryClient.invalidateQueries({ queryKey: ["gestao-visitas"] });
+    } catch (error: any) {
+      toast.error(error?.message || "Não foi possível atualizar a duração");
+    } finally {
+      setSavingDuration(false);
     }
   };
   const exportItems = (visit: any) => [
@@ -1137,7 +1182,18 @@ export default function Gestao() {
                             {natureLabels[getVisitNature(visit)]}
                           </td>
                           <td className="p-3">{responsavelName(visit)}</td>
-                          <td className="whitespace-nowrap p-3">{formatVisitDuration(visit)}</td>
+                          <td className="whitespace-nowrap p-3">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2 font-normal"
+                              onClick={() => openDurationEditor(visit)}
+                              title="Editar duração da visita"
+                            >
+                              {formatVisitDuration(visit)}
+                            </Button>
+                          </td>
                           <td className="p-3">
                             <span
                               className={
@@ -1804,6 +1860,67 @@ export default function Gestao() {
                   <Send className="mr-2 h-4 w-4" />
                 )}
                 Confirmar envio
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editingDurationVisit} onOpenChange={(open) => !open && setEditingDurationVisit(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editar duração da visita</DialogTitle>
+              <DialogDescription>
+                A data inicial será preservada. O horário final será recalculado pela duração informada.
+              </DialogDescription>
+            </DialogHeader>
+            {editingDurationVisit && (
+              <div className="space-y-4">
+                <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                  <p className="text-xs text-muted-foreground">Início da visita</p>
+                  <p className="font-medium">
+                    {getVisitDate(editingDurationVisit).toLocaleDateString("pt-BR")} às{" "}
+                    {getVisitDate(editingDurationVisit).toLocaleTimeString("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="duration-hours">Horas</Label>
+                    <Input
+                      id="duration-hours"
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      value={durationHours}
+                      onChange={(event) => setDurationHours(event.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="duration-minutes">Minutos</Label>
+                    <Input
+                      id="duration-minutes"
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={59}
+                      value={durationMinutes}
+                      onChange={(event) => setDurationMinutes(event.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingDurationVisit(null)}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={saveDuration} disabled={savingDuration}>
+                {savingDuration && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar duração
               </Button>
             </DialogFooter>
           </DialogContent>
