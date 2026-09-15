@@ -1,15 +1,18 @@
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowUpDown,
   BarChart3,
   CalendarDays,
   CheckCircle2,
   ExternalLink,
+  Filter,
   Landmark,
   Link2,
   Loader2,
   Plus,
   Send,
+  Trash2,
   Users,
 } from "lucide-react";
 import {
@@ -45,6 +48,14 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { PhotoStorageStatsCard } from "@/components/gestao/PhotoStorageStatsCard";
 
@@ -71,6 +82,81 @@ const getVisitNature = (visit: any) =>
       : visit.modo === "processos"
         ? "PROCESSOS"
         : "ATENDIMENTO");
+type VisitSortKey = "data" | "titulo" | "cliente" | "natureza" | "responsavel" | "duracao" | "situacao";
+type SortDir = "asc" | "desc";
+
+function getVisitDate(visit: any) {
+  return new Date(visit.data_inicio ?? visit.created_at);
+}
+
+function visitDurationMinutes(visit: any) {
+  const start = visit.data_inicio ?? visit.created_at;
+  const end = visit.data_fim;
+  if (!start || !end) return null;
+  return Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000));
+}
+
+function formatVisitDuration(visit: any) {
+  const minutes = visitDurationMinutes(visit);
+  if (minutes === null) return "—";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+  return remaining ? `${hours}h ${remaining}min` : `${hours}h`;
+}
+
+function VisitColumnHead({
+  label,
+  sortKey,
+  activeSortKey,
+  sortDir,
+  onSort,
+  children,
+}: {
+  label: string;
+  sortKey: VisitSortKey;
+  activeSortKey: VisitSortKey;
+  sortDir: SortDir;
+  onSort: (key: VisitSortKey) => void;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-8 px-2 text-xs font-semibold"
+        onClick={() => onSort(sortKey)}
+        title={`Ordenar por ${label}`}
+      >
+        {label}
+        <ArrowUpDown className={`ml-1 h-3.5 w-3.5 ${activeSortKey === sortKey ? "text-primary" : "text-muted-foreground"}`} />
+        {activeSortKey === sortKey ? (
+          <span className="ml-0.5 text-[10px] text-primary">{sortDir}</span>
+        ) : null}
+      </Button>
+      {children ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title={`Filtrar ${label}`}>
+              <Filter className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
+            <DropdownMenuLabel>Filtrar {label}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {children}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" disabled title={`Sem filtro específico para ${label}`}>
+          <Filter className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+}
 
 function useOptionalTable(table: string, queryKey: string) {
   return useQuery({
@@ -98,6 +184,13 @@ export default function Gestao() {
   const [visitNatureFilter, setVisitNatureFilter] = useState("ALL");
   const [visitResponsibleFilter, setVisitResponsibleFilter] = useState("ALL");
   const [visitStatusFilter, setVisitStatusFilter] = useState("ALL");
+  const [visitDateFilter, setVisitDateFilter] = useState("ALL");
+  const [visitTitleFilter, setVisitTitleFilter] = useState("ALL");
+  const [visitDurationFilter, setVisitDurationFilter] = useState("ALL");
+  const [visitSortKey, setVisitSortKey] = useState<VisitSortKey>("data");
+  const [visitSortDir, setVisitSortDir] = useState<SortDir>("desc");
+  const [selectedVisitIds, setSelectedVisitIds] = useState<string[]>([]);
+  const [deletingVisits, setDeletingVisits] = useState(false);
   const [confirmVisit, setConfirmVisit] = useState<any | null>(null);
   const [radarClients, setRadarClients] = useState<any[]>([]);
   const [radarClientId, setRadarClientId] = useState("");
@@ -313,10 +406,28 @@ export default function Gestao() {
     responsaveis.find(
       (responsavel: any) => responsavel.id === visit.responsavel_id,
     )?.nome || "Ficha de Visita";
+  const toggleVisitSort = (key: VisitSortKey) => {
+    setVisitSortKey((currentKey) => {
+      if (currentKey === key) {
+        setVisitSortDir((currentDir) => (currentDir === "asc" ? "desc" : "asc"));
+        return currentKey;
+      }
+      setVisitSortDir(key === "data" ? "desc" : "asc");
+      return key;
+    });
+  };
   const filteredVisits = useMemo(
-    () =>
-      visitas.filter(
-        (visit: any) =>
+    () => {
+      const now = new Date();
+      const weekAgo = new Date(now);
+      weekAgo.setDate(now.getDate() - 7);
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(now.getDate() - 30);
+
+      const filtered = visitas.filter((visit: any) => {
+        const date = getVisitDate(visit);
+        const duration = visitDurationMinutes(visit);
+        return (
           (visitClientFilter === "ALL" ||
             clientId(visit) === visitClientFilter ||
             (visit.atendimento_clientes ?? []).some(
@@ -329,18 +440,108 @@ export default function Gestao() {
           (visitStatusFilter === "ALL" ||
             (visitStatusFilter === "FINALIZADA"
               ? visit.finalizado
-              : !visit.finalizado)),
-      ),
+              : !visit.finalizado)) &&
+          (visitDateFilter === "ALL" ||
+            (visitDateFilter === "WEEK" && date >= weekAgo) ||
+            (visitDateFilter === "30_DAYS" && date >= thirtyDaysAgo)) &&
+          (visitTitleFilter === "ALL" ||
+            (visitTitleFilter === "WITH_TITLE" && Boolean(visit.titulo?.trim())) ||
+            (visitTitleFilter === "WITHOUT_TITLE" && !visit.titulo?.trim())) &&
+          (visitDurationFilter === "ALL" ||
+            (visitDurationFilter === "UNDER_30" && duration !== null && duration < 30) ||
+            (visitDurationFilter === "30_120" && duration !== null && duration >= 30 && duration <= 120) ||
+            (visitDurationFilter === "OVER_120" && duration !== null && duration > 120) ||
+            (visitDurationFilter === "UNKNOWN" && duration === null))
+        );
+      });
+
+      const valueForSort = (visit: any) => {
+        if (visitSortKey === "data") return getVisitDate(visit).getTime();
+        if (visitSortKey === "titulo") return visit.titulo || "";
+        if (visitSortKey === "cliente") return clientName(visit);
+        if (visitSortKey === "natureza") return natureLabels[getVisitNature(visit)] || getVisitNature(visit);
+        if (visitSortKey === "responsavel") return responsavelName(visit);
+        if (visitSortKey === "duracao") return visitDurationMinutes(visit) ?? -1;
+        if (visitSortKey === "situacao") return visit.finalizado ? "Finalizada" : "Em andamento";
+        return "";
+      };
+
+      return [...filtered].sort((a: any, b: any) => {
+        const aValue = valueForSort(a);
+        const bValue = valueForSort(b);
+        const result = typeof aValue === "number" && typeof bValue === "number"
+          ? aValue - bValue
+          : String(aValue).localeCompare(String(bValue), "pt-BR", { sensitivity: "base" });
+        return visitSortDir === "asc" ? result : -result;
+      });
+    },
     [
       visitas,
       visitClientFilter,
+      visitDateFilter,
+      visitDurationFilter,
       visitNatureFilter,
       visitResponsibleFilter,
+      visitSortDir,
+      visitSortKey,
       visitStatusFilter,
+      visitTitleFilter,
       clientes,
       responsaveis,
     ],
   );
+  const allFilteredSelected = filteredVisits.length > 0 && filteredVisits.every((visit: any) => selectedVisitIds.includes(visit.id));
+  const toggleVisitSelection = (id: string) =>
+    setSelectedVisitIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const toggleAllFilteredVisits = () =>
+    setSelectedVisitIds((current) => {
+      if (allFilteredSelected) return current.filter((id) => !filteredVisits.some((visit: any) => visit.id === id));
+      return Array.from(new Set([...current, ...filteredVisits.map((visit: any) => visit.id)]));
+    });
+  const deleteSelectedVisits = async () => {
+    if (!selectedVisitIds.length) return;
+    const confirmed = window.confirm(`Excluir ${selectedVisitIds.length} visita(s) selecionada(s)? Esta ação não pode ser desfeita.`);
+    if (!confirmed) return;
+    setDeletingVisits(true);
+    try {
+      const { data: photos } = await db
+        .from("atendimento_fotos")
+        .select("id")
+        .in("atendimento_id", selectedVisitIds);
+      const photoIds = (photos ?? []).map((photo: any) => photo.id).filter(Boolean);
+      if (photoIds.length) {
+        const { error: linkError } = await db
+          .from("atendimento_foto_itens")
+          .delete()
+          .in("foto_id", photoIds);
+        if (linkError && !/atendimento_foto_itens|schema cache/i.test(String(linkError.message))) throw linkError;
+      }
+
+      for (const table of [
+        "integracao_radar_itens",
+        "atendimento_processos",
+        "atendimento_personalizado_respostas",
+        "atendimento_clientes",
+        "demandas",
+        "atendimento_fotos",
+      ]) {
+        const { error } = await db.from(table).delete().in("atendimento_id", selectedVisitIds);
+        if (error && !/schema cache|does not exist/i.test(String(error.message))) throw error;
+      }
+
+      const { error } = await db.from("atendimentos").delete().in("id", selectedVisitIds);
+      if (error) throw error;
+      toast.success(`${selectedVisitIds.length} visita(s) excluída(s)`);
+      setSelectedVisitIds([]);
+      queryClient.invalidateQueries({ queryKey: ["gestao-visitas"] });
+      queryClient.invalidateQueries({ queryKey: ["gestao-demandas"] });
+      queryClient.invalidateQueries({ queryKey: ["gestao-exportados"] });
+    } catch (error: any) {
+      toast.error(error.message || "Não foi possível excluir as visitas");
+    } finally {
+      setDeletingVisits(false);
+    }
+  };
   const exportItems = (visit: any) => [
     ...(visit.demandas ?? [])
       .filter((item: any) => item.descricao?.trim())
@@ -830,21 +1031,99 @@ export default function Gestao() {
             </Card>
             <Card>
               <CardContent className="p-0">
+                {selectedVisitIds.length > 0 ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-red-50 px-4 py-3">
+                    <p className="text-sm font-medium text-red-900">
+                      {selectedVisitIds.length} visita(s) selecionada(s)
+                    </p>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setSelectedVisitIds([])}>
+                        Limpar seleção
+                      </Button>
+                      <Button type="button" variant="destructive" size="sm" onClick={deleteSelectedVisits} disabled={deletingVisits}>
+                        {deletingVisits ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                        Excluir selecionadas
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="border-b bg-muted/40 text-left">
                       <tr>
-                        <th className="p-3">Data</th>
-                        <th className="p-3">Título</th>
-                        <th className="p-3">Cliente</th>
-                        <th className="p-3">Natureza</th>
-                        <th className="p-3">Responsável</th>
-                        <th className="p-3">Situação</th>
+                        <th className="w-12 p-3">
+                          <Checkbox
+                            checked={allFilteredSelected ? true : selectedVisitIds.length > 0 ? "indeterminate" : false}
+                            onCheckedChange={toggleAllFilteredVisits}
+                            aria-label="Selecionar visitas filtradas"
+                          />
+                        </th>
+                        <th className="p-2">
+                          <VisitColumnHead label="Data" sortKey="data" activeSortKey={visitSortKey} sortDir={visitSortDir} onSort={toggleVisitSort}>
+                            <DropdownMenuItem onSelect={() => setVisitDateFilter("ALL")}>Todas</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitDateFilter("WEEK")}>Última semana</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitDateFilter("30_DAYS")}>Últimos 30 dias</DropdownMenuItem>
+                          </VisitColumnHead>
+                        </th>
+                        <th className="p-2">
+                          <VisitColumnHead label="Título" sortKey="titulo" activeSortKey={visitSortKey} sortDir={visitSortDir} onSort={toggleVisitSort}>
+                            <DropdownMenuItem onSelect={() => setVisitTitleFilter("ALL")}>Todos</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitTitleFilter("WITH_TITLE")}>Com título</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitTitleFilter("WITHOUT_TITLE")}>Sem título</DropdownMenuItem>
+                          </VisitColumnHead>
+                        </th>
+                        <th className="p-2">
+                          <VisitColumnHead label="Cliente" sortKey="cliente" activeSortKey={visitSortKey} sortDir={visitSortDir} onSort={toggleVisitSort}>
+                            <DropdownMenuItem onSelect={() => setVisitClientFilter("ALL")}>Todos os clientes</DropdownMenuItem>
+                            {clientes.map((cliente: any) => (
+                              <DropdownMenuItem key={cliente.id} onSelect={() => setVisitClientFilter(cliente.id)}>{cliente.nome}</DropdownMenuItem>
+                            ))}
+                          </VisitColumnHead>
+                        </th>
+                        <th className="p-2">
+                          <VisitColumnHead label="Natureza" sortKey="natureza" activeSortKey={visitSortKey} sortDir={visitSortDir} onSort={toggleVisitSort}>
+                            <DropdownMenuItem onSelect={() => setVisitNatureFilter("ALL")}>Todas as naturezas</DropdownMenuItem>
+                            {Object.entries(natureLabels).map(([codigo, nome]) => (
+                              <DropdownMenuItem key={codigo} onSelect={() => setVisitNatureFilter(codigo)}>{nome}</DropdownMenuItem>
+                            ))}
+                          </VisitColumnHead>
+                        </th>
+                        <th className="p-2">
+                          <VisitColumnHead label="Responsável" sortKey="responsavel" activeSortKey={visitSortKey} sortDir={visitSortDir} onSort={toggleVisitSort}>
+                            <DropdownMenuItem onSelect={() => setVisitResponsibleFilter("ALL")}>Todos os responsáveis</DropdownMenuItem>
+                            {responsaveis.map((responsavel: any) => (
+                              <DropdownMenuItem key={responsavel.id} onSelect={() => setVisitResponsibleFilter(responsavel.id)}>{responsavel.nome}</DropdownMenuItem>
+                            ))}
+                          </VisitColumnHead>
+                        </th>
+                        <th className="p-2">
+                          <VisitColumnHead label="Tempo" sortKey="duracao" activeSortKey={visitSortKey} sortDir={visitSortDir} onSort={toggleVisitSort}>
+                            <DropdownMenuItem onSelect={() => setVisitDurationFilter("ALL")}>Todos</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitDurationFilter("UNDER_30")}>Até 30 min</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitDurationFilter("30_120")}>30 min a 2h</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitDurationFilter("OVER_120")}>Mais de 2h</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitDurationFilter("UNKNOWN")}>Sem tempo final</DropdownMenuItem>
+                          </VisitColumnHead>
+                        </th>
+                        <th className="p-2">
+                          <VisitColumnHead label="Situação" sortKey="situacao" activeSortKey={visitSortKey} sortDir={visitSortDir} onSort={toggleVisitSort}>
+                            <DropdownMenuItem onSelect={() => setVisitStatusFilter("ALL")}>Todos os estados</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitStatusFilter("EM_ANDAMENTO")}>Em andamento</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setVisitStatusFilter("FINALIZADA")}>Finalizada</DropdownMenuItem>
+                          </VisitColumnHead>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredVisits.map((visit: any) => (
                         <tr key={visit.id} className="border-b last:border-0">
+                          <td className="p-3">
+                            <Checkbox
+                              checked={selectedVisitIds.includes(visit.id)}
+                              onCheckedChange={() => toggleVisitSelection(visit.id)}
+                              aria-label={`Selecionar ${visit.titulo || "visita sem título"}`}
+                            />
+                          </td>
                           <td className="whitespace-nowrap p-3">
                             {new Date(
                               visit.data_inicio ?? visit.created_at,
@@ -858,6 +1137,7 @@ export default function Gestao() {
                             {natureLabels[getVisitNature(visit)]}
                           </td>
                           <td className="p-3">{responsavelName(visit)}</td>
+                          <td className="whitespace-nowrap p-3">{formatVisitDuration(visit)}</td>
                           <td className="p-3">
                             <span
                               className={
@@ -875,7 +1155,7 @@ export default function Gestao() {
                         <tr>
                           <td
                             className="p-8 text-center text-muted-foreground"
-                            colSpan={6}
+                            colSpan={8}
                           >
                             Nenhuma visita encontrada para os filtros
                             escolhidos.
