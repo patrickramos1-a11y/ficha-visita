@@ -10,18 +10,46 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   ArrowLeft, Calendar, User, Building2, FileText, Camera,
-  CheckCircle2, AlertCircle
+  CheckCircle2, AlertCircle, Clock3, MessageSquare, Pencil
 } from 'lucide-react';
 import { GerarPDF } from '@/components/relatorio/GerarPDF';
 import { BaixarProgramacaoButton } from '@/components/relatorio/BaixarProgramacaoButton';
 import { TIPOS_ATENDIMENTO_CONFIG, ACOES_ESPECIFICAS_CONFIG } from '@/types/tiposAtendimentoConfig';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobilePageHeader } from '@/components/layout/MobilePageHeader';
+import { useAtendimento } from '@/contexts/AtendimentoContext';
+
+function getVisitStart(atendimento: any) {
+  return new Date(atendimento.data_inicio ?? atendimento.created_at);
+}
+
+function getVisitEnd(atendimento: any) {
+  return atendimento.data_fim ? new Date(atendimento.data_fim) : null;
+}
+
+function getDurationMinutes(atendimento: any) {
+  const start = getVisitStart(atendimento);
+  const end = getVisitEnd(atendimento);
+  if (!end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+  const minutes = Math.round((end.getTime() - start.getTime()) / 60000);
+  return minutes >= 0 ? minutes : null;
+}
+
+function formatDurationLabel(atendimento: any) {
+  const minutes = getDurationMinutes(atendimento);
+  if (minutes === null) return 'Não informada';
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours <= 0) return `${remainingMinutes} min`;
+  if (remainingMinutes === 0) return `${hours}h`;
+  return `${hours}h ${remainingMinutes}min`;
+}
 
 export default function AtendimentoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { reabrirAtendimentoSalvo } = useAtendimento();
 
   const { data: atendimento, isLoading } = useQuery({
     queryKey: ['atendimento-detalhe', id],
@@ -59,7 +87,7 @@ export default function AtendimentoDetalhe() {
   const { data: atendimentoClientes } = useQuery({
     queryKey: ['atendimento-clientes', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('atendimento_clientes').select('cliente:clientes(id, nome)').eq('atendimento_id', id);
+      const { data, error } = await supabase.from('atendimento_clientes').select('cliente_id, cliente:clientes(id, nome)').eq('atendimento_id', id);
       if (error) throw error;
       return data;
     },
@@ -90,11 +118,42 @@ export default function AtendimentoDetalhe() {
 
   const clientesNomes = atendimentoClientes?.map(ac => ac.cliente?.nome).filter(Boolean) as string[] || [];
   const dadosModalidade = atendimento.dados_modalidade as any;
+  const startedAt = getVisitStart(atendimento);
+  const endedAt = getVisitEnd(atendimento);
+  const hasInvalidPeriod = Boolean(endedAt && getDurationMinutes(atendimento) === null);
+  const resumoVisita = String(atendimento.resumo_relatorio || atendimento.comentario_base_relatorio || '').trim();
+  const clienteIds = [
+    ...new Set([
+      ...(atendimentoClientes?.map((ac: any) => ac.cliente_id || ac.cliente?.id).filter(Boolean) ?? []),
+      atendimento.cliente_id,
+      dadosModalidade?.cliente_id,
+    ].filter(Boolean)),
+  ] as string[];
+  const editRoute = atendimento.modo === 'obras'
+    ? '/visita/obras'
+    : atendimento.modo === 'ambiental'
+      ? '/visita/ambiental'
+      : atendimento.modo === 'processos'
+        ? '/visita/processos'
+        : atendimento.modo === 'personalizado'
+          ? '/visita/personalizado'
+          : '/visita/foto-inicial';
+
+  const handleReopenVisit = () => {
+    reabrirAtendimentoSalvo({
+      atendimento,
+      fotos: fotos ?? [],
+      demandas: demandas ?? [],
+      clienteIds,
+      rota: editRoute,
+    });
+    navigate(editRoute);
+  };
 
   const pdfData = {
     titulo: atendimento.titulo || undefined,
-    data_inicio: new Date(atendimento.created_at),
-    data_fim: atendimento.data_fim ? new Date(atendimento.data_fim) : undefined,
+    data_inicio: startedAt,
+    data_fim: endedAt ?? undefined,
     responsavel_id: atendimento.responsavel_id || undefined,
     tipos_atendimento: atendimento.tipos_atendimento || [],
     acoes_especificas: atendimento.acoes_especificas || [],
@@ -103,13 +162,13 @@ export default function AtendimentoDetalhe() {
     checklist: [],
     demandas: demandas?.map(d => ({ descricao: d.descricao, plano: d.plano as 'VIP' | 'Premium' | 'Master', personalizada: d.personalizada })) || [],
     fotos: fotos?.map(f => ({ url: f.foto_url, tipo: f.tipo as 'inicial' | 'durante' | 'final' })) || [],
-    cliente_ids: atendimentoClientes?.map(ac => ac.cliente?.id).filter(Boolean) as string[] || [],
+    cliente_ids: clienteIds,
     topicos_reuniao: [],
     possui_foto_final: atendimento.possui_foto_final || false,
     modo: (atendimento.modo || 'completa') as VisitaModo,
     acompanhamento_obra: atendimento.modo === 'obras' ? dadosModalidade : undefined,
     acompanhamento_ambiental: atendimento.modo === 'ambiental' ? dadosModalidade : undefined,
-    selectedClientes: atendimentoClientes?.map(ac => ac.cliente?.id).filter(Boolean) as string[] || [],
+    selectedClientes: clienteIds,
   };
 
   return (
@@ -138,7 +197,7 @@ export default function AtendimentoDetalhe() {
               <div>
                 <h1 className="text-2xl font-bold">{atendimento.titulo || 'Detalhes do Atendimento'}</h1>
                 <p className="text-muted-foreground">
-                  {format(new Date(atendimento.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                {format(startedAt, "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                 </p>
               </div>
             </div>
@@ -147,10 +206,14 @@ export default function AtendimentoDetalhe() {
                 ? <Badge className="bg-primary/10 text-primary"><CheckCircle2 className="h-3 w-3 mr-1" />Finalizado</Badge>
                 : <Badge variant="outline">Pendente</Badge>
               }
+              <Button variant="outline" onClick={handleReopenVisit}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Reabrir visita
+              </Button>
               <GerarPDF data={pdfData} responsavelNome={atendimento.responsavel?.nome} clientesNomes={clientesNomes} />
               {demandas && demandas.length > 0 && (
                 <BaixarProgramacaoButton
-                  atendimento={{ data_inicio: new Date(atendimento.created_at), tipos_atendimento: atendimento.tipos_atendimento || [], acoes_especificas: atendimento.acoes_especificas || [], demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada, tipo_atendimento: d.tipo_atendimento || undefined, status: (d.status as any) || 'EM_EXECUCAO' })) }}
+                  atendimento={{ data_inicio: startedAt, tipos_atendimento: atendimento.tipos_atendimento || [], acoes_especificas: atendimento.acoes_especificas || [], demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada, tipo_atendimento: d.tipo_atendimento || undefined, status: (d.status as any) || 'EM_EXECUCAO' })) }}
                   clienteNomes={clientesNomes}
                   responsavelNome={atendimento.responsavel?.nome}
                   acoesEspecificas={atendimento.acoes_especificas || []}
@@ -163,7 +226,7 @@ export default function AtendimentoDetalhe() {
         {/* Date on mobile */}
         {isMobile && (
           <p className="text-xs text-muted-foreground -mt-2">
-            {(atendimento.titulo ? `${atendimento.titulo} • ` : '') + format(new Date(atendimento.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            {(atendimento.titulo ? `${atendimento.titulo} • ` : '') + format(startedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
           </p>
         )}
 
@@ -182,13 +245,37 @@ export default function AtendimentoDetalhe() {
               <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1 mb-1">
                 <Calendar className="h-3 w-3" /> Período
               </p>
-              <p className="text-sm font-semibold">
-                {format(new Date(atendimento.created_at), 'HH:mm')}
-                {atendimento.data_fim && <> — {format(new Date(atendimento.data_fim), 'HH:mm')}</>}
+              <p className="text-sm font-semibold leading-snug">
+                {format(startedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                {endedAt && <> — {format(endedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</>}
               </p>
+              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock3 className="h-3 w-3" />
+                Duração: {formatDurationLabel(atendimento)}
+              </p>
+              {hasInvalidPeriod && (
+                <p className="mt-1 text-xs text-amber-700">
+                  Horário final anterior ao início. Revise o período da visita.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader className="pb-2 px-3 md:px-6 pt-3 md:pt-6">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-primary" /> Resumo da visita
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 md:px-6 pb-3 md:pb-6">
+            {resumoVisita ? (
+              <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{resumoVisita}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum resumo técnico foi salvo para esta visita.</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Clientes */}
         {atendimento.modo && atendimento.modo !== 'completa' && (
@@ -345,10 +432,14 @@ export default function AtendimentoDetalhe() {
         {/* PDF on mobile */}
         {isMobile && (
           <div className="pb-2 space-y-2">
+            <Button variant="outline" className="w-full" onClick={handleReopenVisit}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Reabrir visita
+            </Button>
             <GerarPDF data={pdfData} responsavelNome={atendimento.responsavel?.nome} clientesNomes={clientesNomes} />
             {demandas && demandas.length > 0 && (
               <BaixarProgramacaoButton
-                atendimento={{ data_inicio: new Date(atendimento.created_at), tipos_atendimento: atendimento.tipos_atendimento || [], acoes_especificas: atendimento.acoes_especificas || [], demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada, tipo_atendimento: d.tipo_atendimento || undefined, status: (d.status as any) || 'EM_EXECUCAO' })) }}
+                atendimento={{ data_inicio: startedAt, tipos_atendimento: atendimento.tipos_atendimento || [], acoes_especificas: atendimento.acoes_especificas || [], demandas: demandas.map(d => ({ descricao: d.descricao, plano: d.plano as any, personalizada: d.personalizada, tipo_atendimento: d.tipo_atendimento || undefined, status: (d.status as any) || 'EM_EXECUCAO' })) }}
                 clienteNomes={clientesNomes}
                 responsavelNome={atendimento.responsavel?.nome}
                 acoesEspecificas={atendimento.acoes_especificas || []}

@@ -32,6 +32,7 @@ import {
 } from '@/lib/conformityReport';
 import { buildPersonalizadoConformityReport } from '@/lib/atendimentoPersonalizado';
 import { toast } from 'sonner';
+import { useAtendimento } from '@/contexts/AtendimentoContext';
 
 const ITEMS_PER_PAGE = 10;
 const PERIOD_FILTERS = [
@@ -231,6 +232,7 @@ function compareValues(a: unknown, b: unknown) {
 
 export default function DesktopHistorico() {
   const navigate = useNavigate();
+  const { reabrirAtendimentoSalvo } = useAtendimento();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
@@ -462,6 +464,45 @@ export default function DesktopHistorico() {
     setEditTitle(visit.titulo ?? '');
     setEditMode(visit.modo || 'completa');
     setEditClientIds(getVisitClientIds(visit));
+  };
+
+  const getEditRoute = (visit: any) => {
+    if (visit.modo === 'obras') return '/visita/obras';
+    if (visit.modo === 'ambiental') return '/visita/ambiental';
+    if (visit.modo === 'processos') return '/visita/processos';
+    if (visit.modo === 'personalizado') return '/visita/personalizado';
+    return '/visita/foto-inicial';
+  };
+
+  const reopenVisitFlow = async (visit: any) => {
+    try {
+      const db = supabase as any;
+      const [{ data: fotos, error: fotosError }, { data: demandas, error: demandasError }] = await Promise.all([
+        db.from('atendimento_fotos').select('*').eq('atendimento_id', visit.id).order('created_at'),
+        db.from('demandas').select('*').eq('atendimento_id', visit.id).order('created_at'),
+      ]);
+      if (fotosError) throw fotosError;
+      if (demandasError) throw demandasError;
+
+      const clienteIds = [
+        ...new Set([
+          ...getVisitClientIds(visit),
+          visit.cliente_id,
+          visit.dados_modalidade?.cliente_id,
+        ].filter(Boolean)),
+      ];
+      const route = getEditRoute(visit);
+      reabrirAtendimentoSalvo({
+        atendimento: visit,
+        fotos: fotos ?? [],
+        demandas: demandas ?? [],
+        clienteIds,
+        rota: route,
+      });
+      navigate(route);
+    } catch (error: any) {
+      toast.error(error?.message || 'Não foi possível reabrir a visita');
+    }
   };
 
   const toggleEditClient = (id: string) => {
@@ -768,7 +809,7 @@ export default function DesktopHistorico() {
                     )}
                   </div>
                   <div className="mt-3 flex gap-2" onClick={(event) => event.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(a)} title="Editar visita"><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => reopenVisitFlow(a)} title="Reabrir visita para editar"><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => navigate(`/relatorio/visita/${a.id}`)}><FileText className="h-3.5 w-3.5" />Ver relatório</Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyReportLink(a.id)} title="Copiar link"><Copy className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/relatorio/visita/${a.id}?editar=1`)} title="Editar resumo"><Sparkles className="h-3.5 w-3.5" /></Button>
@@ -827,7 +868,7 @@ export default function DesktopHistorico() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" title="Editar visita" onClick={() => openEditDialog(a)}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" title="Reabrir visita para editar" onClick={() => reopenVisitFlow(a)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" title="Ver relatório" onClick={() => navigate(`/relatorio/visita/${a.id}`)}><FileText className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" title="Copiar link do relatório" onClick={() => copyReportLink(a.id)}><Copy className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" title="Editar resumo com IA" onClick={() => navigate(`/relatorio/visita/${a.id}?editar=1`)}><Sparkles className="h-4 w-4" /></Button>

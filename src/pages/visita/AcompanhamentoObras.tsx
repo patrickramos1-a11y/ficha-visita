@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,11 +94,14 @@ const efluentes: [string, string, StructuredAnswerLabels][] = [
   ['registro_coleta_manutencao', 'Registro de manutenção', ANSWER_LABELS.yesNo],
 ];
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <Card className="border-border/70">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm">{title}</CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="text-sm">{title}</CardTitle>
+          {action}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">{children}</CardContent>
     </Card>
@@ -159,6 +162,19 @@ export default function AcompanhamentoObras() {
   const updateObra = (patch: Partial<typeof obra>) => setAcompanhamentoObra((prev) => ({ ...prev, ...patch }));
   const updateNested = (section: keyof typeof obra, patch: Record<string, unknown>) =>
     setAcompanhamentoObra((prev) => ({ ...prev, [section]: { ...(prev[section] as Record<string, unknown>), ...patch } }));
+  const markAllAsCompliant = (section: keyof typeof obra, questions: [string, string, StructuredAnswerLabels][]) => {
+    updateNested(
+      section,
+      Object.fromEntries(questions.map(([key]) => [key, 'SIM'])),
+    );
+  };
+
+  const compliantAction = (onClick: () => void, label = 'Tudo conforme') => (
+    <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onClick}>
+      <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+      {label}
+    </Button>
+  );
 
   const handleAddNc = () => {
     if (!novaNc.descricao.trim()) return;
@@ -244,7 +260,10 @@ export default function AcompanhamentoObras() {
         )}
 
         {step === 2 && (
-          <Section title="3. Controle ambiental">
+          <Section
+            title="3. Controle ambiental"
+            action={compliantAction(() => markAllAsCompliant('controle_ambiental', controleAmbiental))}
+          >
             {controleAmbiental.map(([key, label, labels]) => (
               <Question key={key} label={label} value={obra.controle_ambiental[key as keyof typeof obra.controle_ambiental] as SimNaoParcialNA} onChange={(value) => updateNested('controle_ambiental', { [key]: value })} labels={labels} />
             ))}
@@ -252,7 +271,10 @@ export default function AcompanhamentoObras() {
         )}
 
         {step === 3 && (
-          <Section title="4. Organização, segurança e boas práticas">
+          <Section
+            title="4. Organização, segurança e boas práticas"
+            action={compliantAction(() => markAllAsCompliant('organizacao_seguranca', organizacaoSeguranca))}
+          >
             {organizacaoSeguranca.map(([key, label, labels]) => (
               <Question key={key} label={label} value={obra.organizacao_seguranca[key as keyof typeof obra.organizacao_seguranca] as SimNaoParcialNA} onChange={(value) => updateNested('organizacao_seguranca', { [key]: value })} labels={labels} />
             ))}
@@ -260,7 +282,13 @@ export default function AcompanhamentoObras() {
         )}
 
         {step === 4 && (
-          <Section title="5. Resíduos, água e drenagem">
+          <Section
+            title="5. Resíduos, água e drenagem"
+            action={compliantAction(() => {
+              markAllAsCompliant('residuos', residuos);
+              markAllAsCompliant('efluentes', efluentes);
+            })}
+          >
             <p className="text-xs font-medium text-muted-foreground">Resíduos</p>
             {residuos.map(([key, label, labels]) => (
               <Question key={key} label={label} value={obra.residuos[key as keyof typeof obra.residuos] as SimNaoParcialNA} onChange={(value) => updateNested('residuos', { [key]: value })} labels={labels} />
@@ -278,7 +306,10 @@ export default function AcompanhamentoObras() {
         )}
 
         {step === 5 && (
-          <Section title="6. Não conformidades e pendências">
+          <Section
+            title="6. Não conformidades e pendências"
+            action={compliantAction(() => updateObra({ nao_conformidades: [], pendencias: [] }), 'Sem pendências/NC')}
+          >
             <div className="space-y-3">
               <p className="text-sm font-medium">Não conformidade</p>
               <div className="grid gap-2 md:grid-cols-2">

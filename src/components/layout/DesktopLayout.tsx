@@ -82,7 +82,7 @@ function SidebarContent({
 }
 
 export function DesktopLayout({ children }: DesktopLayoutProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   const { resetAtendimento } = useAtendimento();

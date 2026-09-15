@@ -52,6 +52,13 @@ interface AtendimentoContextType {
   finalizarAtendimento: () => void;
   resetAtendimento: () => void;
   iniciarVisita: (modo: VisitaModo) => void;
+  reabrirAtendimentoSalvo: (payload: {
+    atendimento: any;
+    fotos?: any[];
+    demandas?: any[];
+    clienteIds?: string[];
+    rota?: string;
+  }) => void;
   iniciarVisitaPersonalizada: (config: {
     atendimento_personalizado_id: string;
     atendimento_personalizado_nome: string;
@@ -581,6 +588,81 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
     setAtivo(true);
   }, []);
 
+  const reabrirAtendimentoSalvo = useCallback((payload: {
+    atendimento: any;
+    fotos?: any[];
+    demandas?: any[];
+    clienteIds?: string[];
+    rota?: string;
+  }) => {
+    const atendimento = payload.atendimento;
+    const modo = (atendimento.modo || 'completa') as VisitaModo;
+    const dadosModalidade = atendimento.dados_modalidade as any;
+    const reopenedData: AtendimentoData = {
+      ...initialData,
+      sync_id: atendimento.id,
+      titulo: atendimento.titulo || undefined,
+      modo,
+      natureza: atendimento.natureza || (modo === 'obras' ? 'OBRAS' : modo === 'ambiental' ? 'AMBIENTAL' : modo === 'processos' ? 'PROCESSOS' : modo === 'personalizado' ? 'PERSONALIZADO' : 'ATENDIMENTO'),
+      cliente_ids: payload.clienteIds ?? [],
+      responsavel_id: atendimento.responsavel_id || undefined,
+      data_inicio: atendimento.data_inicio ? new Date(atendimento.data_inicio) : new Date(atendimento.created_at),
+      data_fim: atendimento.data_fim ? new Date(atendimento.data_fim) : undefined,
+      comentario_base_relatorio: atendimento.comentario_base_relatorio || '',
+      resumo_relatorio: atendimento.resumo_relatorio || '',
+      resumo_relatorio_gerado_em: atendimento.resumo_relatorio_gerado_em || undefined,
+      relatorio_publico: atendimento.relatorio_publico ?? true,
+      anotacoes: atendimento.anotacoes || '',
+      anotacoes_itens: atendimento.anotacoes_itens ?? [],
+      checklist: atendimento.checklist ?? [],
+      tipos_atendimento: atendimento.tipos_atendimento ?? [],
+      acoes_especificas: atendimento.acoes_especificas ?? [],
+      topicos_reuniao: atendimento.topicos_reuniao ?? [],
+      fotos: (payload.fotos ?? []).map((foto) => ({
+        fotoId: foto.id,
+        url: foto.foto_url,
+        remoteUrl: foto.foto_url,
+        tipo: foto.tipo,
+        detalhe_tecnico: foto.detalhe_tecnico ?? foto.metadata_compressao?.detalhe_tecnico ?? false,
+        metadata_compressao: foto.metadata_compressao ?? {},
+        atendimento_personalizado_modulo_id: foto.atendimento_personalizado_modulo_id ?? null,
+        atendimento_personalizado_item_id: foto.atendimento_personalizado_item_id ?? null,
+        atendimento_personalizado_item_ids: foto.atendimento_personalizado_item_ids ?? [],
+        tipo_evidencia: foto.tipo_evidencia ?? null,
+        legenda: foto.legenda ?? null,
+      })),
+      demandas: (payload.demandas ?? []).map((demanda) => ({
+        id: demanda.id,
+        tipo_atendimento: demanda.tipo_atendimento || undefined,
+        descricao: demanda.descricao,
+        plano: demanda.plano || undefined,
+        personalizada: demanda.personalizada ?? true,
+        topico_id: demanda.topico_id ?? null,
+        subtopico_id: demanda.subtopico_id ?? null,
+        status: demanda.status || 'EM_EXECUCAO',
+      })),
+      possui_foto_final: atendimento.possui_foto_final || (payload.fotos ?? []).some((foto) => foto.tipo === 'final'),
+      acompanhamento_obra: modo === 'obras' ? dadosModalidade : undefined,
+      acompanhamento_ambiental: modo === 'ambiental' ? dadosModalidade : undefined,
+      acompanhamento_processos: modo === 'processos' ? dadosModalidade : undefined,
+      atendimento_personalizado: modo === 'personalizado' ? dadosModalidade : undefined,
+      atendimento_personalizado_id: atendimento.atendimento_personalizado_id || dadosModalidade?.atendimento_personalizado_id || undefined,
+      percentual_conformidade: atendimento.percentual_conformidade ?? null,
+      conformidade_por_modulo: atendimento.conformidade_por_modulo ?? {},
+    };
+
+    clearStorage();
+    setData(reopenedData);
+    setAtivo(true);
+    if (payload.rota) {
+      try {
+        localStorage.setItem(ROUTE_KEY, payload.rota);
+      } catch (e) {
+        console.warn('Failed to persist route:', e);
+      }
+    }
+  }, []);
+
   const iniciarVisitaPersonalizada = useCallback((config: {
     atendimento_personalizado_id: string;
     atendimento_personalizado_nome: string;
@@ -693,6 +775,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
         finalizarAtendimento,
         resetAtendimento,
         iniciarVisita,
+        reabrirAtendimentoSalvo,
         iniciarVisitaPersonalizada,
         gerarSugestoesDemandas,
         setRotaAtual,

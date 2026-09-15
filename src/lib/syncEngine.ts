@@ -209,6 +209,11 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
 
   if (atendimentoError) throw atendimentoError;
 
+  {
+    const { error } = await supabase.from('atendimento_clientes').delete().eq('atendimento_id', atendimento.id);
+    if (error) throw error;
+  }
+
   if (data.cliente_ids.length > 0) {
     const inserts = data.cliente_ids.map((cliente_id) => ({
       atendimento_id: atendimento.id,
@@ -345,6 +350,11 @@ async function pushAtendimento(localId: string, data: AtendimentoData): Promise<
     if (foto.fotoId) uploadedFotoIds.push(foto.fotoId);
     // Persist progress so a partial failure doesn't re-upload successful photos
     await updateAtendimentoData(localId, { ...data, fotos: updatedFotos });
+  }
+
+  {
+    const { error } = await supabase.from('demandas').delete().eq('atendimento_id', atendimento.id);
+    if (error) throw error;
   }
 
   if (data.demandas.length > 0) {
