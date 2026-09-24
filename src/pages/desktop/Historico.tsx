@@ -477,24 +477,57 @@ export default function DesktopHistorico() {
   const reopenVisitFlow = async (visit: any) => {
     try {
       const db = supabase as any;
-      const [{ data: fotos, error: fotosError }, { data: demandas, error: demandasError }] = await Promise.all([
+      const [
+        { data: freshVisit, error: visitError },
+        { data: fotos, error: fotosError },
+        { data: demandas, error: demandasError },
+      ] = await Promise.all([
+        db
+          .from('atendimentos')
+          .select('*, cliente:clientes(id, nome), responsavel:responsaveis(id, nome), atendimento_clientes(cliente_id, clientes(id, nome))')
+          .eq('id', visit.id)
+          .single(),
         db.from('atendimento_fotos').select('*').eq('atendimento_id', visit.id).order('created_at'),
         db.from('demandas').select('*').eq('atendimento_id', visit.id).order('created_at'),
       ]);
+      if (visitError) throw visitError;
       if (fotosError) throw fotosError;
       if (demandasError) throw demandasError;
 
+      const savedVisit = freshVisit ?? visit;
+      const photoIds = (fotos ?? []).map((foto: any) => foto.id).filter(Boolean);
+      let photoItemLinks: any[] = [];
+      if (photoIds.length) {
+        const { data: links, error: linksError } = await db
+          .from('atendimento_foto_itens')
+          .select('foto_id, item_id')
+          .in('foto_id', photoIds);
+        if (linksError && !/atendimento_foto_itens|schema cache/i.test(String(linksError.message))) throw linksError;
+        photoItemLinks = links ?? [];
+      }
+
+      const hydratedFotos = (fotos ?? []).map((foto: any) => ({
+        ...foto,
+        atendimento_personalizado_item_ids: [
+          ...new Set([
+            ...(foto.atendimento_personalizado_item_ids ?? []),
+            foto.atendimento_personalizado_item_id,
+            ...photoItemLinks.filter((link) => link.foto_id === foto.id).map((link) => link.item_id),
+          ].filter(Boolean)),
+        ],
+      }));
+
       const clienteIds = [
         ...new Set([
-          ...getVisitClientIds(visit),
-          visit.cliente_id,
-          visit.dados_modalidade?.cliente_id,
+          ...getVisitClientIds(savedVisit),
+          savedVisit.cliente_id,
+          savedVisit.dados_modalidade?.cliente_id,
         ].filter(Boolean)),
       ];
-      const route = getEditRoute(visit);
+      const route = getEditRoute(savedVisit);
       reabrirAtendimentoSalvo({
-        atendimento: visit,
-        fotos: fotos ?? [],
+        atendimento: savedVisit,
+        fotos: hydratedFotos,
         demandas: demandas ?? [],
         clienteIds,
         rota: route,

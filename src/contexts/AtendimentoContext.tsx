@@ -605,7 +605,7 @@ export function AtendimentoProvider({ children }: { children: ReactNode }) {
       modo,
       natureza: atendimento.natureza || (modo === 'obras' ? 'OBRAS' : modo === 'ambiental' ? 'AMBIENTAL' : modo === 'processos' ? 'PROCESSOS' : modo === 'personalizado' ? 'PERSONALIZADO' : 'ATENDIMENTO'),
       cliente_ids: payload.clienteIds ?? [],
-      responsavel_id: atendimento.responsavel_id || undefined,
+      responsavel_id: atendimento.responsavel_id || atendimento.responsavel?.id || undefined,
       data_inicio: atendimento.data_inicio ? new Date(atendimento.data_inicio) : new Date(atendimento.created_at),
       data_fim: atendimento.data_fim ? new Date(atendimento.data_fim) : undefined,
       comentario_base_relatorio: atendimento.comentario_base_relatorio || '',
