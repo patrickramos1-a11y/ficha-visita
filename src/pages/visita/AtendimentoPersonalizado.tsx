@@ -160,7 +160,15 @@ export default function AtendimentoPersonalizado() {
       .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
     [currentModule?.itens, personalizado, responseByItem],
   );
-  const modulePhotos = data.fotos.filter((photo) => photo.atendimento_personalizado_modulo_id === currentModule?.id);
+  const currentItemIds = useMemo(() => new Set(currentItems.map((item) => item.id)), [currentItems]);
+  const modulePhotos = data.fotos.filter((photo) => {
+    if (photo.atendimento_personalizado_modulo_id === currentModule?.id) return true;
+    const linkedItemIds = [
+      ...(photo.atendimento_personalizado_item_ids ?? []),
+      photo.atendimento_personalizado_item_id,
+    ].filter(Boolean) as string[];
+    return linkedItemIds.some((itemId) => currentItemIds.has(itemId));
+  });
   const answeredCount = currentItems.filter((item) => isAnswered(item, responseByItem.get(item.id))).length;
   const moduleComplete = currentItems.length === 0 || answeredCount === currentItems.length;
   const moduleProgress = activeModules.length ? ((activeModuleIndex + 1) / activeModules.length) * 100 : 0;
