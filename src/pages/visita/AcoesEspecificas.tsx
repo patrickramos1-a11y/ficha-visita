@@ -39,7 +39,7 @@ export default function AcoesEspecificas() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/tipos')} title="Ações Específicas">
-      <ProgressStepper steps={steps} currentStep={data.modo === 'personalizado' ? 4 : 3} />
+      <ProgressStepper steps={steps} currentStep={Math.max(steps.findIndex((step) => step.id === 'acoes'), 0)} />
 
       <PageHeader
         icon={Wrench}

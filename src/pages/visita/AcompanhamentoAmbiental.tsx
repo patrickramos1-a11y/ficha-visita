@@ -21,7 +21,7 @@ import { useVisitRoute } from '@/hooks/useVisitRoute';
 import type { AcompanhamentoAmbientalData, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
 const MODULE_STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', 'Pendências', 'Registro', 'Radar', 'Final'];
-const STEPS = ['Foto', 'Técnico', ...MODULE_STEPS];
+const STEPS = ['Técnico', ...MODULE_STEPS];
 const FOTO_ITENS = ['Fachada/identificação', 'Área de produção', 'Armazenamento de resíduos', 'Lixeiras/segregação', 'ETE', 'Poço', 'Reservatório', 'Ponto de lançamento', 'Área externa', 'Não conformidade', 'Correção realizada'];
 const ANSWER_LABELS = {
   compliance: { SIM: 'Conforme', PARCIALMENTE: 'Parcial', NAO: 'Não conforme', NAO_SE_APLICA: 'N/A' },
@@ -125,7 +125,7 @@ export default function AcompanhamentoAmbiental() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/desktop/iniciar-visita')} title="Acompanhamento Ambiental">
-      <AcompanhamentoStepper steps={STEPS} currentStep={step + 2} onStepChange={(index) => setStep(index - 2)} />
+      <AcompanhamentoStepper steps={STEPS} currentStep={step + 1} onStepChange={(index) => setStep(index - 1)} />
 
       <div className="flex-1 overflow-auto p-4 space-y-4 pb-32">
         {step === 0 && (
@@ -229,6 +229,7 @@ export default function AcompanhamentoAmbiental() {
             </Section>
             <EncerramentoVisita
               validateBeforeSave={validateBeforeSave}
+              requireFinalPhoto
               summaryItems={[
                 { label: 'Cliente principal', value: selectedClient?.nome ?? 'Nao informado' },
                 { label: 'Colaborador que acompanhou', value: ambiental.colaborador_nome || 'Nao informado' },

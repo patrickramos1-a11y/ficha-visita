@@ -19,8 +19,8 @@ export default function SelecionarResponsavel() {
   };
 
   return (
-    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/foto-inicial')} title="Responsável Técnico">
-      <ProgressStepper steps={getVisitStepsForMode(data.modo)} currentStep={1} />
+    <MobileLayout showCancelVisita showBack onBack={() => navigate('/desktop/iniciar-visita')} title="Responsável Técnico">
+      <ProgressStepper steps={getVisitStepsForMode(data.modo)} currentStep={0} />
       
       <PageHeader
         icon={User}

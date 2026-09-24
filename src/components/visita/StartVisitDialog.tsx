@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -12,7 +12,7 @@ import { useClientes } from '@/hooks/useClientes';
 import { useAtendimentoPersonalizadoDetalhe, useAtendimentosPersonalizados } from '@/hooks/useAtendimentosPersonalizados';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ClipboardList, Zap, ChevronRight, Hammer, Leaf, Landmark, SlidersHorizontal } from 'lucide-react';
+import { ClipboardList, Zap, ChevronRight, Hammer, Leaf, Landmark, SlidersHorizontal, UserPlus } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -26,14 +26,30 @@ export function StartVisitDialog({ open, onOpenChange }: Props) {
   const [clienteId, setClienteId] = useState('');
   const [personalizadoId, setPersonalizadoId] = useState('');
   const { data: clientes = [] } = useClientes();
-  const { data: personalizados = [], isLoading: loadingPersonalizados } = useAtendimentosPersonalizados(clienteId || undefined);
+  const { data: personalizados = [], isLoading: loadingPersonalizados } = useAtendimentosPersonalizados();
   const { data: personalizadoDetalhe, isLoading: loadingDetalhe } = useAtendimentoPersonalizadoDetalhe(personalizadoId || null);
+  const personalizadosAtivos = useMemo(
+    () => personalizados.filter((item) => item.status !== 'inativo'),
+    [personalizados],
+  );
+  const clienteIdsComFicha = useMemo(
+    () => new Set(personalizadosAtivos.map((item) => item.cliente_id)),
+    [personalizadosAtivos],
+  );
+  const clientesComFicha = useMemo(
+    () => clientes.filter((cliente) => clienteIdsComFicha.has(cliente.id)),
+    [clienteIdsComFicha, clientes],
+  );
+  const fichasDoCliente = useMemo(
+    () => personalizadosAtivos.filter((item) => item.cliente_id === clienteId),
+    [clienteId, personalizadosAtivos],
+  );
 
   const start = (modo: 'completa' | 'rapida' | 'obras' | 'ambiental' | 'processos') => {
     iniciarVisita(modo);
     onOpenChange(false);
     setCustomMode(false);
-    navigate('/visita/foto-inicial');
+    navigate('/visita/responsavel');
   };
 
   const startPersonalizado = () => {
@@ -50,7 +66,7 @@ export function StartVisitDialog({ open, onOpenChange }: Props) {
     });
     onOpenChange(false);
     setCustomMode(false);
-    navigate('/visita/foto-inicial');
+    navigate('/visita/responsavel');
   };
 
   return (
@@ -70,26 +86,44 @@ export function StartVisitDialog({ open, onOpenChange }: Props) {
               <Select value={clienteId} onValueChange={(value) => { setClienteId(value); setPersonalizadoId(''); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
                 <SelectContent>
-                  {clientes.map((cliente) => <SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>)}
+                  {clientesComFicha.map((cliente) => <SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {!loadingPersonalizados && clientesComFicha.length === 0 ? (
+                <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                  Nenhum cliente possui atendimento personalizado ativo.
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Atendimento ativo</label>
               <Select value={personalizadoId} onValueChange={setPersonalizadoId} disabled={!clienteId || loadingPersonalizados}>
                 <SelectTrigger><SelectValue placeholder={clienteId ? 'Selecione a ficha' : 'Escolha o cliente primeiro'} /></SelectTrigger>
                 <SelectContent>
-                  {personalizados.filter((item) => item.status !== 'inativo').map((item) => (
+                  {fichasDoCliente.map((item) => (
                     <SelectItem key={item.id} value={item.id}>{item.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {clienteId && !loadingPersonalizados && personalizados.filter((item) => item.status !== 'inativo').length === 0 ? (
+              {clienteId && !loadingPersonalizados && fichasDoCliente.length === 0 ? (
                 <p className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
                   Esse cliente ainda não possui atendimento personalizado ativo. Cadastre em Clientes.
                 </p>
               ) : null}
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => {
+                onOpenChange(false);
+                setCustomMode(false);
+                navigate('/desktop/clientes');
+              }}
+            >
+              <UserPlus className="h-4 w-4" />
+              Cadastrar cliente e criar ficha
+            </Button>
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setCustomMode(false)}>Voltar</Button>
               <Button type="button" className="flex-1" disabled={!personalizadoDetalhe || loadingDetalhe} onClick={startPersonalizado}>

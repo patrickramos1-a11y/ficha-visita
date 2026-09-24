@@ -82,7 +82,7 @@ export default function SelecionarClientesFinal() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/demandas')} title="Clientes Atendidos">
-      <ProgressStepper steps={VISIT_STEPS} currentStep={5} />
+      <ProgressStepper steps={VISIT_STEPS} currentStep={4} />
       
       <PageHeader
         icon={Users}

@@ -45,6 +45,57 @@ export type PersonalizadoReport = {
   alerts: PersonalizadoAlert[];
 };
 
+const PCA_POSTO_AV_BRASIL = 'Inspeção PCA - Posto Av. Brasil';
+
+const PCA_DISABLED_MODULES = new Set([
+  'Recebimento e abastecimento',
+  'Educação ambiental',
+  'Resultado geral da inspeção',
+  'Ações necessárias',
+  'Registro de intervenção',
+  'Encerramento da ficha',
+]);
+
+const PCA_DISABLED_ITEMS = new Set([
+  'Data da última inspeção foi verificada quando aplicável.',
+  'Existência de resíduo contaminado armazenado está controlada.',
+  'Quantidade acumulada não indica necessidade imediata de coleta.',
+  'Câmaras de contenção em condição aparente adequada.',
+  'Sistema de monitoramento intersticial sem indicação de anormalidade.',
+]);
+
+const TYPE_MODULE_MATCHES: Array<[string, string[]]> = [
+  ['inspecao pca', ['identificacao da inspecao']],
+  ['controle ambiental operacional', ['identificacao da inspecao', 'emissoes ruidos e condicoes operacionais']],
+  ['gerenciamento de residuos', ['gerenciamento de residuos']],
+  ['sistema sanitario', ['sistema sanitario']],
+  ['drenagem pluvial', ['drenagem pluvial']],
+  ['sao drenagem oleosa', ['drenagem oleosa e sao']],
+  ['protecao do solo', ['protecao do solo e sistema de combustiveis']],
+  ['sistema de combustiveis', ['protecao do solo e sistema de combustiveis']],
+  ['condicoes operacionais', ['emissoes ruidos e condicoes operacionais']],
+];
+
+const ACTION_MODULE_MATCHES: Array<[string, string[]]> = [
+  ['residuos comuns', ['gerenciamento de residuos']],
+  ['residuos contaminados', ['gerenciamento de residuos']],
+  ['fossa septica', ['sistema sanitario']],
+  ['filtro anaerobio', ['sistema sanitario']],
+  ['sumidouro', ['sistema sanitario']],
+  ['drenagem pluvial', ['drenagem pluvial']],
+  ['canaletas', ['drenagem oleosa e sao']],
+  ['caixas de inspecao', ['drenagem oleosa e sao']],
+  ['avaliar sao', ['drenagem oleosa e sao']],
+  ['presenca de oleo', ['drenagem oleosa e sao']],
+  ['sedimentos', ['drenagem oleosa e sao']],
+  ['necessidade de limpeza', ['drenagem oleosa e sao', 'sistema sanitario', 'drenagem pluvial']],
+  ['piso da pista', ['protecao do solo e sistema de combustiveis']],
+  ['sinais de vazamento', ['protecao do solo e sistema de combustiveis']],
+  ['bombas e mangueiras', ['protecao do solo e sistema de combustiveis']],
+  ['respiros', ['emissoes ruidos e condicoes operacionais']],
+  ['odor ou ruido', ['emissoes ruidos e condicoes operacionais']],
+];
+
 const emptyCounts = (): PersonalizadoCounts => ({
   conforme: 0,
   parcial: 0,
@@ -69,13 +120,56 @@ function normalizeConformityResponse(response: RespostaConformidadePersonalizada
   return response;
 }
 
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+export function shouldIncludePersonalizadoModule(data: AtendimentoPersonalizadoData | null | undefined, module: AtendimentoPersonalizadoModulo) {
+  if (module.ativo === false) return false;
+  return data?.atendimento_personalizado_nome !== PCA_POSTO_AV_BRASIL || !PCA_DISABLED_MODULES.has(module.titulo);
+}
+
+export function shouldIncludePersonalizadoItem(data: AtendimentoPersonalizadoData | null | undefined, item: AtendimentoPersonalizadoItem) {
+  if (item.ativo === false) return false;
+  return data?.atendimento_personalizado_nome !== PCA_POSTO_AV_BRASIL || !PCA_DISABLED_ITEMS.has(item.texto);
+}
+
+export function formatPersonalizadoQuestion(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.endsWith('?')) return trimmed;
+  return `${trimmed.replace(/[.!:;]+$/, '')}?`;
+}
+
+export function canonicalPersonalizadoResponse(
+  item: AtendimentoPersonalizadoItem,
+  response: RespostaConformidadePersonalizada,
+): RespostaConformidadePersonalizada {
+  const normalized = normalizeConformityResponse(response);
+  if (['ADEQUADO', 'REQUER_ATENCAO', 'NAO_CONFORME', 'NAO_SE_APLICA'].includes(normalized)) return normalized;
+
+  if (item.tipo_resposta === 'SIM_NAO_EVENTO' && (response === 'SIM' || response === 'NAO')) {
+    return response === (item.resposta_positiva || 'NAO') ? 'ADEQUADO' : 'NAO_CONFORME';
+  }
+  if (item.tipo_resposta === 'NECESSIDADE_ACAO') {
+    if (response === 'NAO_NECESSARIA') return 'ADEQUADO';
+    if (response === 'AVALIAR') return 'REQUER_ATENCAO';
+    if (response === 'NECESSARIA') return 'NAO_CONFORME';
+  }
+  return response;
+}
+
 function responseLabel(response: RespostaConformidadePersonalizada) {
   const labels: Record<string, string> = {
-    CONFORME: 'Adequado',
-    ADEQUADO: 'Adequado',
-    PARCIAL: 'Requer atenção',
-    REQUER_ATENCAO: 'Requer atenção',
-    NAO_CONFORME: 'Não conforme',
+    CONFORME: 'Sim',
+    ADEQUADO: 'Sim',
+    PARCIAL: 'Atenção',
+    REQUER_ATENCAO: 'Atenção',
+    NAO_CONFORME: 'Não',
     NAO_SE_APLICA: 'N/A',
     SIM: 'Sim',
     NAO: 'Não',
@@ -94,6 +188,11 @@ function evaluateResponse(item: AtendimentoPersonalizadoItem, response: Resposta
   if (tipo === 'REGISTRO' || item.entra_conformidade === false) {
     return { score: null, bucket: response || item.permite_observacao ? 'registros' as const : null };
   }
+
+  const canonical = canonicalPersonalizadoResponse(item, response);
+  if (canonical === 'ADEQUADO') return { score: 100, bucket: 'conforme' as const };
+  if (canonical === 'REQUER_ATENCAO') return { score: 50, bucket: 'parcial' as const };
+  if (canonical === 'NAO_CONFORME') return { score: 0, bucket: 'naoConforme' as const };
 
   if (tipo === 'SIM_NAO_EVENTO') {
     const positive = item.resposta_positiva || 'NAO';
@@ -153,13 +252,13 @@ export function buildPersonalizadoConformityReport(
   const alerts: PersonalizadoAlert[] = [];
 
   const modules = (data.modulos ?? [])
-    .filter((module) => module.ativo !== false)
+    .filter((module) => shouldIncludePersonalizadoModule(data, module))
     .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
     .map((module: AtendimentoPersonalizadoModulo) => {
       const counts = emptyCounts();
       const scores: number[] = [];
       const items = (module.itens ?? [])
-        .filter((item) => item.ativo !== false)
+        .filter((item) => shouldIncludePersonalizadoItem(data, item))
         .filter((item) => {
           if (!item.condicional_item_id || !item.condicional_resposta) return true;
           return responseByItem.get(item.condicional_item_id)?.resposta === item.condicional_resposta;
@@ -217,6 +316,56 @@ export function buildPersonalizadoConformityReport(
     modules,
     alerts,
   };
+}
+
+export function derivePersonalizadoActivitySelections(data?: AtendimentoPersonalizadoData | null) {
+  if (!data) return { tipos: [] as string[], acoes: [] as string[] };
+
+  const responseByItem = new Map((data.respostas ?? []).map((response) => [response.item_id, response]));
+  const completedModules = (data.modulos ?? [])
+    .filter((module) => shouldIncludePersonalizadoModule(data, module))
+    .filter((module) => {
+      const items = (module.itens ?? [])
+        .filter((item) => shouldIncludePersonalizadoItem(data, item))
+        .filter((item) => {
+          if (!item.condicional_item_id || !item.condicional_resposta) return true;
+          return responseByItem.get(item.condicional_item_id)?.resposta === item.condicional_resposta;
+        });
+      return items.length > 0 && items.every((item) => {
+        const saved = responseByItem.get(item.id);
+        return item.tipo_resposta === 'REGISTRO'
+          ? Boolean(saved?.observacao?.trim())
+          : Boolean(saved?.resposta);
+      });
+    });
+
+  const completedTitles = new Set(completedModules.map((module) => normalizeText(module.titulo)));
+  const matchesCompletedModule = (targets: string[]) => targets.some((target) => completedTitles.has(target));
+
+  const tipos = (data.tipos ?? [])
+    .filter((item) => item.ativo !== false)
+    .filter((item) => {
+      const name = normalizeText(item.nome);
+      const configured = TYPE_MODULE_MATCHES.find(([matcher]) => name.includes(matcher));
+      if (configured) return matchesCompletedModule(configured[1]);
+      return [...completedTitles].some((title) => title.includes(name) || name.includes(title));
+    })
+    .map((item) => item.nome);
+
+  const acoes = (data.acoes ?? [])
+    .filter((item) => item.ativo !== false)
+    .filter((item) => {
+      const name = normalizeText(item.nome).replace(/^(verificar|inspecionar|avaliar|registrar) /, '');
+      const configured = ACTION_MODULE_MATCHES.find(([matcher]) => name.includes(matcher) || matcher.includes(name));
+      if (configured) return matchesCompletedModule(configured[1]);
+      return completedModules.some((module) => {
+        const corpus = normalizeText(`${module.titulo} ${(module.itens ?? []).map((entry) => entry.texto).join(' ')}`);
+        return name.split(' ').filter((token) => token.length > 4).some((token) => corpus.includes(token));
+      });
+    })
+    .map((item) => item.nome);
+
+  return { tipos, acoes };
 }
 
 export function serializePersonalizadoModuleSummary(report: PersonalizadoReport | null) {

@@ -23,7 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { AvancoObraFaixa, NaoConformidadeObra, PendenciaObra, SimNaoParcialNA } from '@/types/atendimento';
 
 const MODULE_STEPS = ['Identificação', 'Situação', 'Ambiente', 'Segurança', 'Resíduos/água', 'Pendências', 'Registro', 'Radar', 'Final'];
-const STEPS = ['Foto', 'Técnico', ...MODULE_STEPS];
+const STEPS = ['Técnico', ...MODULE_STEPS];
 const STATUS_OBRA = ['Em planejamento', 'Em execução', 'Paralisada', 'Atrasada', 'Concluída'];
 const FASES_OBRA = ['Mobilização', 'Terraplenagem', 'Fundação', 'Estrutura', 'Alvenaria', 'Instalações', 'Acabamento', 'Entrega'];
 const AVANCOS: AvancoObraFaixa[] = ['0-25%', '26-50%', '51-75%', '76-99%', 'CONCLUIDA'];
@@ -195,7 +195,7 @@ export default function AcompanhamentoObras() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/desktop/iniciar-visita')} title="Acompanhamento de Obras">
-      <AcompanhamentoStepper steps={STEPS} currentStep={step + 2} onStepChange={(index) => setStep(index - 2)} />
+      <AcompanhamentoStepper steps={STEPS} currentStep={step + 1} onStepChange={(index) => setStep(index - 1)} />
 
       <div className="flex-1 overflow-auto p-4 space-y-4 pb-32">
         {step === 0 && (
@@ -359,6 +359,7 @@ export default function AcompanhamentoObras() {
             </Section>
             <EncerramentoVisita
               validateBeforeSave={validateBeforeSave}
+              requireFinalPhoto
               summaryItems={[
                 { label: 'Cliente principal', value: selectedClient?.nome ?? 'Nao informado' },
                 { label: 'Obra', value: obra.obra_nome || 'Nao informada' },

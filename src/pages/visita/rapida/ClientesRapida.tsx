@@ -74,7 +74,7 @@ export default function ClientesRapida() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/rapida/tipos')} title="Cliente">
-      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={3} />
+      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={2} />
 
       <PageHeader
         icon={Users}

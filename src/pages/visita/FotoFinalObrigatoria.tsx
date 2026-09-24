@@ -21,11 +21,8 @@ export default function FotoFinalObrigatoria() {
   const steps = getVisitStepsForMode(data.modo);
 
   const finalFotos = data.fotos.filter(f => f.tipo === 'final');
-  const temFotoInicial = data.fotos.some(f => f.tipo === 'inicial');
   const temFotoFinal = finalFotos.length > 0;
-  
-  const totalFotos = data.fotos.length;
-  const podeAvancar = totalFotos >= 1;
+  const podeAvancar = temFotoFinal;
 
   const handleTirarFoto = () => {
     cameraInputRef.current?.click();
@@ -58,19 +55,13 @@ export default function FotoFinalObrigatoria() {
 
   const handleContinue = () => {
     if (!podeAvancar) {
-      toast.error('É necessário pelo menos 1 foto no atendimento');
+      toast.error('É necessário anexar pelo menos 1 foto final');
       return;
     }
     navigate('/visita/resumo');
   };
 
   const getStatusMessage = () => {
-    if (temFotoInicial && temFotoFinal) {
-      return { text: 'Fotos inicial e final anexadas', variant: 'success' as const };
-    }
-    if (temFotoInicial) {
-      return { text: 'Foto inicial anexada - final opcional', variant: 'success' as const };
-    }
     if (temFotoFinal) {
       return { text: 'Foto final anexada', variant: 'success' as const };
     }
@@ -99,9 +90,7 @@ export default function FotoFinalObrigatoria() {
           <span className="text-sm font-medium">{status.text}</span>
         </div>
         <p className="text-muted-foreground text-sm text-center mt-3">
-          {temFotoInicial 
-            ? 'Você já enviou uma foto inicial. A foto final é opcional.'
-            : 'Envie a foto final para concluir a visita'}
+          Envie pelo menos uma foto final para concluir a visita
         </p>
       </div>
 

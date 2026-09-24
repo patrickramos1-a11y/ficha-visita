@@ -13,7 +13,7 @@ export default function RadarRapida() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/rapida/clientes')} title="Radar Vital">
-      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={4} />
+      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={3} />
 
       <PageHeader
         icon={Send}
@@ -26,7 +26,7 @@ export default function RadarRapida() {
       </div>
 
       <MobileFooter>
-        <Button onClick={() => navigate('/visita/resumo')} className="w-full h-14 text-lg haptic-press">
+        <Button onClick={() => navigate('/visita/rapida/fotos')} className="w-full h-14 text-lg haptic-press">
           Continuar
           <ChevronRight className="w-5 h-5 ml-2" />
         </Button>

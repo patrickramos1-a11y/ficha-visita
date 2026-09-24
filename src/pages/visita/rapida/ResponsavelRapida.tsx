@@ -20,7 +20,7 @@ export default function ResponsavelRapida() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/rapida/clientes')} title="Técnico">
-      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={1} />
+      <ProgressStepper steps={VISIT_STEPS_RAPIDA} currentStep={0} />
 
       <PageHeader
         icon={User}

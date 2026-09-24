@@ -137,7 +137,7 @@ export default function AtendimentoDetalhe() {
         ? '/visita/processos'
         : atendimento.modo === 'personalizado'
           ? '/visita/personalizado'
-          : '/visita/foto-inicial';
+          : '/visita/responsavel';
 
   const handleReopenVisit = () => {
     reabrirAtendimentoSalvo({

@@ -47,7 +47,7 @@ export default function TiposAtendimento() {
 
   return (
     <MobileLayout showCancelVisita showBack onBack={() => navigate(data.modo === 'personalizado' ? '/visita/personalizado' : '/visita/responsavel')} title="Tipos de Atendimento">
-      <ProgressStepper steps={steps} currentStep={data.modo === 'personalizado' ? 3 : 2} />
+      <ProgressStepper steps={steps} currentStep={Math.max(steps.findIndex((step) => step.id === 'tipos'), 0)} />
 
       <PageHeader
         icon={ClipboardList}

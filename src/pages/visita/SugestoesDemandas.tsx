@@ -26,8 +26,8 @@ export default function SugestoesDemandas() {
   }, [addDemanda, data.demandas.length, gerarSugestoesDemandas, initialized]);
 
   return (
-    <MobileLayout showCancelVisita showBack onBack={() => navigate('/visita/acoes')} title="Radar Vital">
-      <ProgressStepper steps={steps} currentStep={data.modo === 'personalizado' ? 5 : 4} />
+    <MobileLayout showCancelVisita showBack onBack={() => navigate(data.modo === 'personalizado' ? '/visita/personalizado' : '/visita/acoes')} title="Radar Vital">
+      <ProgressStepper steps={steps} currentStep={Math.max(steps.findIndex((step) => step.id === 'radar' || step.id === 'demandas'), 0)} />
 
       <PageHeader
         icon={Send}

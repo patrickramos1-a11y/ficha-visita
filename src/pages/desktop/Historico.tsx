@@ -471,7 +471,7 @@ export default function DesktopHistorico() {
     if (visit.modo === 'ambiental') return '/visita/ambiental';
     if (visit.modo === 'processos') return '/visita/processos';
     if (visit.modo === 'personalizado') return '/visita/personalizado';
-    return '/visita/foto-inicial';
+    return '/visita/responsavel';
   };
 
   const reopenVisitFlow = async (visit: any) => {

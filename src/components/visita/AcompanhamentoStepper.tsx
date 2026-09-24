@@ -13,9 +13,8 @@ export function AcompanhamentoStepper({ steps, currentStep, onStepChange }: Acom
   const navigate = useNavigate();
   const { data } = useAtendimento();
   const completeSteps = [
-    data.fotos.some((foto) => foto.tipo === 'inicial'),
     Boolean(data.responsavel_id),
-    ...steps.map((_, index) => index < currentStep - 2),
+    ...steps.slice(1).map((_, index) => index < currentStep - 1),
   ];
 
   return (
@@ -27,7 +26,7 @@ export function AcompanhamentoStepper({ steps, currentStep, onStepChange }: Acom
         {steps.map((label, index) => {
           const isCurrent = index === currentStep;
           const isDone = completeSteps[index] && !isCurrent;
-          return <button key={label} type="button" onClick={() => index === 0 ? navigate('/visita/foto-inicial') : index === 1 ? navigate('/visita/responsavel') : onStepChange(index)} className="flex min-w-10 shrink-0 flex-col items-center rounded-md p-1" aria-label={`Ir para etapa ${index + 1}: ${label}`}>
+          return <button key={label} type="button" onClick={() => index === 0 ? navigate('/visita/responsavel') : onStepChange(index)} className="flex min-w-10 shrink-0 flex-col items-center rounded-md p-1" aria-label={`Ir para etapa ${index + 1}: ${label}`}>
             <span className={cn('flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-medium', isDone || isCurrent ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-muted-foreground')}>
               {isDone ? <Check className="h-3.5 w-3.5" /> : index + 1}
             </span>

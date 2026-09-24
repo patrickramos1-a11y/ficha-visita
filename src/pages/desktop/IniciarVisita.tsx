@@ -32,7 +32,7 @@ export default function IniciarVisita() {
     if (savedRoute) {
       navigate(savedRoute);
     } else {
-      navigate('/visita/foto-inicial');
+      navigate('/visita/responsavel');
     }
   };
 

@@ -22,8 +22,6 @@ export function ProgressStepper({ steps, currentStep }: ProgressStepperProps) {
 
   const isStepDone = (stepId: string): boolean => {
     switch (stepId) {
-      case 'foto-inicial':
-        return data.fotos.some(f => f.tipo === 'inicial');
       case 'responsavel':
         return !!data.responsavel_id;
       case 'anotacoes':
@@ -115,7 +113,6 @@ export function ProgressStepper({ steps, currentStep }: ProgressStepperProps) {
 }
 
 export const VISIT_STEPS = [
-  { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' },
   { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
   { id: 'tipos', label: 'Tipos', route: '/visita/tipos' },
   { id: 'acoes', label: 'Ações', route: '/visita/acoes' },
@@ -125,33 +122,29 @@ export const VISIT_STEPS = [
 ];
 
 export const VISIT_STEPS_RAPIDA = [
-  { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' },
   { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
   { id: 'tipos', label: 'Tipos', route: '/visita/rapida/tipos' },
   { id: 'clientes', label: 'Clientes', route: '/visita/rapida/clientes' },
   { id: 'radar', label: 'Radar', route: '/visita/rapida/radar' },
-  { id: 'foto-final', label: 'Final', route: '/visita/resumo' },
+  { id: 'foto-final', label: 'Final', route: '/visita/rapida/fotos' },
 ];
 
 export function getVisitStepsForMode(modo: VisitaModo): Step[] {
   if (modo === 'obras') return [
-    { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' }, { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
+    { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
     { id: 'obra-identificacao', label: 'Identificação', route: '/visita/obras' }, { id: 'obra-situacao', label: 'Situação', route: '/visita/obras' }, { id: 'obra-ambiente', label: 'Ambiente', route: '/visita/obras' }, { id: 'obra-seguranca', label: 'Segurança', route: '/visita/obras' }, { id: 'obra-residuos', label: 'Resíduos', route: '/visita/obras' }, { id: 'obra-pendencias', label: 'Pendências', route: '/visita/obras' }, { id: 'obra-registro', label: 'Registro', route: '/visita/obras' }, { id: 'radar', label: 'Radar', route: '/visita/obras' }, { id: 'obra-final', label: 'Final', route: '/visita/obras' },
   ];
   if (modo === 'ambiental') return [
-    { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' }, { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
+    { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
     { id: 'ambiental-identificacao', label: 'Identificação', route: '/visita/ambiental' }, { id: 'ambiental-gestao', label: 'Gestão', route: '/visita/ambiental' }, { id: 'ambiental-ete', label: 'ETE/água', route: '/visita/ambiental' }, { id: 'ambiental-operacao', label: 'Operação', route: '/visita/ambiental' }, { id: 'ambiental-pendencias', label: 'Pendências', route: '/visita/ambiental' }, { id: 'ambiental-registro', label: 'Registro', route: '/visita/ambiental' }, { id: 'radar', label: 'Radar', route: '/visita/ambiental' }, { id: 'ambiental-final', label: 'Final', route: '/visita/ambiental' },
   ];
   if (modo === 'processos') return [
-    { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' }, { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
+    { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
     { id: 'processos-identificacao', label: 'Identificação', route: '/visita/processos' }, { id: 'processos-cadastro', label: 'Processos', route: '/visita/processos' }, { id: 'processos-registro', label: 'Registro', route: '/visita/processos' }, { id: 'radar', label: 'Radar', route: '/visita/processos' }, { id: 'processos-final', label: 'Final', route: '/visita/processos' },
   ];
   if (modo === 'personalizado') return [
-    { id: 'foto-inicial', label: 'Foto', route: '/visita/foto-inicial' },
     { id: 'responsavel', label: 'Técnico', route: '/visita/responsavel' },
     { id: 'personalizado', label: 'Ficha', route: '/visita/personalizado' },
-    { id: 'tipos', label: 'Tipos', route: '/visita/tipos' },
-    { id: 'acoes', label: 'Ações', route: '/visita/acoes' },
     { id: 'radar', label: 'Radar', route: '/visita/demandas' },
     { id: 'foto-final', label: 'Final', route: '/visita/foto-final' },
   ];
