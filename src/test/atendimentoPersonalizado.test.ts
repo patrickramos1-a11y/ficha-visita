@@ -4,6 +4,7 @@ import {
   derivePersonalizadoActivitySelections,
   shouldIncludePersonalizadoModule,
 } from '@/lib/atendimentoPersonalizado';
+import { groupReportEvidence } from '@/lib/reportEvidence';
 import type { AtendimentoPersonalizadoData, AtendimentoPersonalizadoItem } from '@/types/atendimento';
 
 const item: AtendimentoPersonalizadoItem = {
@@ -70,5 +71,33 @@ describe('atendimento personalizado', () => {
       tipo_resposta: 'SIM_NAO_EVENTO',
       resposta_positiva: 'NAO',
     }, 'NAO')).toBe('ADEQUADO');
+  });
+
+  it('consolida fotos idênticas e preserva todos os itens comprovados', () => {
+    const groups = groupReportEvidence([
+      {
+        id: 'foto-1',
+        foto_url: 'https://example.com/foto-1.jpg',
+        tipo: 'durante',
+        atendimento_personalizado_item_ids: ['item-1', 'item-2'],
+      },
+      {
+        id: 'foto-2',
+        foto_url: 'https://example.com/foto-2.jpg',
+        tipo: 'final',
+        atendimento_personalizado_item_ids: ['item-3'],
+      },
+    ], {
+      'foto-1': 'sha256:igual',
+      'foto-2': 'sha256:igual',
+    });
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({
+      code: 'EV-01',
+      duplicateCount: 2,
+      itemIds: ['item-1', 'item-2', 'item-3'],
+      types: ['durante', 'final'],
+    });
   });
 });

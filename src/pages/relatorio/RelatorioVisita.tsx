@@ -6,7 +6,6 @@ import { ptBR } from 'date-fns/locale';
 import {
   AlertTriangle,
   ArrowLeft,
-  BriefcaseBusiness,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -34,6 +33,7 @@ import {
   visitModeLabel,
 } from '@/lib/conformityReport';
 import { buildPersonalizadoConformityReport, type PersonalizadoReport } from '@/lib/atendimentoPersonalizado';
+import { groupReportEvidence } from '@/lib/reportEvidence';
 import { cn } from '@/lib/utils';
 import type { AcompanhamentoAmbientalData, AcompanhamentoObraData, NaoConformidadeObra, PendenciaObra } from '@/types/atendimento';
 import { toast } from 'sonner';
@@ -126,6 +126,18 @@ function isOpen(status?: string) {
   return status !== 'CONCLUIDO';
 }
 
+async function fingerprintPhoto(photo: SavedPhoto) {
+  try {
+    const response = await fetch(photo.foto_url);
+    if (!response.ok || !crypto.subtle) return `url:${photo.foto_url}`;
+    const digest = await crypto.subtle.digest('SHA-256', await response.arrayBuffer());
+    const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `sha256:${hex}`;
+  } catch {
+    return `url:${photo.foto_url}`;
+  }
+}
+
 export default function RelatorioVisita() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -209,6 +221,21 @@ export default function RelatorioVisita() {
       return { ...foto, atendimento_personalizado_item_ids: itemIds };
     });
   }, [fotoItemLinks, fotos]);
+
+  const { data: fotoFingerprints = {}, isLoading: isConsolidatingEvidence } = useQuery({
+    queryKey: ['relatorio-visita-foto-fingerprints', fotos.map((foto) => `${foto.id}:${foto.foto_url}`).join(',')],
+    enabled: fotos.length > 0,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const pairs = await Promise.all(fotos.map(async (foto) => [foto.id, await fingerprintPhoto(foto)] as const));
+      return Object.fromEntries(pairs) as Record<string, string>;
+    },
+  });
+
+  const evidenceGroups = useMemo(
+    () => groupReportEvidence(fotosComItens, fotoFingerprints),
+    [fotoFingerprints, fotosComItens],
+  );
 
   const { data: demandas = [] } = useQuery({
     queryKey: ['relatorio-visita-demandas', id],
@@ -295,6 +322,24 @@ export default function RelatorioVisita() {
   const start = atendimento.data_inicio ?? atendimento.created_at;
   const end = atendimento.data_fim;
   const shareUrl = `${window.location.origin}/relatorio/visita/${atendimento.id}`;
+  const evidenceByItem = new Map<string, string[]>();
+  for (const evidence of evidenceGroups) {
+    for (const itemId of evidence.itemIds) {
+      evidenceByItem.set(itemId, [...(evidenceByItem.get(itemId) ?? []), evidence.code]);
+    }
+  }
+  const personalizedItemContext = new Map<string, { moduleTitle: string; itemLabel: string }>();
+  for (const module of personalizedReport?.modules ?? []) {
+    for (const item of module.items) personalizedItemContext.set(item.id, { moduleTitle: module.title, itemLabel: item.label });
+  }
+  const scoredPersonalizedItems = personalizedReport
+    ? personalizedReport.counts.conforme + personalizedReport.counts.parcial + personalizedReport.counts.naoConforme
+    : 0;
+  const repeatedPhotoCount = Math.max(0, fotos.length - evidenceGroups.length);
+  const getModuleEvidence = (module: PersonalizadoReport['modules'][number]) => {
+    const itemIds = new Set(module.items.map((item) => item.id));
+    return evidenceGroups.filter((evidence) => evidence.itemIds.some((itemId) => itemIds.has(itemId)));
+  };
 
   const copyLink = async () => {
     try {
@@ -388,43 +433,61 @@ export default function RelatorioVisita() {
           />
         )}
 
-        <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <Card className="shadow-none">
-            <CardContent className="p-5 space-y-3">
-              <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h2 className="font-semibold">Resumo técnico</h2></div>
-              {atendimento.resumo_relatorio ? (
-                <div className="whitespace-pre-line text-sm leading-6 text-foreground/90">{atendimento.resumo_relatorio}</div>
-              ) : (
-                <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-                  Nenhum resumo técnico foi salvo para esta visita.
+        {personalizedReport ? (
+          <section className="border-y bg-card px-5 py-5 sm:px-6">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+              <div className="min-w-0 flex-1">
+                <h2 className="font-semibold">Conclusão da visita</h2>
+                <p className="mt-1 text-sm leading-6 text-foreground/90">
+                  {personalizedReport.alerts.length === 0
+                    ? `Inspeção concluída sem alertas ou não conformidades. Os ${scoredPersonalizedItems} controles que entram no cálculo estão conformes, resultando em ${personalizedReport.percentage ?? 0}% de conformidade.`
+                    : `Inspeção concluída com ${personalizedReport.alerts.length} ponto${personalizedReport.alerts.length === 1 ? '' : 's'} que exige${personalizedReport.alerts.length === 1 ? '' : 'm'} atenção. Consulte os módulos sinalizados antes de definir as providências.`}
+                  {personalizedReport.counts.registros > 0 ? ` ${personalizedReport.counts.registros} registro${personalizedReport.counts.registros === 1 ? '' : 's'} informativo${personalizedReport.counts.registros === 1 ? '' : 's'} foi documentado sem afetar o índice.` : ''}
                 </p>
-              )}
-            </CardContent>
-          </Card>
-          <Card className="shadow-none">
-            <CardContent className="p-5 space-y-3">
-              <div className="flex items-center gap-2"><BriefcaseBusiness className="h-5 w-5 text-primary" /><h2 className="font-semibold">Atendimentos e ações</h2></div>
-              <div className="space-y-3">
+              </div>
+            </div>
+
+            <dl className="mt-5 grid grid-cols-2 border-y sm:grid-cols-4">
+              <div className="border-b p-3 sm:border-b-0 sm:border-r"><dt className="text-xs text-muted-foreground">Controles avaliáveis</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{scoredPersonalizedItems}</dd></div>
+              <div className="border-b p-3 sm:border-b-0 sm:border-r"><dt className="text-xs text-muted-foreground">Conformes</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-emerald-700">{personalizedReport.counts.conforme}</dd></div>
+              <div className="border-r p-3 sm:border-r"><dt className="text-xs text-muted-foreground">Registros informativos</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{personalizedReport.counts.registros}</dd></div>
+              <div className="p-3"><dt className="text-xs text-muted-foreground">Evidências únicas</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{isConsolidatingEvidence ? '...' : evidenceGroups.length}</dd></div>
+            </dl>
+
+            {atendimento.resumo_relatorio ? (
+              <div className="mt-5 border-l-2 border-primary pl-4">
+                <p className="text-xs font-medium uppercase text-muted-foreground">Observação técnica</p>
+                <p className="mt-1 whitespace-pre-line text-sm leading-6 text-foreground/90">{atendimento.resumo_relatorio}</p>
+              </div>
+            ) : null}
+
+            <details className="mt-5 border-t pt-4">
+              <summary className="cursor-pointer text-sm font-medium text-primary">
+                Ver escopo técnico e atividades ({(atendimento.tipos_atendimento ?? []).length} frentes, {(atendimento.acoes_especificas ?? []).length} ações)
+              </summary>
+              <div className="mt-4 grid gap-5 text-sm md:grid-cols-2">
                 <div>
-                  <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Tipos de atendimento</p>
-                  {(atendimento.tipos_atendimento ?? []).length ? (
-                    <div className="flex flex-wrap gap-1.5">{(atendimento.tipos_atendimento ?? []).map((item: string) => <Badge key={item} variant="secondary">{item}</Badge>)}</div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Nenhum tipo de atendimento registrado.</p>
-                  )}
+                  <h3 className="font-medium">Frentes verificadas</h3>
+                  <ul className="mt-2 space-y-1 text-muted-foreground">
+                    {(atendimento.tipos_atendimento ?? []).map((item: string) => <li key={item}>• {item}</li>)}
+                  </ul>
                 </div>
                 <div>
-                  <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Ações realizadas</p>
-                  {(atendimento.acoes_especificas ?? []).length ? (
-                    <div className="flex flex-wrap gap-1.5">{(atendimento.acoes_especificas ?? []).map((item: string) => <Badge key={item} variant="outline">{item}</Badge>)}</div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Nenhuma ação registrada.</p>
-                  )}
+                  <h3 className="font-medium">Ações registradas</h3>
+                  <ul className="mt-2 columns-1 gap-6 space-y-1 text-muted-foreground sm:columns-2 md:columns-1 lg:columns-2">
+                    {(atendimento.acoes_especificas ?? []).map((item: string) => <li key={item} className="break-inside-avoid">• {item}</li>)}
+                  </ul>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </section>
+            </details>
+          </section>
+        ) : (
+          <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+            <Card className="shadow-none"><CardContent className="space-y-3 p-5"><div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h2 className="font-semibold">Resumo técnico</h2></div>{atendimento.resumo_relatorio ? <div className="whitespace-pre-line text-sm leading-6 text-foreground/90">{atendimento.resumo_relatorio}</div> : <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">Nenhum resumo técnico foi salvo para esta visita.</p>}</CardContent></Card>
+            <Card className="shadow-none"><CardContent className="space-y-3 p-5"><div className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" /><h2 className="font-semibold">Atendimentos e ações</h2></div><p className="text-sm text-muted-foreground">{(atendimento.tipos_atendimento ?? []).length} tipos de atendimento e {(atendimento.acoes_especificas ?? []).length} ações registrados.</p></CardContent></Card>
+          </section>
+        )}
 
         {report && (
           <section className="space-y-3">
@@ -439,70 +502,73 @@ export default function RelatorioVisita() {
         )}
 
         {personalizedReport && (
-          <section className="space-y-3">
+          <section className="space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">Ficha personalizada</h2>
+              <div>
+                <h2 className="text-lg font-semibold">Resultado por módulo</h2>
+                <p className="text-sm text-muted-foreground">Leitura compacta dos controles avaliados e das evidências associadas.</p>
+              </div>
               <span className="text-xs text-muted-foreground">{personalizedReport.modules.length} módulos</span>
             </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {personalizedReport.modules.map((module) => <ModuleCard key={module.id} module={{
-                id: module.id,
-                title: module.title,
-                percentage: module.percentage,
-                counts: module.counts,
-                items: module.items.map((item) => ({ key: item.id, label: item.label, answer: item.response as any })),
-              }} />)}
-            </div>
-            <Card className="shadow-none">
-              <CardContent className="space-y-4 p-5">
-                {personalizedReport.alerts.length ? (
-                  <div className="space-y-2">
-                    {personalizedReport.alerts.map((alert) => (
-                      <div key={alert.key} className={cn('rounded-md border-l-4 px-3 py-2 text-sm', alert.severity === 'critical' ? 'border-red-600 bg-red-50 text-red-900' : 'border-amber-500 bg-amber-50 text-amber-900')}>
-                        <span className="font-medium">{alert.severity === 'critical' ? 'Crítico' : 'Atenção'}:</span> {alert.label}
-                        <span className="text-xs opacity-75"> • {alert.moduleTitle}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhum alerta registrado na ficha personalizada.</div>
-                )}
-                <div className="space-y-4">
-                  {personalizedReport.modules.map((module) => (
-                    <div key={`${module.id}-details`} className="rounded-lg border p-4">
-                      <h3 className="font-semibold">{module.title}</h3>
-                      <div className="mt-3 space-y-3">
-                        {module.items.map((item) => {
-                          const itemFotos = fotosComItens.filter((foto) => foto.atendimento_personalizado_item_id === item.id || (foto.atendimento_personalizado_item_ids ?? []).includes(item.id));
-                          return (
-                            <div key={item.id} className="rounded-md bg-muted/40 p-3">
-                              <div className="flex flex-wrap items-start justify-between gap-2">
-                                <p className="text-sm font-medium">{item.label}</p>
-                                <Badge variant="outline">{item.responseLabel ?? (item.response ? item.response.replaceAll('_', ' ') : 'Sem resposta')}</Badge>
-                              </div>
-                              {item.observation ? <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{item.observation}</p> : null}
-                              {itemFotos.length ? (
-                                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                                  {itemFotos.map((foto) => (
-                                    <figure key={foto.id} className="overflow-hidden rounded-md border bg-card">
-                                      <img src={foto.foto_url} alt={foto.legenda || item.label} className="aspect-square w-full object-cover" loading="lazy" />
-                                      <figcaption className="space-y-0.5 px-2 py-1 text-[11px] text-muted-foreground">
-                                        <span className="block truncate">{foto.legenda || 'Foto do item'}</span>
-                                        {foto.tipo_evidencia ? <span className="block truncate">{foto.tipo_evidencia.replaceAll('_', ' ')}</span> : null}
-                                      </figcaption>
-                                    </figure>
-                                  ))}
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                      </div>
+            <div className="divide-y border-y bg-card">
+              {personalizedReport.modules.map((module) => {
+                const moduleEvidence = getModuleEvidence(module);
+                const evaluated = module.counts.conforme + module.counts.parcial + module.counts.naoConforme;
+                return (
+                  <div key={module.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <h3 className="font-medium">{module.title}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {evaluated > 0 ? `${module.counts.conforme} de ${evaluated} controles conformes` : 'Módulo de registro'}
+                        {module.counts.registros > 0 ? ` • ${module.counts.registros} registro${module.counts.registros === 1 ? '' : 's'} informativo${module.counts.registros === 1 ? '' : 's'}` : ''}
+                        {` • ${moduleEvidence.length} evidência${moduleEvidence.length === 1 ? '' : 's'}`}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {module.counts.parcial + module.counts.naoConforme > 0 ? <Badge variant="destructive">Requer atenção</Badge> : null}
+                      <span className={cn('text-sm font-semibold', module.percentage === null ? 'text-slate-600' : 'text-emerald-700')}>
+                        {module.percentage === null ? 'Informativo' : `${module.percentage}% conforme`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {personalizedReport.alerts.length ? (
+              <div className="space-y-2">{personalizedReport.alerts.map((alert) => <div key={alert.key} className={cn('border-l-4 px-3 py-2 text-sm', alert.severity === 'critical' ? 'border-red-600 bg-red-50 text-red-900' : 'border-amber-500 bg-amber-50 text-amber-900')}><span className="font-medium">{alert.severity === 'critical' ? 'Crítico' : 'Atenção'}:</span> {alert.label}<span className="text-xs opacity-75"> • {alert.moduleTitle}</span></div>)}</div>
+            ) : (
+              <div className="flex items-center gap-3 border-l-4 border-emerald-600 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhum alerta ou não conformidade identificado.</div>
+            )}
+
+            <div className="divide-y border-y bg-card">
+              {personalizedReport.modules.map((module) => (
+                <details key={`${module.id}-details`}>
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
+                    <div>
+                      <h3 className="font-medium">{module.title}</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">{module.items.length} itens • selecione para conferir respostas e vínculos</p>
+                    </div>
+                    <span className="shrink-0 text-sm font-medium text-primary">Ver itens</span>
+                  </summary>
+                  <div className="divide-y border-t bg-muted/20">
+                    {module.items.map((item) => {
+                      const evidenceCodes = evidenceByItem.get(item.id) ?? [];
+                      return (
+                        <div key={item.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">{item.label}</p>
+                            {item.observation ? <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">{item.observation}</p> : null}
+                            {evidenceCodes.length ? <p className="mt-2 text-xs text-muted-foreground">Comprovado por <span className="font-medium text-foreground">{evidenceCodes.join(', ')}</span></p> : null}
+                          </div>
+                          <Badge variant="outline">{item.responseLabel ?? (item.response ? item.response.replaceAll('_', ' ') : 'Sem resposta')}</Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
+              ))}
+            </div>
           </section>
         )}
 
@@ -599,9 +665,54 @@ export default function RelatorioVisita() {
           </Card>
         </section>
 
-        <section className="space-y-3">
-          <div className="flex items-center gap-2"><Image className="h-5 w-5 text-primary" /><h2 className="text-lg font-semibold">Galeria da visita</h2><span className="text-sm text-muted-foreground">({fotos.length})</span></div>
-          {fotos.length === 0 ? <div className="border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">Nenhuma foto foi vinculada a esta visita.</div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{fotos.map((foto, index) => <figure key={foto.id} className="overflow-hidden border bg-card"><img src={foto.foto_url} alt={`Foto ${index + 1} da visita`} className="aspect-square h-full w-full object-cover" loading="lazy" /><figcaption className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs text-muted-foreground"><span>{foto.tipo === 'inicial' ? 'Foto inicial' : foto.tipo === 'final' ? 'Foto final' : 'Registro da visita'}</span>{foto.metadata_compressao?.detalhe_tecnico ? <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Detalhe</span> : null}</figcaption></figure>)}</div>}
+        <section className="space-y-4">
+          <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-end">
+            <div className="flex items-center gap-2"><Image className="h-5 w-5 text-primary" /><h2 className="text-lg font-semibold">Evidências fotográficas</h2></div>
+            <p className="text-sm text-muted-foreground">
+                  {isConsolidatingEvidence ? 'Consolidando imagens...' : `${evidenceGroups.length} evidência${evidenceGroups.length === 1 ? '' : 's'} única${evidenceGroups.length === 1 ? '' : 's'}${repeatedPhotoCount ? ` • ${repeatedPhotoCount} ${repeatedPhotoCount === 1 ? 'repetição removida' : 'repetições removidas'}` : ''}`}
+            </p>
+          </div>
+          {fotos.length === 0 ? (
+            <div className="border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">Nenhuma foto foi vinculada a esta visita.</div>
+          ) : isConsolidatingEvidence ? (
+            <div className="border-y bg-card p-6 text-sm text-muted-foreground">Analisando as imagens para eliminar repetições...</div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {evidenceGroups.map((evidence) => {
+                const contexts = evidence.itemIds.map((itemId) => personalizedItemContext.get(itemId)).filter(Boolean) as Array<{ moduleTitle: string; itemLabel: string }>;
+                const moduleTitles = [...new Set(contexts.map((context) => context.moduleTitle))];
+                const evidenceTitle = moduleTitles.length ? moduleTitles.join(' • ') : evidence.types.includes('final') ? 'Registro final da visita' : 'Registro geral da visita';
+                return (
+                  <figure key={evidence.code} className="overflow-hidden border bg-card">
+                    <img src={evidence.photo.foto_url} alt={`${evidence.code}: ${evidenceTitle}`} className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                    <figcaption className="space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-primary">{evidence.code}</p>
+                          <h3 className="mt-1 font-medium">{evidenceTitle}</h3>
+                        </div>
+                        {evidence.photo.metadata_compressao?.detalhe_tecnico ? <span className="text-xs font-medium text-primary">Detalhe técnico</span> : null}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {contexts.length
+                          ? `Comprova ${contexts.length} ite${contexts.length === 1 ? 'm' : 'ns'} em ${moduleTitles.length} módulo${moduleTitles.length === 1 ? '' : 's'}.`
+                          : 'Registro fotográfico geral, sem vínculo obrigatório com um item específico.'}
+                        {evidence.duplicateCount > 1 ? ` ${evidence.duplicateCount} registros idênticos foram consolidados nesta evidência.` : ''}
+                      </p>
+                      {contexts.length ? (
+                        <details className="border-t pt-3">
+                          <summary className="cursor-pointer text-sm font-medium text-primary">Ver itens comprovados</summary>
+                          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                            {contexts.map((context, index) => <li key={`${evidence.code}-${index}`}><span className="font-medium text-foreground">{context.moduleTitle}:</span> {context.itemLabel}</li>)}
+                          </ul>
+                        </details>
+                      ) : null}
+                    </figcaption>
+                  </figure>
+                );
+              })}
+            </div>
+          )}
         </section>
       </main>
     </div>
