@@ -9,14 +9,23 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
+  ClipboardCheck,
   Clock3,
+  CloudRain,
   Copy,
+  Droplets,
   FileWarning,
+  Fuel,
   Image,
+  Info,
   ListChecks,
   MessageSquare,
+  Recycle,
   Share2,
   UserRound,
+  Waves,
+  Wind,
 } from 'lucide-react';
 import logoHorizontal from '@/assets/logo-horizontal.png';
 import { Badge } from '@/components/ui/badge';
@@ -120,6 +129,19 @@ function DetailRow({ icon: Icon, label, value }: { icon: typeof CalendarDays; la
       </div>
     </div>
   );
+}
+
+function personalizedModulePresentation(title: string) {
+  const normalized = title.toLocaleLowerCase('pt-BR');
+
+  if (normalized.includes('identificação')) return { icon: ClipboardCheck, iconClass: 'bg-sky-100 text-sky-700', borderClass: 'border-sky-200' };
+  if (normalized.includes('resíduo')) return { icon: Recycle, iconClass: 'bg-emerald-100 text-emerald-700', borderClass: 'border-emerald-200' };
+  if (normalized.includes('sanitário')) return { icon: Droplets, iconClass: 'bg-cyan-100 text-cyan-700', borderClass: 'border-cyan-200' };
+  if (normalized.includes('pluvial')) return { icon: CloudRain, iconClass: 'bg-blue-100 text-blue-700', borderClass: 'border-blue-200' };
+  if (normalized.includes('oleosa') || normalized.includes('sao')) return { icon: Waves, iconClass: 'bg-teal-100 text-teal-700', borderClass: 'border-teal-200' };
+  if (normalized.includes('combust')) return { icon: Fuel, iconClass: 'bg-amber-100 text-amber-700', borderClass: 'border-amber-200' };
+  if (normalized.includes('emiss') || normalized.includes('ruído')) return { icon: Wind, iconClass: 'bg-indigo-100 text-indigo-700', borderClass: 'border-indigo-200' };
+  return { icon: ListChecks, iconClass: 'bg-slate-100 text-slate-700', borderClass: 'border-slate-200' };
 }
 
 function isOpen(status?: string) {
@@ -448,11 +470,23 @@ export default function RelatorioVisita() {
               </div>
             </div>
 
-            <dl className="mt-5 grid grid-cols-2 border-y sm:grid-cols-4">
-              <div className="border-b p-3 sm:border-b-0 sm:border-r"><dt className="text-xs text-muted-foreground">Controles avaliáveis</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{scoredPersonalizedItems}</dd></div>
-              <div className="border-b p-3 sm:border-b-0 sm:border-r"><dt className="text-xs text-muted-foreground">Conformes</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-emerald-700">{personalizedReport.counts.conforme}</dd></div>
-              <div className="border-r p-3 sm:border-r"><dt className="text-xs text-muted-foreground">Registros informativos</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{personalizedReport.counts.registros}</dd></div>
-              <div className="p-3"><dt className="text-xs text-muted-foreground">Evidências únicas</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{isConsolidatingEvidence ? '...' : evidenceGroups.length}</dd></div>
+            <dl className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <dt className="flex items-center gap-2 text-xs font-medium text-slate-600"><ListChecks className="h-4 w-4" />Controles avaliáveis</dt>
+                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-slate-900">{scoredPersonalizedItems}</dd>
+              </div>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                <dt className="flex items-center gap-2 text-xs font-medium text-emerald-700"><CheckCircle2 className="h-4 w-4" />Conformes</dt>
+                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-emerald-800">{personalizedReport.counts.conforme}</dd>
+              </div>
+              <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+                <dt className="flex items-center gap-2 text-xs font-medium text-sky-700"><Info className="h-4 w-4" />Registros informativos</dt>
+                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-sky-900">{personalizedReport.counts.registros}</dd>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <dt className="flex items-center gap-2 text-xs font-medium text-amber-700"><Image className="h-4 w-4" />Evidências únicas</dt>
+                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-amber-900">{isConsolidatingEvidence ? '...' : evidenceGroups.length}</dd>
+              </div>
             </dl>
 
             {atendimento.resumo_relatorio ? (
@@ -510,27 +544,78 @@ export default function RelatorioVisita() {
               </div>
               <span className="text-xs text-muted-foreground">{personalizedReport.modules.length} módulos</span>
             </div>
-            <div className="divide-y border-y bg-card">
+            <div className="grid gap-3 md:grid-cols-2">
               {personalizedReport.modules.map((module) => {
                 const moduleEvidence = getModuleEvidence(module);
                 const evaluated = module.counts.conforme + module.counts.parcial + module.counts.naoConforme;
+                const presentation = personalizedModulePresentation(module.title);
+                const ModuleIcon = presentation.icon;
+                const requiresAttention = module.counts.parcial + module.counts.naoConforme > 0;
                 return (
-                  <div key={module.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <h3 className="font-medium">{module.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {evaluated > 0 ? `${module.counts.conforme} de ${evaluated} controles conformes` : 'Módulo de registro'}
-                        {module.counts.registros > 0 ? ` • ${module.counts.registros} registro${module.counts.registros === 1 ? '' : 's'} informativo${module.counts.registros === 1 ? '' : 's'}` : ''}
-                        {` • ${moduleEvidence.length} evidência${moduleEvidence.length === 1 ? '' : 's'}`}
-                      </p>
+                  <details key={module.id} className={cn('group overflow-hidden rounded-lg border bg-card shadow-sm', presentation.borderClass)}>
+                    <summary className="cursor-pointer list-none p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-md', presentation.iconClass)}>
+                            <ModuleIcon className="h-5 w-5" />
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="font-semibold leading-5">{module.title}</h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {evaluated > 0 ? `${module.counts.conforme} de ${evaluated} controles conformes` : 'Módulo de registro'}
+                              {module.counts.registros > 0 ? ` • ${module.counts.registros} informativo${module.counts.registros === 1 ? '' : 's'}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={cn(
+                          'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
+                          requiresAttention
+                            ? 'border-amber-200 bg-amber-50 text-amber-800'
+                            : module.percentage === null
+                              ? 'border-sky-200 bg-sky-50 text-sky-700'
+                              : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                        )}>
+                          {requiresAttention ? <AlertTriangle className="h-3.5 w-3.5" /> : module.percentage === null ? <Info className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                          {requiresAttention ? 'Atenção' : module.percentage === null ? 'Informativo' : `${module.percentage}%`}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-3">
+                        <div>
+                          <p className="text-[11px] font-medium uppercase text-muted-foreground">Controles</p>
+                          <p className="mt-0.5 font-mono text-lg font-bold tabular-nums">{evaluated || module.counts.registros}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium uppercase text-muted-foreground">Evidências</p>
+                          <p className="mt-0.5 font-mono text-lg font-bold tabular-nums">{moduleEvidence.length}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between border-t pt-3 text-xs">
+                        <span className="text-muted-foreground">{module.items.length} itens verificados</span>
+                        <span className="flex items-center gap-1 font-medium text-primary">
+                          <span className="group-open:hidden">Ver itens</span>
+                          <span className="hidden group-open:inline">Ocultar</span>
+                          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                        </span>
+                      </div>
+                    </summary>
+                    <div className="divide-y border-t bg-muted/20">
+                      {module.items.map((item) => {
+                        const evidenceCodes = evidenceByItem.get(item.id) ?? [];
+                        return (
+                          <div key={item.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium">{item.label}</p>
+                              {item.observation ? <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">{item.observation}</p> : null}
+                              {evidenceCodes.length ? <p className="mt-2 text-xs text-muted-foreground">Comprovado por <span className="font-medium text-foreground">{evidenceCodes.join(', ')}</span></p> : null}
+                            </div>
+                            <Badge variant="outline">{item.responseLabel ?? (item.response ? item.response.replaceAll('_', ' ') : 'Sem resposta')}</Badge>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {module.counts.parcial + module.counts.naoConforme > 0 ? <Badge variant="destructive">Requer atenção</Badge> : null}
-                      <span className={cn('text-sm font-semibold', module.percentage === null ? 'text-slate-600' : 'text-emerald-700')}>
-                        {module.percentage === null ? 'Informativo' : `${module.percentage}% conforme`}
-                      </span>
-                    </div>
-                  </div>
+                  </details>
                 );
               })}
             </div>
@@ -541,34 +626,6 @@ export default function RelatorioVisita() {
               <div className="flex items-center gap-3 border-l-4 border-emerald-600 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhum alerta ou não conformidade identificado.</div>
             )}
 
-            <div className="divide-y border-y bg-card">
-              {personalizedReport.modules.map((module) => (
-                <details key={`${module.id}-details`}>
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4">
-                    <div>
-                      <h3 className="font-medium">{module.title}</h3>
-                      <p className="mt-1 text-xs text-muted-foreground">{module.items.length} itens • selecione para conferir respostas e vínculos</p>
-                    </div>
-                    <span className="shrink-0 text-sm font-medium text-primary">Ver itens</span>
-                  </summary>
-                  <div className="divide-y border-t bg-muted/20">
-                    {module.items.map((item) => {
-                      const evidenceCodes = evidenceByItem.get(item.id) ?? [];
-                      return (
-                        <div key={item.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium">{item.label}</p>
-                            {item.observation ? <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">{item.observation}</p> : null}
-                            {evidenceCodes.length ? <p className="mt-2 text-xs text-muted-foreground">Comprovado por <span className="font-medium text-foreground">{evidenceCodes.join(', ')}</span></p> : null}
-                          </div>
-                          <Badge variant="outline">{item.responseLabel ?? (item.response ? item.response.replaceAll('_', ' ') : 'Sem resposta')}</Badge>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </details>
-              ))}
-            </div>
           </section>
         )}
 
@@ -649,21 +706,6 @@ export default function RelatorioVisita() {
             </Card>
           </section>
         )}
-
-        <section className="grid gap-4 lg:grid-cols-2">
-          <Card className="shadow-none">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" /><h2 className="font-semibold">Demandas para o Radar</h2></div>
-              {demandas.length ? <div className="space-y-2">{demandas.map((item: any) => <div key={item.id} className="rounded-md border p-3 text-sm">{item.descricao}</div>)}</div> : <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">Nenhuma demanda registrada para o Radar.</p>}
-            </CardContent>
-          </Card>
-          <Card className="shadow-none">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h2 className="font-semibold">Comentários para o Radar</h2></div>
-              {anotacoesItens.length ? <div className="space-y-2">{anotacoesItens.map((item: any) => <div key={item.id} className="rounded-md border p-3 text-sm">{item.texto}</div>)}</div> : <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">Nenhum comentário registrado para o Radar.</p>}
-            </CardContent>
-          </Card>
-        </section>
 
         <section className="space-y-4">
           <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-end">
