@@ -134,14 +134,14 @@ function DetailRow({ icon: Icon, label, value }: { icon: typeof CalendarDays; la
 function personalizedModulePresentation(title: string) {
   const normalized = title.toLocaleLowerCase('pt-BR');
 
-  if (normalized.includes('identificação')) return { icon: ClipboardCheck, iconClass: 'bg-sky-100 text-sky-700', borderClass: 'border-sky-200' };
-  if (normalized.includes('resíduo')) return { icon: Recycle, iconClass: 'bg-emerald-100 text-emerald-700', borderClass: 'border-emerald-200' };
-  if (normalized.includes('sanitário')) return { icon: Droplets, iconClass: 'bg-cyan-100 text-cyan-700', borderClass: 'border-cyan-200' };
-  if (normalized.includes('pluvial')) return { icon: CloudRain, iconClass: 'bg-blue-100 text-blue-700', borderClass: 'border-blue-200' };
-  if (normalized.includes('oleosa') || normalized.includes('sao')) return { icon: Waves, iconClass: 'bg-teal-100 text-teal-700', borderClass: 'border-teal-200' };
-  if (normalized.includes('combust')) return { icon: Fuel, iconClass: 'bg-amber-100 text-amber-700', borderClass: 'border-amber-200' };
-  if (normalized.includes('emiss') || normalized.includes('ruído')) return { icon: Wind, iconClass: 'bg-indigo-100 text-indigo-700', borderClass: 'border-indigo-200' };
-  return { icon: ListChecks, iconClass: 'bg-slate-100 text-slate-700', borderClass: 'border-slate-200' };
+  if (normalized.includes('identificação')) return { icon: ClipboardCheck, iconClass: 'bg-sky-100 text-sky-700', cardClass: 'border-sky-200 border-l-sky-400 bg-sky-50/40' };
+  if (normalized.includes('resíduo')) return { icon: Recycle, iconClass: 'bg-emerald-100 text-emerald-700', cardClass: 'border-emerald-200 border-l-emerald-400 bg-emerald-50/40' };
+  if (normalized.includes('sanitário')) return { icon: Droplets, iconClass: 'bg-cyan-100 text-cyan-700', cardClass: 'border-cyan-200 border-l-cyan-400 bg-cyan-50/40' };
+  if (normalized.includes('pluvial')) return { icon: CloudRain, iconClass: 'bg-blue-100 text-blue-700', cardClass: 'border-blue-200 border-l-blue-400 bg-blue-50/40' };
+  if (normalized.includes('oleosa') || normalized.includes('sao')) return { icon: Waves, iconClass: 'bg-teal-100 text-teal-700', cardClass: 'border-teal-200 border-l-teal-400 bg-teal-50/40' };
+  if (normalized.includes('combust')) return { icon: Fuel, iconClass: 'bg-amber-100 text-amber-700', cardClass: 'border-amber-200 border-l-amber-400 bg-amber-50/40' };
+  if (normalized.includes('emiss') || normalized.includes('ruído')) return { icon: Wind, iconClass: 'bg-indigo-100 text-indigo-700', cardClass: 'border-indigo-200 border-l-indigo-400 bg-indigo-50/40' };
+  return { icon: ListChecks, iconClass: 'bg-slate-100 text-slate-700', cardClass: 'border-slate-200 border-l-slate-400 bg-slate-50/40' };
 }
 
 function isOpen(status?: string) {
@@ -552,7 +552,7 @@ export default function RelatorioVisita() {
                 const ModuleIcon = presentation.icon;
                 const requiresAttention = module.counts.parcial + module.counts.naoConforme > 0;
                 return (
-                  <details key={module.id} className={cn('group overflow-hidden rounded-lg border bg-card shadow-sm', presentation.borderClass)}>
+                  <details key={module.id} className={cn('group overflow-hidden rounded-lg border border-l-4 shadow-sm', presentation.cardClass)}>
                     <summary className="cursor-pointer list-none p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 items-start gap-3">
@@ -580,18 +580,18 @@ export default function RelatorioVisita() {
                         </span>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-3">
-                        <div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 border-y py-3">
+                        <div className="flex items-baseline gap-2">
                           <p className="text-[11px] font-medium uppercase text-muted-foreground">Controles</p>
-                          <p className="mt-0.5 font-mono text-lg font-bold tabular-nums">{evaluated || module.counts.registros}</p>
+                          <p className="font-mono text-lg font-bold tabular-nums">{evaluated || module.counts.registros}</p>
                         </div>
-                        <div>
+                        <div className="flex items-baseline gap-2">
                           <p className="text-[11px] font-medium uppercase text-muted-foreground">Evidências</p>
-                          <p className="mt-0.5 font-mono text-lg font-bold tabular-nums">{moduleEvidence.length}</p>
+                          <p className="font-mono text-lg font-bold tabular-nums">{moduleEvidence.length}</p>
                         </div>
                       </div>
 
-                      <div className="mt-3 flex items-center justify-between border-t pt-3 text-xs">
+                      <div className="mt-3 flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">{module.items.length} itens verificados</span>
                         <span className="flex items-center gap-1 font-medium text-primary">
                           <span className="group-open:hidden">Ver itens</span>
