@@ -78,60 +78,6 @@ export type Database = {
           },
         ]
       }
-      tipo_atendimento_acoes: {
-        Row: {
-          acao_id: string
-          ativo: boolean
-          created_at: string
-          created_by: string | null
-          id: string
-          principal: boolean
-          prioridade: number
-          tipo_id: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          acao_id: string
-          ativo?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          principal?: boolean
-          prioridade?: number
-          tipo_id: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          acao_id?: string
-          ativo?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          principal?: boolean
-          prioridade?: number
-          tipo_id?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tipo_atendimento_acoes_acao_id_fkey"
-            columns: ["acao_id"]
-            isOneToOne: false
-            referencedRelation: "acoes_especificas_config"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tipo_atendimento_acoes_tipo_id_fkey"
-            columns: ["tipo_id"]
-            isOneToOne: false
-            referencedRelation: "tipos_atendimento_config"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       atendimento_clientes: {
         Row: {
           atendimento_id: string
@@ -1177,6 +1123,60 @@ export type Database = {
             columns: ["topico_id"]
             isOneToOne: false
             referencedRelation: "topicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tipo_atendimento_acoes: {
+        Row: {
+          acao_id: string
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          principal: boolean
+          prioridade: number
+          tipo_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acao_id: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          principal?: boolean
+          prioridade?: number
+          tipo_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acao_id?: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          principal?: boolean
+          prioridade?: number
+          tipo_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipo_atendimento_acoes_acao_id_fkey"
+            columns: ["acao_id"]
+            isOneToOne: false
+            referencedRelation: "acoes_especificas_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_atendimento_acoes_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_atendimento_config"
             referencedColumns: ["id"]
           },
         ]
