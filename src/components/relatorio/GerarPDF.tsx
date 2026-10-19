@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import { AtendimentoData } from '@/types/atendimento';
-import { TIPOS_ATENDIMENTO_CONFIG, ACOES_ESPECIFICAS_CONFIG } from '@/types/tiposAtendimentoConfig';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import logoHorizontal from '@/assets/logo-horizontal.png';
 import { structuredAnswerLabel } from '@/components/visita/StructuredAnswer';
+import { buildVisitServiceNarratives } from '@/lib/serviceNarrative';
 
 interface GerarPDFProps {
   data: AtendimentoData;
@@ -27,6 +27,13 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
       const margin = 15;
       const contentWidth = pageWidth - margin * 2;
       let yPos = margin;
+      const serviceNarratives = buildVisitServiceNarratives({
+        date: data.data_inicio,
+        responsible: responsavelNome,
+        clients: clientesNomes,
+        selectedTypes: data.tipos_atendimento,
+        selectedActions: data.acoes_especificas,
+      });
 
       // Helper function to add new page if needed
       const checkNewPage = (requiredSpace: number) => {
@@ -212,57 +219,33 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
         yPos += 3;
       }
 
-      // Service Types
-      if (data.tipos_atendimento.length > 0) {
-        drawSectionHeader('TIPOS DE ATENDIMENTO');
-        pdf.setFontSize(10);
-        data.tipos_atendimento.forEach(tipo => {
-          const config = TIPOS_ATENDIMENTO_CONFIG.find(t => t.nome === tipo);
-          checkNewPage(12);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(`• ${tipo}`, margin + 3, yPos);
-          pdf.setTextColor(100, 100, 100);
-          pdf.setFontSize(8);
-          pdf.setFont('helvetica', 'italic');
-          
-          if (config?.plano) {
-            pdf.text(`[${config.plano}]`, margin + 3 + pdf.getTextWidth(`• ${tipo}`) + 3, yPos);
-          }
-          yPos += 4;
-          
-          if (config?.descricao) {
-            const descLines = pdf.splitTextToSize(config.descricao, contentWidth - 10);
-            pdf.setFont('helvetica', 'normal');
-            descLines.forEach((line: string) => {
-              checkNewPage(5);
-              pdf.text(line, margin + 6, yPos);
-              yPos += 4;
-            });
-          }
-          pdf.setTextColor(0, 0, 0);
+      if (serviceNarratives.length > 0) {
+        drawSectionHeader('SERVIÇOS EXECUTADOS');
+        serviceNarratives.forEach((narrative, index) => {
+          checkNewPage(18);
           pdf.setFontSize(10);
-          yPos += 2;
-        });
-        yPos += 3;
-      }
-
-      // Specific Actions
-      if (data.acoes_especificas.length > 0) {
-        drawSectionHeader('AÇÕES ESPECÍFICAS');
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'normal');
-        data.acoes_especificas.forEach(acao => {
-          const config = ACOES_ESPECIFICAS_CONFIG.find(a => a.nome === acao);
-          checkNewPage(6);
-          pdf.text(`• ${acao}`, margin + 3, yPos);
-          if (config?.plano) {
-            pdf.setTextColor(100, 100, 100);
-            pdf.setFontSize(8);
-            pdf.text(`[${config.plano}]`, margin + 3 + pdf.getTextWidth(`• ${acao}`) + 3, yPos);
-            pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(10);
-          }
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`${index + 1}. ${narrative.tipo}`, margin + 3, yPos);
           yPos += 5;
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'normal');
+          const narrativeLines = pdf.splitTextToSize(narrative.texto, contentWidth - 8);
+          narrativeLines.forEach((line: string) => {
+            checkNewPage(5);
+            pdf.text(line, margin + 5, yPos);
+            yPos += 4.5;
+          });
+          if (narrative.acoes.length > 0) {
+            pdf.setTextColor(90, 90, 90);
+            const actionLines = pdf.splitTextToSize(`Ações: ${narrative.acoes.join('; ')}.`, contentWidth - 8);
+            actionLines.forEach((line: string) => {
+              checkNewPage(5);
+              pdf.text(line, margin + 5, yPos);
+              yPos += 4.5;
+            });
+            pdf.setTextColor(0, 0, 0);
+          }
+          yPos += 3;
         });
         yPos += 3;
       }

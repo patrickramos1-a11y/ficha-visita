@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { setTiposCache, setAcoesCache } from '@/lib/tiposAcoesCache';
+import { canonicalizeActionConfigs, canonicalizeTypeConfigs } from '@/lib/serviceNarrative';
 import type { PlanoTipo } from '@/types/atendimento';
 
 // ── Planos ──
@@ -268,7 +269,7 @@ export function useDeleteDemandaEspecifica() {
 
 export function useTiposAtendimentoConfig() {
   return useQuery({
-    queryKey: ['tipos_atendimento_config'],
+    queryKey: ['tipos_atendimento_config', 'canonical-v1'],
     staleTime: 30_000,
     retry: 1,
     queryFn: async () => {
@@ -282,12 +283,12 @@ export function useTiposAtendimentoConfig() {
       const planosMap = new Map((planosRes.data || []).map((p: any) => [p.id, p]));
       const topicosMap = new Map((topicosRes.data || []).map((t: any) => [t.id, t]));
       const subtopicosMap = new Map((subtopicosRes.data || []).map((s: any) => [s.id, s]));
-      const data = (tiposRes.data || []).map((t: any) => ({
+      const data = canonicalizeTypeConfigs((tiposRes.data || []).map((t: any) => ({
         ...t,
         planos: t.plano_id ? planosMap.get(t.plano_id) || null : null,
         topicos: t.topico_id ? topicosMap.get(t.topico_id) || null : null,
         subtopicos: t.subtopico_id ? subtopicosMap.get(t.subtopico_id) || null : null,
-      }));
+      })));
       setTiposCache(data.map((t: any) => ({
         nome: t.nome,
         descricao: t.descricao || '',
@@ -340,7 +341,7 @@ export function useDeleteTipoAtendimento() {
 // ── Ações Específicas (configurável) ──
 export function useAcoesEspecificasConfig() {
   return useQuery({
-    queryKey: ['acoes_especificas_config'],
+    queryKey: ['acoes_especificas_config', 'canonical-v1'],
     staleTime: 30_000,
     retry: 1,
     queryFn: async () => {
@@ -354,12 +355,12 @@ export function useAcoesEspecificasConfig() {
       const planosMap = new Map((planosRes.data || []).map((p: any) => [p.id, p]));
       const topicosMap = new Map((topicosRes.data || []).map((t: any) => [t.id, t]));
       const subtopicosMap = new Map((subtopicosRes.data || []).map((s: any) => [s.id, s]));
-      const data = (acoesRes.data || []).map((a: any) => ({
+      const data = canonicalizeActionConfigs((acoesRes.data || []).map((a: any) => ({
         ...a,
         planos: a.plano_id ? planosMap.get(a.plano_id) || null : null,
         topicos: a.topico_id ? topicosMap.get(a.topico_id) || null : null,
         subtopicos: a.subtopico_id ? subtopicosMap.get(a.subtopico_id) || null : null,
-      }));
+      })));
       setAcoesCache(data.map((a: any) => ({
         nome: a.nome,
         plano: (a.planos?.nome as PlanoTipo) || 'VIP',
@@ -367,6 +368,26 @@ export function useAcoesEspecificasConfig() {
         subtopico: a.subtopicos?.nome || null,
       })));
       return data;
+    },
+  });
+}
+
+export function useTipoAtendimentoAcoes() {
+  return useQuery({
+    queryKey: ['tipo_atendimento_acoes'],
+    staleTime: 30_000,
+    retry: 1,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tipo_atendimento_acoes')
+        .select('tipo_id, acao_id, principal, prioridade, ativo')
+        .eq('ativo', true)
+        .order('prioridade');
+
+      // Mantém compatibilidade durante a janela entre o deploy do cliente e a migração.
+      if (error && /tipo_atendimento_acoes|schema cache|does not exist/i.test(error.message)) return [];
+      if (error) throw error;
+      return data ?? [];
     },
   });
 }

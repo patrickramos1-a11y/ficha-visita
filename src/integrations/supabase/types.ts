@@ -17,7 +17,9 @@ export type Database = {
       acoes_especificas_config: {
         Row: {
           ativo: boolean
+          codigo: string | null
           created_at: string
+          descricao: string | null
           id: string
           naturezas: string[]
           nome: string
@@ -28,7 +30,9 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
+          descricao?: string | null
           id?: string
           naturezas?: string[]
           nome: string
@@ -39,7 +43,9 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
+          descricao?: string | null
           id?: string
           naturezas?: string[]
           nome?: string
@@ -68,6 +74,60 @@ export type Database = {
             columns: ["topico_id"]
             isOneToOne: false
             referencedRelation: "topicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tipo_atendimento_acoes: {
+        Row: {
+          acao_id: string
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          principal: boolean
+          prioridade: number
+          tipo_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acao_id: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          principal?: boolean
+          prioridade?: number
+          tipo_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acao_id?: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          principal?: boolean
+          prioridade?: number
+          tipo_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipo_atendimento_acoes_acao_id_fkey"
+            columns: ["acao_id"]
+            isOneToOne: false
+            referencedRelation: "acoes_especificas_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_atendimento_acoes_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_atendimento_config"
             referencedColumns: ["id"]
           },
         ]
@@ -1124,9 +1184,12 @@ export type Database = {
       tipos_atendimento_config: {
         Row: {
           ativo: boolean
+          codigo: string | null
           created_at: string
           descricao: string | null
+          finalidade: string | null
           id: string
+          modelo_descricao: string | null
           naturezas: string[]
           nome: string
           plano_id: string | null
@@ -1136,9 +1199,12 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           descricao?: string | null
+          finalidade?: string | null
           id?: string
+          modelo_descricao?: string | null
           naturezas?: string[]
           nome: string
           plano_id?: string | null
@@ -1148,9 +1214,12 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           descricao?: string | null
+          finalidade?: string | null
           id?: string
+          modelo_descricao?: string | null
           naturezas?: string[]
           nome?: string
           plano_id?: string | null

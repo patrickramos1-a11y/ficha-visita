@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { buildVisitServiceNarratives } from '@/lib/serviceNarrative';
 
 type ResumoRelatorioEditorProps = {
   visit: Record<string, any>;
@@ -38,21 +39,32 @@ export function ResumoRelatorioEditor({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const buildPayload = () => ({
-    titulo: visit.titulo,
-    modo: visit.modo,
-    natureza: visit.natureza,
-    clientes,
-    responsavel,
-    data_inicio: visit.data_inicio ?? visit.created_at,
-    data_fim: visit.data_fim,
-    comentario_base_relatorio: comentario,
-    tipos_atendimento: visit.tipos_atendimento ?? [],
-    acoes_especificas: visit.acoes_especificas ?? [],
-    demandas,
-    comentarios,
-    dados_modalidade: dadosModalidade ?? visit.dados_modalidade,
-  });
+  const buildPayload = () => {
+    const narrativas = buildVisitServiceNarratives({
+      date: visit.data_inicio ?? visit.created_at,
+      responsible: responsavel,
+      clients: clientes,
+      selectedTypes: visit.tipos_atendimento ?? [],
+      selectedActions: visit.acoes_especificas ?? [],
+    });
+
+    return {
+      titulo: visit.titulo,
+      modo: visit.modo,
+      natureza: visit.natureza,
+      clientes,
+      responsavel,
+      data_inicio: visit.data_inicio ?? visit.created_at,
+      data_fim: visit.data_fim,
+      comentario_base_relatorio: comentario,
+      tipos_atendimento: visit.tipos_atendimento ?? [],
+      acoes_especificas: visit.acoes_especificas ?? [],
+      narrativas_atendimento: narrativas.map((item) => item.texto),
+      demandas,
+      comentarios,
+      dados_modalidade: dadosModalidade ?? visit.dados_modalidade,
+    };
+  };
 
   const generate = async () => {
     setIsGenerating(true);

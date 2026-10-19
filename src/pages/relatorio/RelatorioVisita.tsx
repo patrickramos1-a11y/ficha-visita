@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ResumoRelatorioEditor } from '@/components/relatorio/ResumoRelatorioEditor';
+import { useAcoesEspecificasConfig, useTipoAtendimentoAcoes, useTiposAtendimentoConfig } from '@/hooks/useConfigEntities';
 import { supabase } from '@/integrations/supabase/client';
 import {
   buildEnvironmentalConformityReport,
@@ -43,6 +44,7 @@ import {
 } from '@/lib/conformityReport';
 import { buildPersonalizadoConformityReport, type PersonalizadoReport } from '@/lib/atendimentoPersonalizado';
 import { groupReportEvidence } from '@/lib/reportEvidence';
+import { buildVisitServiceNarratives, type VisitServiceNarrative } from '@/lib/serviceNarrative';
 import { cn } from '@/lib/utils';
 import type { AcompanhamentoAmbientalData, AcompanhamentoObraData, NaoConformidadeObra, PendenciaObra } from '@/types/atendimento';
 import { toast } from 'sonner';
@@ -131,6 +133,38 @@ function DetailRow({ icon: Icon, label, value }: { icon: typeof CalendarDays; la
   );
 }
 
+function ServiceNarrativesSection({ narratives }: { narratives: VisitServiceNarrative[] }) {
+  if (narratives.length === 0) return null;
+
+  return (
+    <section className="border-y bg-card px-5 py-5 sm:px-6">
+      <div className="flex items-start gap-3">
+        <ClipboardCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+        <div>
+          <h2 className="font-semibold">Serviços executados</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Tipos e ações relacionados no contexto desta visita.</p>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {narratives.map((narrative) => (
+          <article key={narrative.tipo} className="rounded-lg border border-l-4 border-l-primary bg-background p-4">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="font-semibold leading-5">{narrative.tipo}</h3>
+              {narrative.acoes.length ? <Badge variant="secondary">{narrative.acoes.length} {narrative.acoes.length === 1 ? 'ação' : 'ações'}</Badge> : null}
+            </div>
+            <p className="mt-2 text-sm leading-6 text-foreground/90">{narrative.texto}</p>
+            {narrative.acoes.length ? (
+              <ul className="mt-3 space-y-1 border-t pt-3 text-xs text-muted-foreground">
+                {narrative.acoes.map((acao) => <li key={acao} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" /><span>{acao}</span></li>)}
+              </ul>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function personalizedModulePresentation(title: string) {
   const normalized = title.toLocaleLowerCase('pt-BR');
 
@@ -165,6 +199,9 @@ export default function RelatorioVisita() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editMode = searchParams.get('editar') === '1';
+  const { data: serviceTypes = [] } = useTiposAtendimentoConfig();
+  const { data: serviceActions = [] } = useAcoesEspecificasConfig();
+  const { data: serviceLinks = [] } = useTipoAtendimentoAcoes();
 
   const { data: atendimento, isLoading, isError, refetch } = useQuery({
     queryKey: ['relatorio-visita', id],
@@ -335,6 +372,16 @@ export default function RelatorioVisita() {
   const clientNames = clientes.map((item) => item.cliente?.nome).filter(Boolean) as string[];
   const fallbackClient = (dados as any).cliente_nome || atendimento.cliente?.nome;
   const allClientNames = clientNames.length ? clientNames : fallbackClient ? [fallbackClient] : [];
+  const serviceNarratives = buildVisitServiceNarratives({
+    date: atendimento.data_inicio ?? atendimento.created_at,
+    responsible: atendimento.responsavel?.nome,
+    clients: allClientNames,
+    selectedTypes: atendimento.tipos_atendimento ?? [],
+    selectedActions: atendimento.acoes_especificas ?? [],
+    typeConfigs: serviceTypes,
+    actionConfigs: serviceActions,
+    links: serviceLinks,
+  });
   const naoConformidades = ((dados as any).nao_conformidades ?? []) as NaoConformidadeObra[];
   const pendencias = ((dados as any).pendencias ?? []) as PendenciaObra[];
   const pendenciasAbertas = pendencias.filter((item) => isOpen(item.status));
@@ -455,6 +502,8 @@ export default function RelatorioVisita() {
           />
         )}
 
+        <ServiceNarrativesSection narratives={serviceNarratives} />
+
         {personalizedReport ? (
           <section className="border-y bg-card px-5 py-5 sm:px-6">
             <div className="flex items-start gap-3">
@@ -496,30 +545,10 @@ export default function RelatorioVisita() {
               </div>
             ) : null}
 
-            <details className="mt-5 border-t pt-4">
-              <summary className="cursor-pointer text-sm font-medium text-primary">
-                Ver escopo técnico e atividades ({(atendimento.tipos_atendimento ?? []).length} frentes, {(atendimento.acoes_especificas ?? []).length} ações)
-              </summary>
-              <div className="mt-4 grid gap-5 text-sm md:grid-cols-2">
-                <div>
-                  <h3 className="font-medium">Frentes verificadas</h3>
-                  <ul className="mt-2 space-y-1 text-muted-foreground">
-                    {(atendimento.tipos_atendimento ?? []).map((item: string) => <li key={item}>• {item}</li>)}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="font-medium">Ações registradas</h3>
-                  <ul className="mt-2 columns-1 gap-6 space-y-1 text-muted-foreground sm:columns-2 md:columns-1 lg:columns-2">
-                    {(atendimento.acoes_especificas ?? []).map((item: string) => <li key={item} className="break-inside-avoid">• {item}</li>)}
-                  </ul>
-                </div>
-              </div>
-            </details>
           </section>
         ) : (
-          <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <section>
             <Card className="shadow-none"><CardContent className="space-y-3 p-5"><div className="flex items-center gap-2"><MessageSquare className="h-5 w-5 text-primary" /><h2 className="font-semibold">Resumo técnico</h2></div>{atendimento.resumo_relatorio ? <div className="whitespace-pre-line text-sm leading-6 text-foreground/90">{atendimento.resumo_relatorio}</div> : <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">Nenhum resumo técnico foi salvo para esta visita.</p>}</CardContent></Card>
-            <Card className="shadow-none"><CardContent className="space-y-3 p-5"><div className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" /><h2 className="font-semibold">Atendimentos e ações</h2></div><p className="text-sm text-muted-foreground">{(atendimento.tipos_atendimento ?? []).length} tipos de atendimento e {(atendimento.acoes_especificas ?? []).length} ações registrados.</p></CardContent></Card>
           </section>
         )}
 

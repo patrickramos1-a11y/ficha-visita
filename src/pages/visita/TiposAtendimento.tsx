@@ -10,6 +10,7 @@ import { PageHeader, EmptyState, CountBadge, MobileFooter } from '@/components/m
 import { useTiposAtendimentoConfig } from '@/hooks/useConfigEntities';
 import { AtendimentoTipo } from '@/types/atendimento';
 import { VisitSelectionTile } from '@/components/visita/VisitSelectionTile';
+import { canonicalizeTypeName } from '@/lib/serviceNarrative';
 import { Check, ChevronRight, ClipboardList, Search, X, Loader2 } from 'lucide-react';
 
 export default function TiposAtendimento() {
@@ -17,7 +18,7 @@ export default function TiposAtendimento() {
   const navigate = useNavigate();
   const { data, setTiposAtendimento } = useAtendimento();
   const { data: tipos, isLoading } = useTiposAtendimentoConfig();
-  const [selectedTipos, setSelectedTipos] = useState<AtendimentoTipo[]>(data.tipos_atendimento);
+  const [selectedTipos, setSelectedTipos] = useState<AtendimentoTipo[]>(() => Array.from(new Set(data.tipos_atendimento.map(canonicalizeTypeName))));
   const [search, setSearch] = useState('');
   const steps = getVisitStepsForMode(data.modo);
 

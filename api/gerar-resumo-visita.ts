@@ -9,6 +9,7 @@ type VisitSummaryPayload = {
   comentario_base_relatorio?: string | null;
   tipos_atendimento?: string[] | null;
   acoes_especificas?: string[] | null;
+  narrativas_atendimento?: string[] | null;
   demandas?: Array<{ descricao?: string | null }>;
   comentarios?: Array<{ texto?: string | null }>;
   dados_modalidade?: unknown;
@@ -29,6 +30,7 @@ function compactVisit(payload: VisitSummaryPayload) {
     comentario_base_relatorio: payload.comentario_base_relatorio || '',
     tipos_atendimento: cleanList(payload.tipos_atendimento),
     acoes_especificas: cleanList(payload.acoes_especificas),
+    narrativas_atendimento: cleanList(payload.narrativas_atendimento),
     demandas: (payload.demandas ?? []).map((item) => item.descricao?.trim()).filter(Boolean),
     comentarios: (payload.comentarios ?? []).map((item) => item.texto?.trim()).filter(Boolean),
     dados_modalidade: payload.dados_modalidade ?? null,
@@ -64,6 +66,7 @@ export default async function handler(req: any, res: any) {
     visit.comentario_base_relatorio,
     ...visit.tipos_atendimento,
     ...visit.acoes_especificas,
+    ...visit.narrativas_atendimento,
     ...visit.demandas,
     ...visit.comentarios,
   ].some(Boolean);
@@ -79,6 +82,8 @@ export default async function handler(req: any, res: any) {
     'Nao invente dados, medicoes, problemas, datas, responsaveis, conclusoes ou pendencias.',
     'Use apenas as informacoes fornecidas. Se houver poucas informacoes, escreva um resumo simples e fiel.',
     'Transforme texto informal em texto pronto para relatorio tecnico.',
+    'Use as narrativas_atendimento como estrutura factual para relacionar data, responsavel, cliente, tipo de atendimento e acoes executadas.',
+    'Nao apresente tipos e acoes como listas soltas quando a relacao contextual estiver disponivel.',
     '',
     'Dados da visita em JSON:',
     JSON.stringify(visit, null, 2),

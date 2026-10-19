@@ -5,20 +5,30 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAtendimento } from '@/contexts/AtendimentoContext';
-import { useAcoesEspecificasConfig, useTiposAtendimentoConfig } from '@/hooks/useConfigEntities';
+import { useAcoesEspecificasConfig, useTipoAtendimentoAcoes, useTiposAtendimentoConfig } from '@/hooks/useConfigEntities';
 import { VisitSelectionTile } from '@/components/visita/VisitSelectionTile';
+import { getAvailableActionsForTypes } from '@/lib/serviceNarrative';
 
 export function RegistroVisita() {
   const { data, setTiposAtendimento, setAcoesEspecificas, addAnotacao, updateAnotacao, removeAnotacao, addDemanda, updateDemanda, removeDemanda } = useAtendimento();
   const { data: tipos = [] } = useTiposAtendimentoConfig();
   const { data: acoes = [] } = useAcoesEspecificasConfig();
+  const { data: links = [] } = useTipoAtendimentoAcoes();
   const [note, setNote] = useState('');
   const natureza = data.natureza ?? (data.modo === 'obras' ? 'OBRAS' : data.modo === 'ambiental' ? 'AMBIENTAL' : data.modo === 'processos' ? 'PROCESSOS' : 'ATENDIMENTO');
 
   const toggle = (items: string[], value: string, set: (next: string[]) => void) =>
     set(items.includes(value) ? items.filter(item => item !== value) : [...items, value]);
   const tiposNatureza = tipos.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza));
-  const acoesNatureza = acoes.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza));
+  const acoesBase = acoes.filter((item: any) => item.ativo !== false && (item.naturezas ?? ['ATENDIMENTO']).includes(natureza));
+  const acoesVinculadas = natureza === 'ATENDIMENTO'
+    ? getAvailableActionsForTypes({ tipos, acoes: acoesBase, links, selectedTypeNames: data.tipos_atendimento })
+    : acoesBase;
+  const linkedNames = new Set(acoesVinculadas.map((item: any) => item.nome));
+  const acoesNatureza = [
+    ...acoesVinculadas,
+    ...acoesBase.filter((item: any) => data.acoes_especificas.includes(item.nome) && !linkedNames.has(item.nome)).map((item: any) => ({ ...item, relationLabel: 'Ação adicional' })),
+  ];
   const formatMeta = (item: any) => [item.topicos?.nome, item.subtopicos?.nome].filter(Boolean).join(' › ');
 
   return (
@@ -39,9 +49,9 @@ export function RegistroVisita() {
         <CardContent className="grid grid-cols-2 gap-2">
           {acoesNatureza.map((item: any) => {
             const selected = data.acoes_especificas.includes(item.nome);
-            return <VisitSelectionTile key={item.id} label={item.nome} selected={selected} onClick={() => toggle(data.acoes_especificas, item.nome, setAcoesEspecificas)} meta={formatMeta(item)} kind="acao" />;
+            return <VisitSelectionTile key={item.id} label={item.nome} selected={selected} onClick={() => toggle(data.acoes_especificas, item.nome, setAcoesEspecificas)} meta={item.relationLabel || formatMeta(item)} kind="acao" />;
           })}
-          {acoesNatureza.length === 0 && <p className="col-span-2 text-sm text-muted-foreground">Nenhuma ação vinculada a esta natureza. Configure em Configurações.</p>}
+          {acoesNatureza.length === 0 && <p className="col-span-2 text-sm text-muted-foreground">{natureza === 'ATENDIMENTO' && data.tipos_atendimento.length === 0 ? 'Selecione um tipo de atendimento para ver as ações compatíveis.' : 'Nenhuma ação vinculada aos tipos selecionados.'}</p>}
         </CardContent>
       </Card>
 
