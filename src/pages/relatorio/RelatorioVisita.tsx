@@ -77,10 +77,10 @@ function formatDuration(start?: string | null, end?: string | null) {
 
 function Counts({ counts }: { counts: ConformityCounts }) {
   return (
-    <div className="grid grid-cols-3 gap-2 text-center text-xs">
-      <div className="rounded-md bg-emerald-50 px-2 py-2 text-emerald-800"><strong className="block text-base">{counts.conforme}</strong>Conformes</div>
-      <div className="rounded-md bg-red-50 px-2 py-2 text-red-800"><strong className="block text-base">{counts.naoConforme}</strong>Não conf.</div>
-      <div className="rounded-md bg-slate-100 px-2 py-2 text-slate-600"><strong className="block text-base">{counts.naoSeAplica}</strong>N/A</div>
+    <div className="grid grid-cols-3 gap-1.5 text-center text-[11px] sm:gap-2 sm:text-xs">
+      <div className="rounded-md bg-emerald-50 px-1 py-1.5 text-emerald-800 sm:px-2 sm:py-2"><strong className="block text-sm sm:text-base">{counts.conforme}</strong>Conformes</div>
+      <div className="rounded-md bg-red-50 px-1 py-1.5 text-red-800 sm:px-2 sm:py-2"><strong className="block text-sm sm:text-base">{counts.naoConforme}</strong>Não conf.</div>
+      <div className="rounded-md bg-slate-100 px-1 py-1.5 text-slate-600 sm:px-2 sm:py-2"><strong className="block text-sm sm:text-base">{counts.naoSeAplica}</strong>N/A</div>
     </div>
   );
 }
@@ -104,15 +104,15 @@ function ModuleCard({ module }: { module: ConformityModule }) {
 
   return (
     <Card className="shadow-none">
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="space-y-2 p-3 sm:space-y-3 sm:p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="font-semibold text-sm">{module.title}</h3>
             <p className="text-xs text-muted-foreground">{module.items.length} itens avaliados</p>
           </div>
-          <Percentage value={module.percentage} className="text-2xl" />
+          <Percentage value={module.percentage} className="text-xl sm:text-2xl" />
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-muted">
+        <div className="h-1.5 overflow-hidden rounded-full bg-muted sm:h-2">
           <div className={cn('h-full rounded-full transition-none', barColor)} style={{ width: `${module.percentage ?? 0}%` }} />
         </div>
         <Counts counts={module.counts} />
@@ -137,7 +137,7 @@ function ServiceNarrativesSection({ narratives }: { narratives: VisitServiceNarr
   if (narratives.length === 0) return null;
 
   return (
-    <section className="border-y bg-card px-5 py-5 sm:px-6">
+    <section className="border-y bg-card px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex items-start gap-3">
         <ClipboardCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
         <div>
@@ -145,16 +145,25 @@ function ServiceNarrativesSection({ narratives }: { narratives: VisitServiceNarr
           <p className="mt-1 text-sm text-muted-foreground">Tipos e ações relacionados no contexto desta visita.</p>
         </div>
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <div className="mt-3 grid gap-2.5 sm:mt-4 sm:gap-3 md:grid-cols-2">
         {narratives.map((narrative) => (
-          <article key={narrative.tipo} className="rounded-lg border border-l-4 border-l-primary bg-background p-4">
+          <article key={narrative.tipo} className="rounded-lg border border-l-4 border-l-primary bg-background p-3 sm:p-4">
             <div className="flex items-start justify-between gap-3">
               <h3 className="font-semibold leading-5">{narrative.tipo}</h3>
               {narrative.acoes.length ? <Badge variant="secondary">{narrative.acoes.length} {narrative.acoes.length === 1 ? 'ação' : 'ações'}</Badge> : null}
             </div>
             <p className="mt-2 text-sm leading-6 text-foreground/90">{narrative.texto}</p>
+            {narrative.acoes.length ? <details className="group mt-3 border-t pt-2 sm:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-medium text-primary">
+                <span>{narrative.acoes.length} {narrative.acoes.length === 1 ? 'ação relacionada' : 'ações relacionadas'}</span>
+                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+              </summary>
+              <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                {narrative.acoes.map((acao) => <li key={acao} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" /><span>{acao}</span></li>)}
+              </ul>
+            </details> : null}
             {narrative.acoes.length ? (
-              <ul className="mt-3 space-y-1 border-t pt-3 text-xs text-muted-foreground">
+              <ul className="mt-3 hidden space-y-1 border-t pt-3 text-xs text-muted-foreground sm:block">
                 {narrative.acoes.map((acao) => <li key={acao} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" /><span>{acao}</span></li>)}
               </ul>
             ) : null}
@@ -456,8 +465,8 @@ export default function RelatorioVisita() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
-        <section className="border-b border-primary/20 bg-card p-5 sm:p-7">
+      <main className="mx-auto max-w-6xl space-y-4 px-3 py-4 sm:space-y-5 sm:px-6 sm:py-8">
+        <section className="border-b border-primary/20 bg-card p-4 sm:p-7">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
             <div className="space-y-3">
               <Badge variant="secondary">{visitModeLabel(atendimento.modo)}</Badge>
@@ -473,10 +482,10 @@ export default function RelatorioVisita() {
               </div>
             </div>
             {report || personalizedReport ? (
-              <div className="min-w-[178px] border-l-4 border-primary bg-primary/5 px-5 py-4 text-center">
+              <div className="flex min-w-0 items-center justify-between border-l-4 border-primary bg-primary/5 px-3 py-3 text-left sm:block sm:min-w-[178px] sm:px-5 sm:py-4 sm:text-center">
                 <p className="text-xs font-medium uppercase text-muted-foreground">Conformidade geral</p>
-                <Percentage value={(report?.percentage ?? personalizedReport?.percentage) ?? null} className="block pt-1 text-5xl text-primary" />
-                <p className="mt-1 text-xs text-muted-foreground">N/A não entra no cálculo</p>
+                <Percentage value={(report?.percentage ?? personalizedReport?.percentage) ?? null} className="block text-3xl text-primary sm:pt-1 sm:text-5xl" />
+                <p className="hidden text-xs text-muted-foreground sm:mt-1 sm:block">N/A não entra no cálculo</p>
               </div>
             ) : (
               <div className="min-w-[178px] border-l-4 border-primary bg-primary/5 px-5 py-4">
@@ -505,7 +514,7 @@ export default function RelatorioVisita() {
         <ServiceNarrativesSection narratives={serviceNarratives} />
 
         {personalizedReport ? (
-          <section className="border-y bg-card px-5 py-5 sm:px-6">
+          <section className="border-y bg-card px-4 py-4 sm:px-6 sm:py-5">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
               <div className="min-w-0 flex-1">
@@ -519,26 +528,26 @@ export default function RelatorioVisita() {
               </div>
             </div>
 
-            <dl className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <dl className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 lg:grid-cols-5">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:p-4">
                 <dt className="flex items-center gap-2 text-xs font-medium text-slate-600"><ListChecks className="h-4 w-4" />Controles avaliáveis</dt>
-                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-slate-900">{scoredPersonalizedItems}</dd>
+                <dd className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-slate-900 sm:mt-3 sm:text-3xl">{scoredPersonalizedItems}</dd>
               </div>
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 sm:p-4">
                 <dt className="flex items-center gap-2 text-xs font-medium text-emerald-700"><CheckCircle2 className="h-4 w-4" />Conformes</dt>
-                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-emerald-800">{personalizedReport.counts.conforme}</dd>
+                <dd className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-emerald-800 sm:mt-3 sm:text-3xl">{personalizedReport.counts.conforme}</dd>
               </div>
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 sm:p-4">
                 <dt className="flex items-center gap-2 text-xs font-medium text-red-700"><XCircle className="h-4 w-4" />Não conformes</dt>
-                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-red-800">{personalizedReport.counts.naoConforme}</dd>
+                <dd className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-red-800 sm:mt-3 sm:text-3xl">{personalizedReport.counts.naoConforme}</dd>
               </div>
-              <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+              <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 sm:p-4">
                 <dt className="flex items-center gap-2 text-xs font-medium text-sky-700"><Info className="h-4 w-4" />Registros informativos</dt>
-                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-sky-900">{personalizedReport.counts.registros}</dd>
+                <dd className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-sky-900 sm:mt-3 sm:text-3xl">{personalizedReport.counts.registros}</dd>
               </div>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 sm:p-4">
                 <dt className="flex items-center gap-2 text-xs font-medium text-amber-700"><Image className="h-4 w-4" />Evidências únicas</dt>
-                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-amber-900">{isConsolidatingEvidence ? '...' : evidenceGroups.length}</dd>
+                <dd className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-amber-900 sm:mt-3 sm:text-3xl">{isConsolidatingEvidence ? '...' : evidenceGroups.length}</dd>
               </div>
             </dl>
 
@@ -569,15 +578,15 @@ export default function RelatorioVisita() {
         )}
 
         {personalizedReport && (
-          <section className="space-y-4">
+          <section className="space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold">Resultado por módulo</h2>
-                <p className="text-sm text-muted-foreground">Leitura compacta dos controles avaliados e das evidências associadas.</p>
+                <p className="text-xs text-muted-foreground sm:text-sm">Leitura compacta dos controles avaliados e das evidências associadas.</p>
               </div>
               <span className="text-xs text-muted-foreground">{personalizedReport.modules.length} módulos</span>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2 sm:gap-3 md:grid-cols-2">
               {personalizedReport.modules.map((module) => {
                 const moduleEvidence = getModuleEvidence(module);
                 const evaluated = module.counts.conforme + module.counts.naoConforme;
@@ -586,34 +595,41 @@ export default function RelatorioVisita() {
                 const hasNonConformity = module.counts.naoConforme > 0;
                 return (
                   <details key={module.id} className={cn('group overflow-hidden rounded-lg border border-l-4 shadow-sm', presentation.cardClass)}>
-                    <summary className="cursor-pointer list-none p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-md', presentation.iconClass)}>
-                            <ModuleIcon className="h-5 w-5" />
+                    <summary className="cursor-pointer list-none p-3 sm:p-4">
+                      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 sm:flex sm:items-start sm:justify-between sm:gap-3">
+                        <div className="contents sm:flex sm:min-w-0 sm:items-start sm:gap-3">
+                          <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-md sm:h-10 sm:w-10', presentation.iconClass)}>
+                            <ModuleIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                           </span>
                           <div className="min-w-0">
-                            <h3 className="font-semibold leading-5">{module.title}</h3>
-                            <p className="mt-1 text-xs text-muted-foreground">
+                            <h3 className="text-sm font-semibold leading-5 sm:text-base">{module.title}</h3>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground sm:hidden">
+                              {evaluated || module.counts.registros} controles • {moduleEvidence.length} evidência{moduleEvidence.length === 1 ? '' : 's'}
+                            </p>
+                            <p className="mt-1 hidden text-xs text-muted-foreground sm:block">
                               {evaluated > 0 ? `${module.counts.conforme} de ${evaluated} controles conformes` : 'Módulo de registro'}
                               {module.counts.registros > 0 ? ` • ${module.counts.registros} informativo${module.counts.registros === 1 ? '' : 's'}` : ''}
                             </p>
                           </div>
                         </div>
-                        <span className={cn(
-                          'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
-                          hasNonConformity
-                            ? 'border-red-200 bg-red-50 text-red-800'
-                            : module.percentage === null
-                              ? 'border-sky-200 bg-sky-50 text-sky-700'
-                              : 'border-emerald-200 bg-emerald-50 text-emerald-700',
-                        )}>
-                          {hasNonConformity ? <XCircle className="h-3.5 w-3.5" /> : module.percentage === null ? <Info className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                          {hasNonConformity ? 'Não conforme' : module.percentage === null ? 'Informativo' : `${module.percentage}%`}
-                        </span>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <span className={cn(
+                            'flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold sm:gap-1.5 sm:px-2.5 sm:text-xs',
+                            hasNonConformity
+                              ? 'border-red-200 bg-red-50 text-red-800'
+                              : module.percentage === null
+                                ? 'border-sky-200 bg-sky-50 text-sky-700'
+                                : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                          )}>
+                            {hasNonConformity ? <XCircle className="h-3.5 w-3.5" /> : module.percentage === null ? <Info className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            <span className="sm:hidden">{hasNonConformity ? 'Não conf.' : module.percentage === null ? 'Info' : `${module.percentage}%`}</span>
+                            <span className="hidden sm:inline">{hasNonConformity ? 'Não conforme' : module.percentage === null ? 'Informativo' : `${module.percentage}%`}</span>
+                          </span>
+                          <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180 sm:hidden" />
+                        </div>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-2 gap-3 border-y py-3">
+                      <div className="mt-4 hidden grid-cols-2 gap-3 border-y py-3 sm:grid">
                         <div className="flex items-baseline gap-2">
                           <p className="text-[11px] font-medium uppercase text-muted-foreground">Controles</p>
                           <p className="font-mono text-lg font-bold tabular-nums">{evaluated || module.counts.registros}</p>
@@ -624,7 +640,7 @@ export default function RelatorioVisita() {
                         </div>
                       </div>
 
-                      <div className="mt-3 flex items-center justify-between text-xs">
+                      <div className="mt-3 hidden items-center justify-between text-xs sm:flex">
                         <span className="text-muted-foreground">{module.items.length} itens verificados</span>
                         <span className="flex items-center gap-1 font-medium text-primary">
                           <span className="group-open:hidden">Ver itens</span>
