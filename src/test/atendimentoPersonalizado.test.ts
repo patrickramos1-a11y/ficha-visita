@@ -73,6 +73,12 @@ describe('atendimento personalizado', () => {
     }, 'NAO')).toBe('ADEQUADO');
   });
 
+  it('converte respostas intermediárias antigas em não conformidade', () => {
+    expect(canonicalPersonalizadoResponse(item, 'PARCIAL')).toBe('NAO_CONFORME');
+    expect(canonicalPersonalizadoResponse(item, 'REQUER_ATENCAO')).toBe('NAO_CONFORME');
+    expect(canonicalPersonalizadoResponse({ ...item, tipo_resposta: 'NECESSIDADE_ACAO' }, 'AVALIAR')).toBe('NAO_CONFORME');
+  });
+
   it('consolida fotos idênticas e preserva todos os itens comprovados', () => {
     const groups = groupReportEvidence([
       {

@@ -272,6 +272,54 @@ set principal = excluded.principal,
     ativo = true,
     updated_at = now();
 
+-- A conformidade passa a ser binária. Respostas intermediárias históricas
+-- representam situação ainda não resolvida e, portanto, tornam-se não conformes.
+update public.atendimentos atendimento
+set percentual_conformidade = null,
+    conformidade_por_modulo = '{}'::jsonb,
+    updated_at = now()
+where exists (
+  select 1
+  from public.atendimento_personalizado_respostas resposta
+  where resposta.atendimento_id = atendimento.id
+    and resposta.resposta in ('PARCIAL', 'PARCIALMENTE', 'REQUER_ATENCAO', 'ATENCAO', 'AVALIAR')
+);
+
+update public.atendimento_personalizado_respostas
+set resposta = 'NAO_CONFORME',
+    atualizado_em = now()
+where resposta in ('PARCIAL', 'PARCIALMENTE', 'REQUER_ATENCAO', 'ATENCAO', 'AVALIAR');
+
+update public.atendimento_personalizado_itens
+set condicional_resposta = 'NAO_CONFORME'
+where condicional_resposta in ('PARCIAL', 'PARCIALMENTE', 'REQUER_ATENCAO', 'ATENCAO', 'AVALIAR');
+
+update public.atendimentos
+set dados_modalidade = replace(
+      replace(
+        replace(
+          replace(
+            replace(dados_modalidade::text, '"PARCIALMENTE"', '"NAO"'),
+            '"PARCIAL"', '"NAO_CONFORME"'
+          ),
+          '"REQUER_ATENCAO"', '"NAO_CONFORME"'
+        ),
+        '"ATENCAO"', '"NAO_CONFORME"'
+      ),
+      '"AVALIAR"', '"NAO_CONFORME"'
+    )::jsonb,
+    percentual_conformidade = null,
+    conformidade_por_modulo = '{}'::jsonb,
+    updated_at = now()
+where dados_modalidade is not null
+  and (
+    dados_modalidade::text like '%"PARCIALMENTE"%'
+    or dados_modalidade::text like '%"PARCIAL"%'
+    or dados_modalidade::text like '%"REQUER_ATENCAO"%'
+    or dados_modalidade::text like '%"ATENCAO"%'
+    or dados_modalidade::text like '%"AVALIAR"%'
+  );
+
 do $$
 declare type_count integer;
 declare action_count integer;
@@ -280,6 +328,13 @@ begin
   select count(*) into action_count from public.acoes_especificas_config where ativo and 'ATENDIMENTO' = any(naturezas);
   if type_count <> 12 then raise exception 'Esperados 12 tipos ATENDIMENTO ativos; encontrados %', type_count; end if;
   if action_count <> 21 then raise exception 'Esperadas 21 ações ATENDIMENTO ativas; encontradas %', action_count; end if;
+  if exists (
+    select 1
+    from public.atendimento_personalizado_respostas
+    where resposta in ('PARCIAL', 'PARCIALMENTE', 'REQUER_ATENCAO', 'ATENCAO', 'AVALIAR')
+  ) then
+    raise exception 'Ainda existem respostas intermediárias no histórico personalizado';
+  end if;
 end $$;
 
 commit;

@@ -138,7 +138,7 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
         const resumo = [
           `Obra: ${obra.obra_nome || 'Não informada'}`,
           `Status: ${obra.status_geral || 'Não informado'} | Fase: ${obra.fase_atual || 'Não informada'} | Avanço: ${obra.percentual_avanco_faixa || `${obra.percentual_avanco}%`}`,
-          `Houve avanço: ${obra.houve_avanco ? 'Sim' : 'Não'} | Dentro do previsto: ${obra.dentro_do_previsto ? 'Sim' : 'Não'} | Pendências anteriores resolvidas: ${obra.pendencias_resolvidas ? 'Sim' : 'Não'}`,
+          `Houve avanço: ${structuredAnswerLabel(obra.houve_avanco)} | Dentro do previsto: ${structuredAnswerLabel(obra.dentro_do_previsto)} | Pendências anteriores resolvidas: ${structuredAnswerLabel(obra.pendencias_resolvidas)}`,
         ];
         resumo.forEach(item => { const lines = pdf.splitTextToSize(item, contentWidth - 6); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 3, yPos); yPos += 5; }); });
         const indicadores = [
@@ -182,8 +182,8 @@ export function GerarPDF({ data, responsavelNome, clientesNomes }: GerarPDFProps
         pdf.setFont('helvetica', 'normal');
         const resumo = [
           `Motivo: ${ambiental.motivo_visita.replaceAll('_', ' ')} | Acompanhado por: ${ambiental.colaborador_nome || 'Não informado'}`,
-          `Política ambiental: ${ambiental.politica_ambiental.replaceAll('_', ' ')} | Coleta de resíduos: ${ambiental.coleta_residuos.replaceAll('_', ' ')}`,
-          `Gerenciamento de resíduos: ${ambiental.gerenciamento_residuos.replaceAll('_', ' ')} | ETE: ${ambiental.ete.possui.replaceAll('_', ' ')}`,
+          `Política ambiental: ${structuredAnswerLabel(ambiental.politica_ambiental)} | Coleta de resíduos: ${structuredAnswerLabel(ambiental.coleta_residuos)}`,
+          `Gerenciamento de resíduos: ${structuredAnswerLabel(ambiental.gerenciamento_residuos)} | ETE: ${structuredAnswerLabel(ambiental.ete.possui)}`,
         ];
         resumo.forEach(item => { const lines = pdf.splitTextToSize(item, contentWidth - 6); lines.forEach((line: string) => { checkNewPage(5); pdf.text(line, margin + 3, yPos); yPos += 5; }); });
         const indicadores = [

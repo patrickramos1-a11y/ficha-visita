@@ -26,6 +26,7 @@ import {
   UserRound,
   Waves,
   Wind,
+  XCircle,
 } from 'lucide-react';
 import logoHorizontal from '@/assets/logo-horizontal.png';
 import { Badge } from '@/components/ui/badge';
@@ -76,9 +77,8 @@ function formatDuration(start?: string | null, end?: string | null) {
 
 function Counts({ counts }: { counts: ConformityCounts }) {
   return (
-    <div className="grid grid-cols-4 gap-2 text-center text-xs">
+    <div className="grid grid-cols-3 gap-2 text-center text-xs">
       <div className="rounded-md bg-emerald-50 px-2 py-2 text-emerald-800"><strong className="block text-base">{counts.conforme}</strong>Conformes</div>
-      <div className="rounded-md bg-amber-50 px-2 py-2 text-amber-800"><strong className="block text-base">{counts.parcial}</strong>Parciais</div>
       <div className="rounded-md bg-red-50 px-2 py-2 text-red-800"><strong className="block text-base">{counts.naoConforme}</strong>Não conf.</div>
       <div className="rounded-md bg-slate-100 px-2 py-2 text-slate-600"><strong className="block text-base">{counts.naoSeAplica}</strong>N/A</div>
     </div>
@@ -402,7 +402,7 @@ export default function RelatorioVisita() {
     for (const item of module.items) personalizedItemContext.set(item.id, { moduleTitle: module.title, itemLabel: item.label });
   }
   const scoredPersonalizedItems = personalizedReport
-    ? personalizedReport.counts.conforme + personalizedReport.counts.parcial + personalizedReport.counts.naoConforme
+    ? personalizedReport.counts.conforme + personalizedReport.counts.naoConforme
     : 0;
   const repeatedPhotoCount = Math.max(0, fotos.length - evidenceGroups.length);
   const getModuleEvidence = (module: PersonalizadoReport['modules'][number]) => {
@@ -513,13 +513,13 @@ export default function RelatorioVisita() {
                 <p className="mt-1 text-sm leading-6 text-foreground/90">
                   {personalizedReport.alerts.length === 0
                     ? `Inspeção concluída sem alertas ou não conformidades. Os ${scoredPersonalizedItems} controles que entram no cálculo estão conformes, resultando em ${personalizedReport.percentage ?? 0}% de conformidade.`
-                    : `Inspeção concluída com ${personalizedReport.alerts.length} ponto${personalizedReport.alerts.length === 1 ? '' : 's'} que exige${personalizedReport.alerts.length === 1 ? '' : 'm'} atenção. Consulte os módulos sinalizados antes de definir as providências.`}
+                    : `Inspeção concluída com ${personalizedReport.counts.naoConforme} controle${personalizedReport.counts.naoConforme === 1 ? '' : 's'} não conforme${personalizedReport.counts.naoConforme === 1 ? '' : 's'}. Consulte os módulos sinalizados para definir as providências.`}
                   {personalizedReport.counts.registros > 0 ? ` ${personalizedReport.counts.registros} registro${personalizedReport.counts.registros === 1 ? '' : 's'} informativo${personalizedReport.counts.registros === 1 ? '' : 's'} foi documentado sem afetar o índice.` : ''}
                 </p>
               </div>
             </div>
 
-            <dl className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <dl className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <dt className="flex items-center gap-2 text-xs font-medium text-slate-600"><ListChecks className="h-4 w-4" />Controles avaliáveis</dt>
                 <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-slate-900">{scoredPersonalizedItems}</dd>
@@ -527,6 +527,10 @@ export default function RelatorioVisita() {
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
                 <dt className="flex items-center gap-2 text-xs font-medium text-emerald-700"><CheckCircle2 className="h-4 w-4" />Conformes</dt>
                 <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-emerald-800">{personalizedReport.counts.conforme}</dd>
+              </div>
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                <dt className="flex items-center gap-2 text-xs font-medium text-red-700"><XCircle className="h-4 w-4" />Não conformes</dt>
+                <dd className="mt-3 font-mono text-3xl font-bold tabular-nums text-red-800">{personalizedReport.counts.naoConforme}</dd>
               </div>
               <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
                 <dt className="flex items-center gap-2 text-xs font-medium text-sky-700"><Info className="h-4 w-4" />Registros informativos</dt>
@@ -576,10 +580,10 @@ export default function RelatorioVisita() {
             <div className="grid gap-3 md:grid-cols-2">
               {personalizedReport.modules.map((module) => {
                 const moduleEvidence = getModuleEvidence(module);
-                const evaluated = module.counts.conforme + module.counts.parcial + module.counts.naoConforme;
+                const evaluated = module.counts.conforme + module.counts.naoConforme;
                 const presentation = personalizedModulePresentation(module.title);
                 const ModuleIcon = presentation.icon;
-                const requiresAttention = module.counts.parcial + module.counts.naoConforme > 0;
+                const hasNonConformity = module.counts.naoConforme > 0;
                 return (
                   <details key={module.id} className={cn('group overflow-hidden rounded-lg border border-l-4 shadow-sm', presentation.cardClass)}>
                     <summary className="cursor-pointer list-none p-4">
@@ -598,14 +602,14 @@ export default function RelatorioVisita() {
                         </div>
                         <span className={cn(
                           'flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold',
-                          requiresAttention
-                            ? 'border-amber-200 bg-amber-50 text-amber-800'
+                          hasNonConformity
+                            ? 'border-red-200 bg-red-50 text-red-800'
                             : module.percentage === null
                               ? 'border-sky-200 bg-sky-50 text-sky-700'
                               : 'border-emerald-200 bg-emerald-50 text-emerald-700',
                         )}>
-                          {requiresAttention ? <AlertTriangle className="h-3.5 w-3.5" /> : module.percentage === null ? <Info className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                          {requiresAttention ? 'Atenção' : module.percentage === null ? 'Informativo' : `${module.percentage}%`}
+                          {hasNonConformity ? <XCircle className="h-3.5 w-3.5" /> : module.percentage === null ? <Info className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                          {hasNonConformity ? 'Não conforme' : module.percentage === null ? 'Informativo' : `${module.percentage}%`}
                         </span>
                       </div>
 
@@ -650,7 +654,7 @@ export default function RelatorioVisita() {
             </div>
 
             {personalizedReport.alerts.length ? (
-              <div className="space-y-2">{personalizedReport.alerts.map((alert) => <div key={alert.key} className={cn('border-l-4 px-3 py-2 text-sm', alert.severity === 'critical' ? 'border-red-600 bg-red-50 text-red-900' : 'border-amber-500 bg-amber-50 text-amber-900')}><span className="font-medium">{alert.severity === 'critical' ? 'Crítico' : 'Atenção'}:</span> {alert.label}<span className="text-xs opacity-75"> • {alert.moduleTitle}</span></div>)}</div>
+              <div className="space-y-2">{personalizedReport.alerts.map((alert) => <div key={alert.key} className={cn('border-l-4 px-3 py-2 text-sm', alert.severity === 'critical' ? 'border-red-600 bg-red-50 text-red-900' : 'border-amber-500 bg-amber-50 text-amber-900')}><span className="font-medium">{alert.severity === 'critical' ? 'Não conforme' : 'Evidência pendente'}:</span> {alert.label}<span className="text-xs opacity-75"> • {alert.moduleTitle}</span></div>)}</div>
             ) : (
               <div className="flex items-center gap-3 border-l-4 border-emerald-600 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhum alerta ou não conformidade identificado.</div>
             )}
@@ -668,7 +672,7 @@ export default function RelatorioVisita() {
                     <div className="flex items-center gap-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"><CheckCircle2 className="h-5 w-5 shrink-0" />Nenhum alerta de conformidade identificado nesta visita.</div>
                   ) : (
                     <div className="space-y-2">
-                      {report.alerts.map((alert) => <div key={`${alert.moduleTitle}-${alert.key}`} className={cn('rounded-md border-l-4 px-3 py-2 text-sm', alert.severity === 'critical' ? 'border-red-600 bg-red-50 text-red-900' : 'border-amber-500 bg-amber-50 text-amber-900')}><span className="font-medium">{alert.severity === 'critical' ? 'Crítico' : 'Atenção'}:</span> {alert.label}<span className="text-xs opacity-75"> • {alert.moduleTitle}</span></div>)}
+                      {report.alerts.map((alert) => <div key={`${alert.moduleTitle}-${alert.key}`} className="rounded-md border-l-4 border-red-600 bg-red-50 px-3 py-2 text-sm text-red-900"><span className="font-medium">Não conforme:</span> {alert.label}<span className="text-xs opacity-75"> • {alert.moduleTitle}</span></div>)}
                       {pendenciasAbertas.map((item) => <div key={`pendencia-${item.id}`} className="rounded-md border-l-4 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-900"><span className="font-medium">Pendência aberta:</span> {item.descricao}</div>)}
                       {highSeverity.map((item) => <div key={`nc-${item.id}`} className="rounded-md border-l-4 border-red-600 bg-red-50 px-3 py-2 text-sm text-red-900"><span className="font-medium">NC de gravidade alta:</span> {item.descricao}</div>)}
                     </div>
@@ -695,7 +699,7 @@ export default function RelatorioVisita() {
                 <CardContent className="p-5 space-y-4">
                   <div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-primary" /><h2 className="font-semibold">Resumo da avaliação</h2></div>
                   <Counts counts={report.counts} />
-                  <p className="text-sm text-muted-foreground">A conformidade geral é a média dos itens avaliados: conforme vale 100, parcial vale 50 e não conforme vale 0. Itens N/A são excluídos do cálculo.</p>
+                  <p className="text-sm text-muted-foreground">A conformidade geral considera os itens avaliados: conforme vale 100 e não conforme vale 0. Itens N/A são excluídos do cálculo.</p>
                 </CardContent>
               </Card>
             </section>

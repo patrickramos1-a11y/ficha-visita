@@ -14,7 +14,6 @@ export interface ConformityItem {
 
 export interface ConformityCounts {
   conforme: number;
-  parcial: number;
   naoConforme: number;
   naoSeAplica: number;
 }
@@ -180,19 +179,19 @@ const ENVIRONMENTAL_MODULES: readonly { id: string; title: string; source: strin
   },
 ];
 
-const EMPTY_COUNTS = (): ConformityCounts => ({ conforme: 0, parcial: 0, naoConforme: 0, naoSeAplica: 0 });
+const EMPTY_COUNTS = (): ConformityCounts => ({ conforme: 0, naoConforme: 0, naoSeAplica: 0 });
 
 export function normalizeConformityAnswer(value: unknown): ConformityAnswer {
   if (value === true) return 'SIM';
   if (value === false) return 'NAO';
-  return value === 'SIM' || value === 'PARCIALMENTE' || value === 'NAO' || value === 'NAO_SE_APLICA'
+  if (value === 'PARCIALMENTE') return 'NAO';
+  return value === 'SIM' || value === 'NAO' || value === 'NAO_SE_APLICA'
     ? value
     : 'NAO_SE_APLICA';
 }
 
 function scoreAnswer(answer: ConformityAnswer) {
   if (answer === 'SIM') return 100;
-  if (answer === 'PARCIALMENTE') return 50;
   if (answer === 'NAO') return 0;
   return null;
 }
@@ -205,7 +204,6 @@ function summarizeModule(id: string, title: string, items: ConformityItem[]): Co
   items.forEach((item) => {
     const itemScore = scoreAnswer(item.answer);
     if (item.answer === 'SIM') counts.conforme += 1;
-    if (item.answer === 'PARCIALMENTE') counts.parcial += 1;
     if (item.answer === 'NAO') counts.naoConforme += 1;
     if (item.answer === 'NAO_SE_APLICA') counts.naoSeAplica += 1;
     if (itemScore !== null) {
@@ -242,7 +240,6 @@ function makeSummary(modules: ConformityModule[]): ConformitySummary {
 
   modules.forEach((module) => {
     counts.conforme += module.counts.conforme;
-    counts.parcial += module.counts.parcial;
     counts.naoConforme += module.counts.naoConforme;
     counts.naoSeAplica += module.counts.naoSeAplica;
 
@@ -252,11 +249,11 @@ function makeSummary(modules: ConformityModule[]): ConformitySummary {
         score += itemScore;
         answered += 1;
       }
-      if (item.answer === 'PARCIALMENTE' || item.answer === 'NAO') {
+      if (item.answer === 'NAO') {
         alerts.push({
           ...item,
           moduleTitle: module.title,
-          severity: item.answer === 'NAO' ? 'critical' : 'attention',
+          severity: 'critical',
         });
       }
     });

@@ -53,12 +53,6 @@ const ANSWER_OPTIONS: Array<{
     className: 'border-emerald-200 bg-emerald-50 text-emerald-700 data-[selected=true]:border-emerald-600 data-[selected=true]:bg-emerald-600 data-[selected=true]:text-white',
   },
   {
-    value: 'REQUER_ATENCAO',
-    label: 'Atenção',
-    icon: AlertTriangle,
-    className: 'border-amber-200 bg-amber-50 text-amber-700 data-[selected=true]:border-amber-500 data-[selected=true]:bg-amber-500 data-[selected=true]:text-white',
-  },
-  {
     value: 'NAO_CONFORME',
     label: 'Não',
     icon: XCircle,
@@ -404,7 +398,7 @@ export default function AtendimentoPersonalizado() {
                         </div>
                       </div>
                       {!isRegistro ? (
-                        <div className="grid grid-cols-4 gap-1.5">
+                        <div className="grid grid-cols-3 gap-1.5">
                           {ANSWER_OPTIONS.map((option) => {
                             const Icon = option.icon;
                             return (

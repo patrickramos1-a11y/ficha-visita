@@ -24,12 +24,12 @@ const MODULE_STEPS = ['Identificação', 'Gestão', 'ETE/água', 'Operação', '
 const STEPS = ['Técnico', ...MODULE_STEPS];
 const FOTO_ITENS = ['Fachada/identificação', 'Área de produção', 'Armazenamento de resíduos', 'Lixeiras/segregação', 'ETE', 'Poço', 'Reservatório', 'Ponto de lançamento', 'Área externa', 'Não conformidade', 'Correção realizada'];
 const ANSWER_LABELS = {
-  compliance: { SIM: 'Conforme', PARCIALMENTE: 'Parcial', NAO: 'Não conforme', NAO_SE_APLICA: 'N/A' },
-  adequacy: { SIM: 'Adequado', PARCIALMENTE: 'Parcial', NAO: 'Inadequado', NAO_SE_APLICA: 'N/A' },
-  occurrence: { SIM: 'Não observado', PARCIALMENTE: 'Pontual', NAO: 'Observado', NAO_SE_APLICA: 'N/A' },
-  yesNo: { SIM: 'Sim', PARCIALMENTE: 'Parcial', NAO: 'Não', NAO_SE_APLICA: 'N/A' },
-  performed: { SIM: 'Realizada', PARCIALMENTE: 'Parcial', NAO: 'Não realizada', NAO_SE_APLICA: 'N/A' },
-  needed: { SIM: 'Não necessário', PARCIALMENTE: 'Avaliar', NAO: 'Necessário', NAO_SE_APLICA: 'N/A' },
+  compliance: { SIM: 'Conforme', NAO: 'Não conforme', NAO_SE_APLICA: 'N/A' },
+  adequacy: { SIM: 'Adequado', NAO: 'Inadequado', NAO_SE_APLICA: 'N/A' },
+  occurrence: { SIM: 'Não observado', NAO: 'Observado', NAO_SE_APLICA: 'N/A' },
+  yesNo: { SIM: 'Sim', NAO: 'Não', NAO_SE_APLICA: 'N/A' },
+  performed: { SIM: 'Realizada', NAO: 'Não realizada', NAO_SE_APLICA: 'N/A' },
+  needed: { SIM: 'Não necessário', NAO: 'Necessário', NAO_SE_APLICA: 'N/A' },
 } satisfies Record<string, StructuredAnswerLabels>;
 
 const gestao: [keyof AcompanhamentoAmbientalData, string, StructuredAnswerLabels][] = [

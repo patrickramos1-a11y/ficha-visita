@@ -122,7 +122,9 @@ export interface AtendimentoPersonalizadoData {
   respostas: AtendimentoPersonalizadoResposta[];
 }
 
-export type SimNaoParcialNA = 'SIM' | 'NAO' | 'PARCIALMENTE' | 'NAO_SE_APLICA';
+export type RespostaBinariaNA = 'SIM' | 'NAO' | 'NAO_SE_APLICA';
+// PARCIALMENTE permanece apenas para leitura e migração de registros históricos.
+export type SimNaoParcialNA = RespostaBinariaNA | 'PARCIALMENTE';
 export type StatusItemObra = 'PENDENTE' | 'EM_ANDAMENTO' | 'CONCLUIDO';
 export type AvancoObraFaixa = '0-25%' | '26-50%' | '51-75%' | '76-99%' | 'CONCLUIDA';
 

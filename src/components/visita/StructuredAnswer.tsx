@@ -10,11 +10,6 @@ const ANSWERS: { value: SimNaoParcialNA; label: string; className: string }[] = 
     className: 'bg-emerald-600 text-white border-emerald-600',
   },
   {
-    value: 'PARCIALMENTE',
-    label: 'Parcial',
-    className: 'bg-amber-500 text-white border-amber-500',
-  },
-  {
     value: 'NAO',
     label: 'Não conforme',
     className: 'bg-red-600 text-white border-red-600',
@@ -33,8 +28,10 @@ interface StructuredAnswerProps {
 }
 
 export function StructuredAnswer({ value, onChange, labels }: StructuredAnswerProps) {
+  const normalizedValue = value === 'PARCIALMENTE' ? 'NAO' : value;
+
   return (
-    <div className="grid grid-cols-4 gap-1.5" role="radiogroup">
+    <div className="grid grid-cols-3 gap-1.5" role="radiogroup">
       {ANSWERS.map((answer) => {
         const label = labels?.[answer.value] ?? answer.label;
         return (
@@ -42,13 +39,13 @@ export function StructuredAnswer({ value, onChange, labels }: StructuredAnswerPr
             key={answer.value}
             type="button"
             role="radio"
-            aria-checked={value === answer.value}
+            aria-checked={normalizedValue === answer.value}
             aria-label={label}
             onClick={() => onChange(answer.value)}
             className={cn(
               'h-10 min-w-0 rounded-md border px-1.5 text-[11px] leading-tight text-muted-foreground',
-              value === answer.value && 'shadow-sm',
-              value === answer.value && answer.className,
+              normalizedValue === answer.value && 'shadow-sm',
+              normalizedValue === answer.value && answer.className,
             )}
           >
             {label}
@@ -60,5 +57,6 @@ export function StructuredAnswer({ value, onChange, labels }: StructuredAnswerPr
 }
 
 export function structuredAnswerLabel(value?: SimNaoParcialNA) {
+  if (value === 'PARCIALMENTE') return 'Não conforme';
   return ANSWERS.find((answer) => answer.value === value)?.label ?? 'Não informado';
 }

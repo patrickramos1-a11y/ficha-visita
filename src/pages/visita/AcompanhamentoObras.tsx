@@ -29,13 +29,13 @@ const FASES_OBRA = ['Mobilização', 'Terraplenagem', 'Fundação', 'Estrutura',
 const AVANCOS: AvancoObraFaixa[] = ['0-25%', '26-50%', '51-75%', '76-99%', 'CONCLUIDA'];
 const FOTO_ITENS = ['Placa da obra', 'Vista geral da obra', 'Frente de serviço', 'Área construída atual', 'Escavação / terraplenagem', 'Estrutura / concretagem', 'Drenagem', 'Armazenamento de materiais', 'Resíduos da obra', 'Interferência ambiental', 'Vizinhança impactada', 'Acesso de máquinas e caminhões', 'Antes da intervenção', 'Depois da intervenção', 'Não conformidade', 'Correção realizada'];
 const ANSWER_LABELS = {
-  compliance: { SIM: 'Conforme', PARCIALMENTE: 'Parcial', NAO: 'Não conforme', NAO_SE_APLICA: 'N/A' },
-  adequacy: { SIM: 'Adequado', PARCIALMENTE: 'Parcial', NAO: 'Inadequado', NAO_SE_APLICA: 'N/A' },
-  occurrence: { SIM: 'Não observado', PARCIALMENTE: 'Pontual', NAO: 'Observado', NAO_SE_APLICA: 'N/A' },
-  yesNo: { SIM: 'Sim', PARCIALMENTE: 'Parcial', NAO: 'Não', NAO_SE_APLICA: 'N/A' },
-  progress: { SIM: 'Avançou', PARCIALMENTE: 'Parcial', NAO: 'Sem avanço', NAO_SE_APLICA: 'N/A' },
-  schedule: { SIM: 'Dentro', PARCIALMENTE: 'Parcial', NAO: 'Fora', NAO_SE_APLICA: 'N/A' },
-  resolved: { SIM: 'Resolvidas', PARCIALMENTE: 'Parcial', NAO: 'Pendentes', NAO_SE_APLICA: 'N/A' },
+  compliance: { SIM: 'Conforme', NAO: 'Não conforme', NAO_SE_APLICA: 'N/A' },
+  adequacy: { SIM: 'Adequado', NAO: 'Inadequado', NAO_SE_APLICA: 'N/A' },
+  occurrence: { SIM: 'Não observado', NAO: 'Observado', NAO_SE_APLICA: 'N/A' },
+  yesNo: { SIM: 'Sim', NAO: 'Não', NAO_SE_APLICA: 'N/A' },
+  progress: { SIM: 'Avançou', NAO: 'Sem avanço', NAO_SE_APLICA: 'N/A' },
+  schedule: { SIM: 'Dentro', NAO: 'Fora', NAO_SE_APLICA: 'N/A' },
+  resolved: { SIM: 'Resolvidas', NAO: 'Pendentes', NAO_SE_APLICA: 'N/A' },
 } satisfies Record<string, StructuredAnswerLabels>;
 
 const controleAmbiental: [string, string, StructuredAnswerLabels][] = [

@@ -216,7 +216,9 @@ function getDurationLabel(atendimento: any) {
 
 function getConformityPercentage(atendimento: any) {
   if (atendimento.modo === 'personalizado') {
-    return atendimento.percentual_conformidade ?? buildPersonalizadoConformityReport(atendimento.dados_modalidade)?.percentage ?? null;
+    return buildPersonalizadoConformityReport(atendimento.dados_modalidade)?.percentage
+      ?? atendimento.percentual_conformidade
+      ?? null;
   }
   if (!isConformityVisitMode(atendimento.modo) || !atendimento.dados_modalidade) return null;
   const summary = atendimento.modo === 'obras'

@@ -8,7 +8,6 @@ import type {
 
 export type PersonalizadoCounts = {
   conforme: number;
-  parcial: number;
   naoConforme: number;
   naoSeAplica: number;
   registros: number;
@@ -98,7 +97,6 @@ const ACTION_MODULE_MATCHES: Array<[string, string[]]> = [
 
 const emptyCounts = (): PersonalizadoCounts => ({
   conforme: 0,
-  parcial: 0,
   naoConforme: 0,
   naoSeAplica: 0,
   registros: 0,
@@ -106,7 +104,6 @@ const emptyCounts = (): PersonalizadoCounts => ({
 
 function addCounts(target: PersonalizadoCounts, source: PersonalizadoCounts) {
   target.conforme += source.conforme;
-  target.parcial += source.parcial;
   target.naoConforme += source.naoConforme;
   target.naoSeAplica += source.naoSeAplica;
   target.registros += source.registros;
@@ -114,7 +111,7 @@ function addCounts(target: PersonalizadoCounts, source: PersonalizadoCounts) {
 
 function normalizeConformityResponse(response: RespostaConformidadePersonalizada) {
   if (response === 'CONFORME' || response === 'ADEQUADO') return 'ADEQUADO';
-  if (response === 'PARCIAL' || response === 'REQUER_ATENCAO') return 'REQUER_ATENCAO';
+  if (response === 'PARCIAL' || response === 'REQUER_ATENCAO' || response === 'AVALIAR') return 'NAO_CONFORME';
   if (response === 'NAO_CONFORME') return 'NAO_CONFORME';
   if (response === 'NAO_SE_APLICA') return 'NAO_SE_APLICA';
   return response;
@@ -150,14 +147,14 @@ export function canonicalPersonalizadoResponse(
   response: RespostaConformidadePersonalizada,
 ): RespostaConformidadePersonalizada {
   const normalized = normalizeConformityResponse(response);
-  if (['ADEQUADO', 'REQUER_ATENCAO', 'NAO_CONFORME', 'NAO_SE_APLICA'].includes(normalized)) return normalized;
+  if (['ADEQUADO', 'NAO_CONFORME', 'NAO_SE_APLICA'].includes(normalized)) return normalized;
 
   if (item.tipo_resposta === 'SIM_NAO_EVENTO' && (response === 'SIM' || response === 'NAO')) {
     return response === (item.resposta_positiva || 'NAO') ? 'ADEQUADO' : 'NAO_CONFORME';
   }
   if (item.tipo_resposta === 'NECESSIDADE_ACAO') {
     if (response === 'NAO_NECESSARIA') return 'ADEQUADO';
-    if (response === 'AVALIAR') return 'REQUER_ATENCAO';
+    if (response === 'AVALIAR') return 'NAO_CONFORME';
     if (response === 'NECESSARIA') return 'NAO_CONFORME';
   }
   return response;
@@ -167,14 +164,14 @@ function responseLabel(response: RespostaConformidadePersonalizada) {
   const labels: Record<string, string> = {
     CONFORME: 'Sim',
     ADEQUADO: 'Sim',
-    PARCIAL: 'Atenção',
-    REQUER_ATENCAO: 'Atenção',
+    PARCIAL: 'Não',
+    REQUER_ATENCAO: 'Não',
     NAO_CONFORME: 'Não',
     NAO_SE_APLICA: 'N/A',
     SIM: 'Sim',
     NAO: 'Não',
     NAO_NECESSARIA: 'Não necessária',
-    AVALIAR: 'Avaliar',
+    AVALIAR: 'Não',
     NECESSARIA: 'Necessária',
     REGISTRO: 'Registro',
   };
@@ -191,7 +188,6 @@ function evaluateResponse(item: AtendimentoPersonalizadoItem, response: Resposta
 
   const canonical = canonicalPersonalizadoResponse(item, response);
   if (canonical === 'ADEQUADO') return { score: 100, bucket: 'conforme' as const };
-  if (canonical === 'REQUER_ATENCAO') return { score: 50, bucket: 'parcial' as const };
   if (canonical === 'NAO_CONFORME') return { score: 0, bucket: 'naoConforme' as const };
 
   if (tipo === 'SIM_NAO_EVENTO') {
@@ -203,20 +199,19 @@ function evaluateResponse(item: AtendimentoPersonalizadoItem, response: Resposta
 
   if (tipo === 'NECESSIDADE_ACAO') {
     if (response === 'NAO_NECESSARIA') return { score: 100, bucket: 'conforme' as const };
-    if (response === 'AVALIAR') return { score: 50, bucket: 'parcial' as const };
+    if (response === 'AVALIAR') return { score: 0, bucket: 'naoConforme' as const };
     if (response === 'NECESSARIA') return { score: 0, bucket: 'naoConforme' as const };
   }
 
   const normalized = normalizeConformityResponse(response);
   if (normalized === 'ADEQUADO') return { score: 100, bucket: 'conforme' as const };
-  if (normalized === 'REQUER_ATENCAO') return { score: 50, bucket: 'parcial' as const };
   if (normalized === 'NAO_CONFORME') return { score: 0, bucket: 'naoConforme' as const };
   return { score: null, bucket: null };
 }
 
 function isAttentionResponse(item: AtendimentoPersonalizadoItem, response: RespostaConformidadePersonalizada) {
   const result = evaluateResponse(item, response);
-  return result.bucket === 'parcial' || result.bucket === 'naoConforme';
+  return result.bucket === 'naoConforme';
 }
 
 function alertSeverity(item: AtendimentoPersonalizadoItem, response: RespostaConformidadePersonalizada): 'attention' | 'critical' {
