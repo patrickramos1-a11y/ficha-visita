@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,6 @@ import {
   Leaf,
   Loader2,
   MessageSquareText,
-  PlusCircle,
   Search,
   ShieldCheck,
   Wrench,
@@ -67,16 +66,15 @@ const ACTION_GROUP_THEMES: Record<string, ActionGroupTheme> = {
   'Treinamento ambiental': { icon: GraduationCap, frame: 'border-lime-200', header: 'border-lime-200 bg-lime-50', iconBox: 'bg-lime-600 text-white', count: 'bg-lime-100 text-lime-900', action: 'border-lime-200 bg-white hover:border-lime-400 hover:bg-lime-50/60', actionSelected: 'border-lime-700 bg-lime-700 text-white', badge: 'bg-lime-100 text-lime-800' },
   'Levantamento técnico': { icon: Search, frame: 'border-blue-200', header: 'border-blue-200 bg-blue-50', iconBox: 'bg-blue-600 text-white', count: 'bg-blue-100 text-blue-900', action: 'border-blue-200 bg-white hover:border-blue-400 hover:bg-blue-50/60', actionSelected: 'border-blue-600 bg-blue-600 text-white', badge: 'bg-blue-100 text-blue-800' },
   'Monitoramento ambiental': { icon: Activity, frame: 'border-fuchsia-200', header: 'border-fuchsia-200 bg-fuchsia-50', iconBox: 'bg-fuchsia-600 text-white', count: 'bg-fuchsia-100 text-fuchsia-900', action: 'border-fuchsia-200 bg-white hover:border-fuchsia-400 hover:bg-fuchsia-50/60', actionSelected: 'border-fuchsia-600 bg-fuchsia-600 text-white', badge: 'bg-fuchsia-100 text-fuchsia-800' },
-  'Ações adicionais': { ...DEFAULT_GROUP_THEME, icon: PlusCircle },
 };
 
 export default function AcoesEspecificas() {
   useVisitRoute('/visita/acoes');
   const navigate = useNavigate();
   const { data, setAcoesEspecificas } = useAtendimento();
-  const { data: acoes, isLoading } = useAcoesEspecificasConfig();
-  const { data: tipos = [] } = useTiposAtendimentoConfig();
-  const { data: links = [] } = useTipoAtendimentoAcoes();
+  const { data: acoes, isLoading: isLoadingAcoes } = useAcoesEspecificasConfig();
+  const { data: tipos = [], isLoading: isLoadingTipos } = useTiposAtendimentoConfig();
+  const { data: links = [], isLoading: isLoadingLinks } = useTipoAtendimentoAcoes();
   const [selectedAcoes, setSelectedAcoes] = useState<string[]>(() => Array.from(new Set(data.acoes_especificas.map(canonicalizeActionName))));
   const steps = getVisitStepsForMode(data.modo);
 
@@ -87,17 +85,26 @@ export default function AcoesEspecificas() {
   };
 
   const handleContinue = () => {
-    setAcoesEspecificas(selectedAcoes);
+    const availableNames = new Set(availableAcoes.map((acao: any) => acao.nome));
+    setAcoesEspecificas(selectedAcoes.filter((acao) => availableNames.has(acao)));
     navigate('/visita/demandas');
   };
 
-  const natureza = data.natureza ?? 'ATENDIMENTO';
-  const baseAcoes = data.modo === 'personalizado'
-    ? (data.atendimento_personalizado?.acoes ?? []).filter((a: any) => a.ativo !== false)
-    : (acoes || []).filter((a: any) => a.ativo !== false && (a.naturezas ?? ['ATENDIMENTO']).includes(natureza));
-  const selectedTypes = Array.from(new Set(data.tipos_atendimento.map(canonicalizeTypeName)));
+  const natureza = data.modo === 'personalizado' ? 'ATENDIMENTO' : data.natureza ?? 'ATENDIMENTO';
+  const baseAcoes = useMemo(() => (acoes || []).filter(
+    (a: any) => a.ativo !== false && (a.naturezas ?? ['ATENDIMENTO']).includes(natureza),
+  ), [acoes, natureza]);
+  const activeTypeNames = useMemo(() => new Set(
+    tipos
+      .filter((tipo: any) => tipo.ativo !== false && (tipo.naturezas ?? ['ATENDIMENTO']).includes(natureza))
+      .map((tipo: any) => tipo.nome),
+  ), [natureza, tipos]);
+  const selectedTypes = useMemo(
+    () => Array.from(new Set(data.tipos_atendimento.map(canonicalizeTypeName))).filter((tipo) => activeTypeNames.has(tipo)),
+    [activeTypeNames, data.tipos_atendimento],
+  );
   const actionGroups = useMemo(() => {
-    if (data.modo === 'personalizado' || natureza !== 'ATENDIMENTO') {
+    if (natureza !== 'ATENDIMENTO') {
       return [{ tipo: 'Ações disponíveis', acoes: baseAcoes }];
     }
 
@@ -121,15 +128,20 @@ export default function AcoesEspecificas() {
       ...group,
       acoes: group.acoes.filter((acao: any) => ownerByAction.get(acao.nome)?.tipo === group.tipo),
     }));
-    const visibleNames = new Set(grouped.flatMap((group) => group.acoes.map((acao: any) => acao.nome)));
-    const extras = baseAcoes
-      .filter((acao: any) => selectedAcoes.includes(acao.nome) && !visibleNames.has(acao.nome))
-      .map((acao: any) => ({ ...acao, relationLabel: 'Adicional' }));
+    return grouped;
+  }, [baseAcoes, links, natureza, selectedTypes, tipos]);
+  const availableAcoes = useMemo(() => actionGroups.flatMap((group) => group.acoes), [actionGroups]);
+  const loadingOptions = isLoadingAcoes || isLoadingTipos || isLoadingLinks;
 
-    return extras.length ? [...grouped, { tipo: 'Ações adicionais', acoes: extras }] : grouped;
-  }, [baseAcoes, data.modo, links, natureza, selectedAcoes, selectedTypes, tipos]);
-  const availableAcoes = actionGroups.flatMap((group) => group.acoes);
-  const loadingOptions = data.modo === 'personalizado' ? false : isLoading;
+  useEffect(() => {
+    if (loadingOptions) return;
+    const availableNames = new Set(availableAcoes.map((acao: any) => acao.nome));
+    setSelectedAcoes((current) => {
+      const next = current.filter((acao) => availableNames.has(acao));
+      return next.length === current.length ? current : next;
+    });
+  }, [availableAcoes, loadingOptions]);
+
   const formatTopicoSubtopico = (item: any) =>
     [item?.topicos?.nome, item?.subtopicos?.nome].filter(Boolean).join(' › ');
 
@@ -151,7 +163,7 @@ export default function AcoesEspecificas() {
           <div className="space-y-5">
             {actionGroups.filter((group) => group.acoes.length > 0).map((group, groupIndex) => {
               const theme = ACTION_GROUP_THEMES[group.tipo] ?? DEFAULT_GROUP_THEME;
-              const GroupIcon = data.modo === 'personalizado' ? Wrench : theme.icon;
+              const GroupIcon = theme.icon;
               return (
               <section key={group.tipo} className={cn('overflow-hidden rounded-lg border', theme.frame)}>
                 <div className={cn('flex items-center gap-2.5 border-b px-3 py-2.5', theme.header)}>
@@ -186,7 +198,7 @@ export default function AcoesEspecificas() {
                         </span>
                         <span className="min-w-0 flex-1 font-medium leading-4">{acao.nome}</span>
                         <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase', selected ? 'bg-white/15 text-white/85' : theme.badge)}>
-                          {data.modo === 'personalizado' ? '' : acao.relationLabel || formatTopicoSubtopico(acao)}
+                          {acao.relationLabel || formatTopicoSubtopico(acao)}
                         </span>
                       </button>
                     );
@@ -196,7 +208,7 @@ export default function AcoesEspecificas() {
               );
             })}
           </div>
-        ) : data.modo !== 'personalizado' && natureza === 'ATENDIMENTO' && data.tipos_atendimento.length === 0 ? (
+        ) : natureza === 'ATENDIMENTO' && selectedTypes.length === 0 ? (
           <EmptyState icon={Wrench} title="Selecione primeiro o tipo de atendimento" description="As ações serão apresentadas conforme o serviço escolhido." />
         ) : selectedAcoes.length > 0 ? (
           <EmptyState icon={Check} title="Todas as ações selecionadas" />

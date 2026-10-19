@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileLayout } from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
@@ -28,17 +28,27 @@ export default function TiposAtendimento() {
     );
   };
 
+  const q = search.trim().toLowerCase();
+  const natureza = data.modo === 'personalizado' ? 'ATENDIMENTO' : data.natureza ?? 'ATENDIMENTO';
+  const ativos = useMemo(() => (tipos || []).filter(
+    (t: any) => t.ativo !== false && (t.naturezas ?? ['ATENDIMENTO']).includes(natureza),
+  ), [natureza, tipos]);
+  const loadingOptions = isLoading;
+
+  useEffect(() => {
+    if (loadingOptions) return;
+    const activeNames = new Set(ativos.map((tipo: any) => tipo.nome));
+    setSelectedTipos((current) => {
+      const next = Array.from(new Set(current.map(canonicalizeTypeName))).filter((nome) => activeNames.has(nome));
+      return next.length === current.length && next.every((nome, index) => nome === current[index]) ? current : next;
+    });
+  }, [ativos, loadingOptions]);
+
   const handleContinue = () => {
     setTiposAtendimento(selectedTipos);
     navigate('/visita/acoes');
   };
 
-  const q = search.trim().toLowerCase();
-  const natureza = data.natureza ?? 'ATENDIMENTO';
-  const ativos = data.modo === 'personalizado'
-    ? (data.atendimento_personalizado?.tipos ?? []).filter((t: any) => t.ativo !== false)
-    : (tipos || []).filter((t: any) => t.ativo !== false && (t.naturezas ?? ['ATENDIMENTO']).includes(natureza));
-  const loadingOptions = data.modo === 'personalizado' ? false : isLoading;
   const availableTipos = ativos
     .filter((t: any) =>
       !q || t.nome.toLowerCase().includes(q) || (t.descricao || '').toLowerCase().includes(q)
@@ -87,7 +97,7 @@ export default function TiposAtendimento() {
                 onClick={() => toggleTipo(tipoConfig.nome)}
                 selected={selectedTipos.includes(tipoConfig.nome)}
                 label={tipoConfig.nome}
-                meta={data.modo === 'personalizado' ? '' : formatTopicoSubtopico(tipoConfig)}
+                meta={formatTopicoSubtopico(tipoConfig)}
                 kind="tipo"
               />
             ))}

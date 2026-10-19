@@ -15,7 +15,9 @@ export function RegistroVisita() {
   const { data: acoes = [] } = useAcoesEspecificasConfig();
   const { data: links = [] } = useTipoAtendimentoAcoes();
   const [note, setNote] = useState('');
-  const natureza = data.natureza ?? (data.modo === 'obras' ? 'OBRAS' : data.modo === 'ambiental' ? 'AMBIENTAL' : data.modo === 'processos' ? 'PROCESSOS' : 'ATENDIMENTO');
+  const natureza = data.modo === 'personalizado'
+    ? 'ATENDIMENTO'
+    : data.natureza ?? (data.modo === 'obras' ? 'OBRAS' : data.modo === 'ambiental' ? 'AMBIENTAL' : data.modo === 'processos' ? 'PROCESSOS' : 'ATENDIMENTO');
 
   const toggle = (items: string[], value: string, set: (next: string[]) => void) =>
     set(items.includes(value) ? items.filter(item => item !== value) : [...items, value]);
