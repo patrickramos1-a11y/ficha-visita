@@ -75,6 +75,10 @@ function formatDuration(start?: string | null, end?: string | null) {
   return remaining ? `${hours}h ${remaining}min` : `${hours}h`;
 }
 
+function evidenceAnchorId(code: string) {
+  return `evidencia-${code.toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]+/g, '-')}`;
+}
+
 function Counts({ counts }: { counts: ConformityCounts }) {
   return (
     <div className="grid grid-cols-3 gap-1.5 text-center text-[11px] sm:gap-2 sm:text-xs">
@@ -410,6 +414,12 @@ export default function RelatorioVisita() {
   for (const module of personalizedReport?.modules ?? []) {
     for (const item of module.items) personalizedItemContext.set(item.id, { moduleTitle: module.title, itemLabel: item.label });
   }
+  const getEvidencePresentation = (evidence: (typeof evidenceGroups)[number]) => {
+    const contexts = evidence.itemIds.map((itemId) => personalizedItemContext.get(itemId)).filter(Boolean) as Array<{ moduleTitle: string; itemLabel: string }>;
+    const moduleTitles = [...new Set(contexts.map((context) => context.moduleTitle))];
+    const title = moduleTitles.length ? moduleTitles.join(' • ') : evidence.types.includes('final') ? 'Registro final da visita' : 'Registro geral da visita';
+    return { contexts, moduleTitles, title };
+  };
   const scoredPersonalizedItems = personalizedReport
     ? personalizedReport.counts.conforme + personalizedReport.counts.naoConforme
     : 0;
@@ -495,6 +505,36 @@ export default function RelatorioVisita() {
               </div>
             )}
           </div>
+
+          {evidenceGroups.length > 0 ? (
+            <div className="mt-5 border-t pt-4">
+              <div className="mb-2.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Image className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold">Evidências fotográficas</h2>
+                </div>
+                <span className="text-xs tabular-nums text-muted-foreground">{evidenceGroups.length} {evidenceGroups.length === 1 ? 'imagem' : 'imagens'}</span>
+              </div>
+              <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible">
+                {evidenceGroups.map((evidence) => {
+                  const { title } = getEvidencePresentation(evidence);
+                  return (
+                    <a
+                      key={evidence.code}
+                      href={`#${evidenceAnchorId(evidence.code)}`}
+                      data-evidence-thumbnail={evidence.code}
+                      className="group relative h-14 w-16 shrink-0 snap-start overflow-hidden rounded-md border bg-muted shadow-sm outline-none transition hover:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:h-16 sm:w-20"
+                      aria-label={`Ir para ${evidence.code}: ${title}`}
+                      title={`${evidence.code}: ${title}`}
+                    >
+                      <img src={evidence.photo.foto_url} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="eager" decoding="async" />
+                      <span className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-center text-[10px] font-semibold text-white">{evidence.code}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         {editMode && (
@@ -770,11 +810,14 @@ export default function RelatorioVisita() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {evidenceGroups.map((evidence) => {
-                const contexts = evidence.itemIds.map((itemId) => personalizedItemContext.get(itemId)).filter(Boolean) as Array<{ moduleTitle: string; itemLabel: string }>;
-                const moduleTitles = [...new Set(contexts.map((context) => context.moduleTitle))];
-                const evidenceTitle = moduleTitles.length ? moduleTitles.join(' • ') : evidence.types.includes('final') ? 'Registro final da visita' : 'Registro geral da visita';
+                const { contexts, moduleTitles, title: evidenceTitle } = getEvidencePresentation(evidence);
                 return (
-                  <figure key={evidence.code} className="overflow-hidden border bg-card">
+                  <figure
+                    key={evidence.code}
+                    id={evidenceAnchorId(evidence.code)}
+                    data-evidence-card={evidence.code}
+                    className="scroll-mt-6 overflow-hidden border bg-card"
+                  >
                     <img src={evidence.photo.foto_url} alt={`${evidence.code}: ${evidenceTitle}`} className="aspect-[4/3] w-full object-cover" loading="lazy" />
                     <figcaption className="space-y-3 p-4">
                       <div className="flex items-start justify-between gap-3">
