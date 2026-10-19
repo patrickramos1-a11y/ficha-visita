@@ -5,7 +5,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   AlertTriangle,
-  ArrowLeft,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -462,13 +461,10 @@ export default function RelatorioVisita() {
   return (
     <div className="min-h-screen bg-muted/30">
       <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <button type="button" onClick={() => navigate('/desktop/historico')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground" aria-label="Voltar ao histórico">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Histórico</span>
-          </button>
+        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 sm:px-6">
+          <span aria-hidden="true" />
           <img src={logoHorizontal} alt="Ramos Engenharia" className="h-8 max-w-[150px] object-contain" />
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-self-end gap-1">
             <Button type="button" variant="ghost" size="icon" onClick={copyLink} title="Copiar link"><Copy className="h-4 w-4" /></Button>
             <Button type="button" size="sm" onClick={shareReport} className="gap-2"><Share2 className="h-4 w-4" /><span className="hidden sm:inline">Compartilhar</span></Button>
           </div>
